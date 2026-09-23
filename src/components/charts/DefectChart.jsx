@@ -7,7 +7,7 @@ export default function DefectChart({ data }) {
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={data}>
         <CartesianGrid {...gridProps} />
-        <XAxis dataKey="sprint" {...sprintAxisProps(data)} />
+        <XAxis dataKey="sprint" {...sprintAxisProps(data)} padding={{ left: 36, right: 36 }} />
         <YAxis {...axisProps} width={28} allowDecimals={false} />
         <Tooltip {...tooltipProps} />
         <Legend {...legendProps} />

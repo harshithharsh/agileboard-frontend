@@ -15,6 +15,7 @@ import ScopeChart from './components/charts/ScopeChart.jsx';
 import DefectChart from './components/charts/DefectChart.jsx';
 import BurndownChart from './components/charts/BurndownChart.jsx';
 import BusinessValueChart from './components/charts/BusinessValueChart.jsx';
+import DefectRateChart from './components/charts/DefectRateChart.jsx';
 import { resolveFilters } from './lib/filters.js';
 
 const EMPTY_FILTERS = { projectId: null, teamId: null, releaseId: null, sprintId: null, assigneeId: null, range: '6' };
@@ -131,6 +132,12 @@ export default function App() {
                 </div>
                 <Card title="Defects created vs closed" badge={`UAT ${data.quality.current.uatPct}% · Prod ${data.quality.current.prodPct}%`}>
                   <DefectChart data={data.quality.trend} />
+                </Card>
+                <Card title="Defect rate & defect density" badge="per open defect">
+                  <DefectRateChart data={data.quality.trend} />
+                  {data.quality.trend.some((t) => t.defectRate === null) && (
+                    <p className="muted chart-note">Sprints with no open defects have no value (division by zero).</p>
+                  )}
                 </Card>
               </Section>
             </div>
