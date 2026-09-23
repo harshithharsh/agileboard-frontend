@@ -16,6 +16,7 @@ export const formatDateTime = (iso) =>
 export const COLORS = {
   primary: '#2f6fdb',
   primarySoft: '#b9d0f5',
+  primaryMid: '#7fa3e6',
   success: '#2e8b57',
   warning: '#d19a2a',
   danger: '#d9534f',
