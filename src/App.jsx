@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from './api/client.js';
 import { exportDashboardCsv } from './lib/exportCsv.js';
-import { STATUS_LABEL } from './lib/format.js';
+import { STATUS_LABEL, formatDateTime } from './lib/format.js';
 import Header from './components/Header.jsx';
 import FilterBar from './components/FilterBar.jsx';
 import { Section, Card, StatusPill } from './components/Section.jsx';
@@ -9,7 +9,6 @@ import SummaryCards from './components/SummaryCards.jsx';
 import FlowMetrics from './components/FlowMetrics.jsx';
 import HealthTable from './components/HealthTable.jsx';
 import Compliance from './components/Compliance.jsx';
-import Insights from './components/Insights.jsx';
 import DeliveryChart from './components/charts/DeliveryChart.jsx';
 import VelocityChart from './components/charts/VelocityChart.jsx';
 import ScopeChart from './components/charts/ScopeChart.jsx';
@@ -34,16 +33,22 @@ export default function App() {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState(null);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    api.getFilters()
-      .then((opts) => {
-        setOptions(opts);
-        setFilters((f) => resolveFilters(f, opts));
-      })
-      .catch((e) => setError(e.message));
-  }, []);
+  const loadFilters = useCallback(
+    () =>
+      api.getFilters()
+        .then((opts) => {
+          setOptions(opts);
+          setFilters((f) => resolveFilters(f, opts));
+        })
+        .catch((e) => setError(e.message)),
+    []
+  );
+
+  useEffect(() => { loadFilters(); }, [loadFilters]);
 
   const load = useCallback(() => {
     if (!filters.teamId) return;
@@ -51,21 +56,47 @@ export default function App() {
     setError(null);
     api.getDashboard(filters)
       .then(setData)
-      .catch((e) => setError(e.message))
+      .catch((e) => {
+        setData(null);
+        setError(e.message);
+      })
       .finally(() => setLoading(false));
   }, [filters]);
 
   useEffect(load, [load]);
 
+  // Refresh = pull the latest sprints and issues from Jira, then reload the view
+  const refresh = async () => {
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      await api.syncFromJira();
+    } catch (e) {
+      setSyncError(e.message);
+    } finally {
+      setSyncing(false);
+    }
+    await loadFilters();
+    load();
+  };
+
   const updateFilters = (patch) => setFilters((f) => resolveFilters({ ...f, ...patch }, options));
 
   return (
     <div className="app">
-      <Header context={data?.context} loading={loading} onRefresh={load} onExport={() => data && exportDashboardCsv(data)} />
+      <Header context={data?.context} loading={loading || syncing} syncing={syncing} onRefresh={refresh} onExport={() => data && exportDashboardCsv(data)} />
       <main className={loading ? 'is-loading' : ''}>
         {options && <FilterBar options={options} filters={filters} onChange={updateFilters} />}
-        {error && <div className="card error">Could not load the dashboard: {error}</div>}
-        {!data && !error && <div className="card empty">Loading dashboard…</div>}
+        {syncError && <div className="card warning">Could not sync from Jira: {syncError}. Showing the last synced data.</div>}
+        {error && (
+          <div className={`card ${/no sprints/i.test(error) ? 'empty' : 'error'}`}>
+            {/no sprints/i.test(error) ? 'No sprints synced for this team yet. Click Refresh to pull them from Jira.' : `Could not load the dashboard: ${error}`}
+          </div>
+        )}
+        {options && !options.sprints.length && !error && (
+          <div className="card empty">No sprints yet. Click <b>Refresh</b> (or run <code>npm run sync</code> in the backend) to pull sprints from Jira.</div>
+        )}
+        {!data && !error && options?.sprints.length > 0 && <div className="card empty">Loading dashboard…</div>}
 
         {data && (
           <>
@@ -125,13 +156,9 @@ export default function App() {
               </Section>
             </div>
 
-            <Section number={9} title="Executive insights" aside="Generated from dashboard data">
-              <Insights insights={data.insights} />
-            </Section>
-
             <footer className="footer">
               <span>{data.context.project.name} / {data.context.team.name} · Agile delivery analytics</span>
-              <span>Source: sprint board, defect tracker, and quality checks</span>
+              <span>Source: Jira boards, synced {data.context.sync.lastSuccessAt ? formatDateTime(data.context.sync.lastSuccessAt) : 'never'}</span>
             </footer>
           </>
         )}

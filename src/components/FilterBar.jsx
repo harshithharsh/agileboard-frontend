@@ -30,7 +30,12 @@ export default function FilterBar({ options, filters, onChange }) {
   const assignees = options.assignees.filter((a) => a.team_id === filters.teamId);
   const toOptions = (list) => list.map((x) => ({ value: x.id, label: x.name }));
   const teamName = teams.find((t) => t.id === filters.teamId)?.name ?? '';
-  const sprintOptions = sprints.map((s) => ({ value: s.id, label: `${teamName} ${s.name} · ${formatRange(s.start_date, s.end_date)}${s.status === 'active' ? ' (active)' : ''}` }));
+  // Jira sprint names usually already include the team ("Nexus Sprint 2"); only prefix when they don't
+  const sprintLabel = (s) => (s.name.toLowerCase().startsWith(teamName.toLowerCase()) ? s.name : `${teamName} ${s.name}`);
+  const sprintOptions = sprints.map((s) => ({
+    value: s.id,
+    label: `${sprintLabel(s)} · ${formatRange(s.start_date, s.end_date)}${s.status === 'active' ? ' (active)' : ''}`,
+  }));
 
   return (
     <section className="card filters">
