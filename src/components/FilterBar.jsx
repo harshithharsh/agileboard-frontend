@@ -1,4 +1,5 @@
 import { FilterIcon, ClearIcon } from './Icons.jsx';
+import { ALL_TEAMS, teamsFor, sprintsFor, assigneesFor } from '../lib/filters.js';
 
 const RANGES = [
   { value: '6', label: 'Last 6 sprints' },
@@ -22,13 +23,15 @@ function Select({ label, value, onChange, options, placeholder }) {
 }
 
 export default function FilterBar({ options, filters, onChange, onClear, isDefault }) {
-  const teams = options.teams.filter((t) => t.project_id === filters.projectId);
+  const teams = teamsFor(options, filters.projectId);
   const releases = options.releases.filter((r) => r.project_id === filters.projectId);
-  const sprints = options.sprints.filter(
-    (s) => s.team_id === filters.teamId && (!filters.releaseId || s.release_id === filters.releaseId)
-  );
-  const assignees = options.assignees.filter((a) => a.team_id === filters.teamId);
+  const sprints = sprintsFor(options, filters);
+  const assignees = assigneesFor(options, filters);
   const toOptions = (list) => list.map((x) => ({ value: x.id, label: x.name }));
+  const teamOptions = [
+    ...(teams.length > 1 ? [{ value: ALL_TEAMS, label: 'All teams' }] : []),
+    ...toOptions(teams),
+  ];
   // Jira sprint names already say which team they belong to ("Nexus Sprint 2")
   const sprintOptions = sprints.map((s) => ({
     value: s.id,
@@ -47,7 +50,7 @@ export default function FilterBar({ options, filters, onChange, onClear, isDefau
       <div className="filters-grid">
         <Select label="Project" value={filters.projectId} options={toOptions(options.projects)}
           onChange={(v) => onChange({ projectId: v, teamId: null, releaseId: null, sprintId: null, assigneeId: null })} />
-        <Select label="Team" value={filters.teamId} options={toOptions(teams)}
+        <Select label="Team" value={filters.teamId} options={teamOptions}
           onChange={(v) => onChange({ teamId: v, sprintId: null, assigneeId: null })} />
         <Select label="Sprint" value={filters.sprintId} options={sprintOptions}
           onChange={(v) => onChange({ sprintId: v })} />

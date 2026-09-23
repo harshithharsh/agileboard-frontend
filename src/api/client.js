@@ -12,8 +12,9 @@ async function request(path, options) {
 export const api = {
   getFilters: () => request('/filters'),
   syncFromJira: () => request('/sync', { method: 'POST' }),
-  getDashboard: ({ teamId, sprintId, assigneeId, range }) => {
-    const params = new URLSearchParams({ teamId });
+  // teamId 'all' = every team in the project combined
+  getDashboard: ({ projectId, teamId, sprintId, assigneeId, range }) => {
+    const params = new URLSearchParams(teamId === 'all' ? { projectId } : { teamId });
     if (sprintId) params.set('sprintId', sprintId);
     if (assigneeId) params.set('assigneeId', assigneeId);
     if (range) params.set('range', range);

@@ -15,19 +15,9 @@ import ScopeChart from './components/charts/ScopeChart.jsx';
 import DefectChart from './components/charts/DefectChart.jsx';
 import BurndownChart from './components/charts/BurndownChart.jsx';
 import BusinessValueChart from './components/charts/BusinessValueChart.jsx';
+import { resolveFilters } from './lib/filters.js';
 
 const EMPTY_FILTERS = { projectId: null, teamId: null, releaseId: null, sprintId: null, assigneeId: null, range: '6' };
-
-// Fill in defaults (first project/team, latest sprint) whenever a parent filter is cleared.
-function resolveFilters(filters, options) {
-  const next = { ...filters };
-  next.projectId ??= options.projects[0]?.id ?? null;
-  next.teamId ??= options.teams.find((t) => t.project_id === next.projectId)?.id ?? null;
-  next.sprintId ??= options.sprints.find(
-    (s) => s.team_id === next.teamId && (!next.releaseId || s.release_id === next.releaseId)
-  )?.id ?? null; // sprints arrive newest first
-  return next;
-}
 
 export default function App() {
   const [options, setOptions] = useState(null);

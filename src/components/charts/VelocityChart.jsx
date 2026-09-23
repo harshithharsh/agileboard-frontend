@@ -1,13 +1,13 @@
 import { ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceArea } from 'recharts';
 import { COLORS } from '../../lib/format.js';
-import { axisProps, gridProps, tooltipProps, legendProps } from './common.jsx';
+import { axisProps, gridProps, tooltipProps, legendProps, sprintAxisProps } from './common.jsx';
 
 export default function VelocityChart({ data, band }) {
   return (
     <ResponsiveContainer width="100%" height={260}>
       <ComposedChart data={data}>
         <CartesianGrid {...gridProps} />
-        <XAxis dataKey="sprint" {...axisProps} />
+        <XAxis dataKey="sprint" {...sprintAxisProps(data)} />
         <YAxis yAxisId="sp" {...axisProps} width={32} />
         <YAxis yAxisId="pct" orientation="right" domain={[(min) => Math.min(60, Math.floor(min / 10) * 10), 100]} {...axisProps} width={36} unit="%" />
         <Tooltip {...tooltipProps} />
