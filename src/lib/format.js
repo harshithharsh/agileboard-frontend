@@ -19,4 +19,6 @@ export const COLORS = {
   danger: '#d9534f',
   muted: '#8a94a6',
   grid: '#e6e9ef',
+  teal: '#0f7c91',
+  gold: '#d99a1e',
 };

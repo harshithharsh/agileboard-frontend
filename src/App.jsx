@@ -14,6 +14,7 @@ import VelocityChart from './components/charts/VelocityChart.jsx';
 import ScopeChart from './components/charts/ScopeChart.jsx';
 import DefectChart from './components/charts/DefectChart.jsx';
 import BurndownChart from './components/charts/BurndownChart.jsx';
+import BusinessValueChart from './components/charts/BusinessValueChart.jsx';
 
 const EMPTY_FILTERS = { projectId: null, teamId: null, releaseId: null, sprintId: null, assigneeId: null, range: '6' };
 
@@ -116,6 +117,9 @@ export default function App() {
                   <VelocityChart data={data.delivery} band={data.velocityBand} />
                 </Card>
               </div>
+              <Card title="Completion and Business Value (%)" badge="Business value = stories completed ÷ stories planned">
+                <BusinessValueChart data={data.delivery} />
+              </Card>
             </Section>
 
             <Section number={3} title="Flow metrics" aside="Efficiency of work in motion">
