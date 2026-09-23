@@ -6,7 +6,7 @@ import { axisProps, gridProps, tooltipProps, legendProps, sprintAxisProps } from
 function formatValue(value, name, { payload }) {
   if (name === 'Business Value %') {
     if (value === null || value === undefined) return ['No planned stories', name];
-    return [`${value}% (${payload.storiesCompleted} of ${payload.storiesPlanned} stories)`, name];
+    return [`${value}% (${payload.storiesCompleted} of ${payload.storiesTotal} stories)`, name];
   }
   return [`${value}%`, name];
 }

@@ -108,7 +108,7 @@ export default function App() {
                   <VelocityChart data={data.delivery} band={data.velocityBand} />
                 </Card>
               </div>
-              <Card title="Completion and Business Value (%)" badge="Business Value = Stories Completed ÷ Stories Planned">
+              <Card title="Completion and Business Value (%)" badge="Business Value = Stories Completed ÷ Total Stories">
                 <BusinessValueChart data={data.delivery} />
               </Card>
             </Section>
