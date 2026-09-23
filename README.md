@@ -20,7 +20,7 @@ To point at another API, set `VITE_API_URL` in `.env.local`.
 7. Sprint burndown: ideal vs actual remaining
 8. Process compliance: DoR, DoD, acceptance criteria, code review, tests, automation
 
-Filters: project, team, sprint, release, date range (trend length) and assignee. For a project with several teams, Team defaults to **All Teams**, which combines them (e.g. Fibi = Nexo + Vertex); pick a team to see it on its own. In All Teams, **Show As** switches between **Team Total** (teams added together) and **Team Average** (each metric averaged across the teams). Each dropdown only lists options for the selection above it: teams for the project, and sprints and assignees for the team. **Refresh** pulls the latest data from Jira through the backend. **Export** downloads a CSV of the headline numbers.
+Filters: project, team, sprint, release, date range (trend length) and assignee. Each dropdown only lists options for the selection above it: teams for the project, and sprints and assignees for the team. **Refresh** pulls the latest data from Jira through the backend. **Export** downloads a CSV of the headline numbers.
 
 ## Structure
 - `src/App.jsx` – page layout and filter state

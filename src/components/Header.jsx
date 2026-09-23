@@ -10,7 +10,7 @@ export default function Header({ context, onRefresh, onExport, loading, syncing 
           <h1>Agile Sprint Performance Dashboard</h1>
           {context && (
             <p className="breadcrumb">
-              {context.project.name}<span>·</span>{context.team.name}{context.combine === 'average' ? ' (Average)' : ''}<span>·</span>{/sprint/i.test(context.sprint.name) || !context.team.id ? '' : 'Sprint '}{context.sprint.name}
+              {context.project.name}<span>·</span>{context.team.name}<span>·</span>{/sprint/i.test(context.sprint.name) ? '' : 'Sprint '}{context.sprint.name}
               {context.sprint.status === 'active' && <em className="live">Active</em>}
             </p>
           )}

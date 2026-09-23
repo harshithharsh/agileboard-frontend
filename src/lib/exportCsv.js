@@ -9,7 +9,7 @@ const COMPLIANCE_LABELS = {
   automation: 'Automation Coverage',
 };
 
-// "All Teams" + "Nexo 12 / Vertex 13" -> "all-teams-nexo-12-vertex-13"
+// "Vertex" + "Vertex Sprint 13" -> "vertex-sprint-13"
 const slug = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 // Builds a CSV of the dashboard's headline numbers and triggers a download.
