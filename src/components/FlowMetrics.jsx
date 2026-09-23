@@ -1,16 +1,56 @@
 import { StatusPill } from './Section.jsx';
+import IssueKey from './IssueKey.jsx';
 
-function FlowCard({ title, value, caption, status, children }) {
+function FlowCard({ title, value, caption, status, children, popover }) {
   return (
-    <div className="card flow">
+    <div className={`card flow${popover ? ' has-popover' : ''}`} tabIndex={popover ? 0 : undefined}>
       <div className="flow-head"><h3>{title}</h3><span className={`dot dot-${status}`} /></div>
       <div className="flow-value"><strong>{value}</strong><span>{caption}</span></div>
       <ul className="flow-list">{children}</ul>
+      {popover && <div className="popover" role="tooltip">{popover}</div>}
     </div>
   );
 }
 
-export default function FlowMetrics({ flow }) {
+// Hover panel for Blocked Work: each blocked Jira issue, how long, and whether it is still blocked
+function BlockedList({ list, jiraBaseUrl }) {
+  // One row per issue: an issue blocked several times shows its total blocked time
+  const byIssue = new Map();
+  for (const b of list) {
+    const row = byIssue.get(b.issueKey) ?? { ...b, days: 0, times: 0, reasons: new Set() };
+    row.days = Math.round((row.days + b.days) * 10) / 10;
+    row.times += 1;
+    row.open = row.open || b.open;
+    row.external = row.external || b.external;
+    if (b.reason) row.reasons.add(b.reason);
+    byIssue.set(b.issueKey, row);
+  }
+  const rows = [...byIssue.values()].sort((a, b) => b.days - a.days);
+  return (
+    <>
+      <div className="popover-title">Blocked issues in this sprint</div>
+      <ul className="popover-list">
+        {rows.map((b) => (
+          <li key={b.issueKey}>
+            <div className="popover-row">
+              <IssueKey issueKey={b.issueKey} jiraBaseUrl={jiraBaseUrl} />
+              <span className={b.open ? 'tag tag-open' : 'tag'}>{b.open ? 'Still blocked' : `${b.days}d`}</span>
+            </div>
+            <div className="popover-sub">{b.title}</div>
+            <div className="popover-sub muted">
+              {[...b.reasons].join(', ')}
+              {b.external ? ' · External' : ''}
+              {b.times > 1 ? ` · Blocked ${b.times} times` : ''}
+              {b.open ? ` · ${b.days}d so far` : ''}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+export default function FlowMetrics({ flow, jiraBaseUrl }) {
   const { cycleTime, throughput, wip, blocked } = flow;
   const cycleDiff = cycleTime.prevAvg !== null && cycleTime.avg !== null ? cycleTime.avg - cycleTime.prevAvg : null;
   const tpDiff = throughput.previous !== null ? throughput.current - throughput.previous : null;
@@ -48,10 +88,12 @@ export default function FlowMetrics({ flow }) {
         <li><span>In Test</span><b>{wip.inTest}</b></li>
       </FlowCard>
       <FlowCard title="Blocked Work" value={blocked.items} caption="Blocked items"
-        status={blocked.items > 3 ? 'attention' : blocked.items > 0 ? 'warning' : 'on_track'}>
+        status={blocked.items > 3 ? 'attention' : blocked.items > 0 ? 'warning' : 'on_track'}
+        popover={blocked.list.length > 0 && <BlockedList list={blocked.list} jiraBaseUrl={jiraBaseUrl} />}>
         <li><span>Total Blocked Time</span><b>{blocked.totalDays}d</b></li>
         <li><span>Longest Blocked</span><b>{blocked.longestDays}d</b></li>
         <li><span>External Dependencies</span><b>{blocked.external}</b></li>
+        {blocked.list.length > 0 && <li className="hover-hint">Hover to see the Jira issues</li>}
       </FlowCard>
     </div>
   );

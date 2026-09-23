@@ -124,6 +124,33 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1
 .flow-list li { display: flex; justify-content: space-between; color: var(--muted); }
 .flow-list b { color: var(--text); font-weight: 600; }
 .hint { cursor: help; text-decoration: underline dotted; text-underline-offset: 3px; }
+.flow-list .hover-hint { color: var(--primary); font-size: 12px; }
+
+/* Hover panel on a flow card (e.g. Blocked Work -> Jira issues) */
+.flow.has-popover { position: relative; cursor: default; }
+.flow .popover {
+  display: none; position: absolute; top: calc(100% - 8px); right: 0; z-index: 30; width: 340px; max-height: 320px; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12); padding: 12px 14px;
+}
+.flow.has-popover:hover .popover, .flow.has-popover:focus-within .popover { display: block; }
+.popover-title { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+.popover-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.popover-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.popover-sub { font-size: 12px; margin-top: 2px; color: var(--text); }
+.popover-sub.muted { color: var(--muted); }
+.issue-key { font-size: 13px; font-weight: 600; color: var(--primary); text-decoration: none; }
+a.issue-key:hover { text-decoration: underline; }
+.tag { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+.tag-open { background: var(--danger-soft); color: var(--danger); }
+
+/* Custom chart tooltip */
+.chart-tip { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 12px; max-width: 320px; box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1); }
+.tip-sprint { font-weight: 600; margin-bottom: 6px; color: var(--text); }
+.tip-group + .tip-group { margin-top: 8px; }
+.tip-title { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.tip-title i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.tip-title b { color: var(--text); }
+.tip-keys { margin-top: 3px; color: var(--text); line-height: 1.5; }
 .flow-list .good { color: var(--success); font-weight: 600; }
 .flow-list .bad { color: var(--warning); font-weight: 600; }
 

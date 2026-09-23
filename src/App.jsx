@@ -114,7 +114,7 @@ export default function App() {
             </Section>
 
             <Section number={3} title="Flow Metrics" aside="Efficiency of work in motion">
-              <FlowMetrics flow={data.flow} />
+              <FlowMetrics flow={data.flow} jiraBaseUrl={data.context.jiraBaseUrl} />
             </Section>
 
             <div className="grid-2 stretch">
