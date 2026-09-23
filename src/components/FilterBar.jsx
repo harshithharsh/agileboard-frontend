@@ -1,4 +1,4 @@
-import { FilterIcon } from './Icons.jsx';
+import { FilterIcon, ClearIcon } from './Icons.jsx';
 
 const RANGES = [
   { value: '6', label: 'Last 6 sprints' },
@@ -21,7 +21,7 @@ function Select({ label, value, onChange, options, placeholder }) {
   );
 }
 
-export default function FilterBar({ options, filters, onChange }) {
+export default function FilterBar({ options, filters, onChange, onClear, isDefault }) {
   const teams = options.teams.filter((t) => t.project_id === filters.projectId);
   const releases = options.releases.filter((r) => r.project_id === filters.projectId);
   const sprints = options.sprints.filter(
@@ -58,6 +58,9 @@ export default function FilterBar({ options, filters, onChange }) {
         <Select label="Assignee" value={filters.assigneeId} options={toOptions(assignees)} placeholder="All"
           onChange={(v) => onChange({ assigneeId: v })} />
       </div>
+      <button className="btn btn-clear" onClick={onClear} disabled={isDefault} title="Reset all filters to their defaults">
+        <ClearIcon /> <span>Clear</span>
+      </button>
     </section>
   );
 }

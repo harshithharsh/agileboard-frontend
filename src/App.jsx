@@ -81,12 +81,15 @@ export default function App() {
   };
 
   const updateFilters = (patch) => setFilters((f) => resolveFilters({ ...f, ...patch }, options));
+  const defaultFilters = options ? resolveFilters(EMPTY_FILTERS, options) : EMPTY_FILTERS;
+  const isDefault = Object.keys(EMPTY_FILTERS).every((k) => filters[k] === defaultFilters[k]);
+  const clearFilters = () => setFilters(defaultFilters);
 
   return (
     <div className="app">
       <Header context={data?.context} loading={loading || syncing} syncing={syncing} onRefresh={refresh} onExport={() => data && exportDashboardCsv(data)} />
       <main className={loading ? 'is-loading' : ''}>
-        {options && <FilterBar options={options} filters={filters} onChange={updateFilters} />}
+        {options && <FilterBar options={options} filters={filters} onChange={updateFilters} onClear={clearFilters} isDefault={isDefault} />}
         {syncError && <div className="card warning">Could not sync from Jira: {syncError}. Showing the last synced data.</div>}
         {error && (
           <div className={`card ${/no sprints/i.test(error) ? 'empty' : 'error'}`}>

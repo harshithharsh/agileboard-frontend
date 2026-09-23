@@ -6,6 +6,9 @@ export const RefreshIcon = () => (
 export const DownloadIcon = () => (
   <svg {...base}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5" /><path d="M12 15V3" /></svg>
 );
+export const ClearIcon = () => (
+  <svg {...base}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+);
 export const FilterIcon = () => (
   <svg {...base}><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" /></svg>
 );
