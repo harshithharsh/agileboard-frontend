@@ -1,4 +1,4 @@
-export const STATUS_LABEL = { on_track: 'On track', attention: 'Attention', at_risk: 'At risk' };
+export const STATUS_LABEL = { on_track: 'On track', attention: 'Attention', at_risk: 'At risk', in_progress: 'In progress' };
 
 export const formatValue = (value, unit) => {
   if (value === null || value === undefined) return '—';

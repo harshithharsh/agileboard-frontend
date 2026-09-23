@@ -2,6 +2,7 @@ import { TrendUp, TrendDown } from './Icons.jsx';
 import { formatValue } from '../lib/format.js';
 
 function Delta({ card }) {
+  if (card.status === 'in_progress') return <span className="delta neutral">sprint in progress</span>;
   if (card.delta === null) return <span className="delta neutral">first sprint</span>;
   if (card.delta === 0) return <span className="delta neutral">no change</span>;
   const up = card.delta > 0;
@@ -21,12 +22,12 @@ export default function SummaryCards({ summary, velocityBand }) {
       {summary.map((card) => {
         const max = card.unit === '%' ? 100 : Math.max((velocityBand?.high ?? card.value) * 1.25, card.value);
         const width = Math.min(100, (card.value / max) * 100);
-        const barClass = card.key === 'velocity' ? 'bar-primary' : card.status === 'on_track' ? 'bar-success' : 'bar-warning';
+        const barClass = card.key === 'velocity' || card.status === 'in_progress' ? 'bar-primary' : card.status === 'on_track' ? 'bar-success' : 'bar-warning';
         return (
           <div className="card metric" key={card.key}>
             <div className="metric-head">
               <span>{card.label}</span>
-              <span className={`dot dot-${card.status}`} title={card.status === 'on_track' ? 'On track' : 'Needs attention'} />
+              <span className={`dot dot-${card.status}`} title={{ on_track: 'On track', in_progress: 'Sprint in progress' }[card.status] ?? 'Needs attention'} />
             </div>
             <div className="metric-value">
               <strong>{formatValue(card.value, card.unit)}</strong>
