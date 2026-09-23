@@ -117,7 +117,7 @@ export default function App() {
               <FlowMetrics flow={data.flow} />
             </Section>
 
-            <div className="grid-2">
+            <div className="grid-2 stretch">
               <Section number={4} title="Scope stability" aside="Added, completed, and carried work">
                 <Card title="Scope movement by sprint" badge={`Added scope ${data.scopeAddedPct}%`}>
                   <ScopeChart data={data.scope} />
@@ -133,14 +133,15 @@ export default function App() {
                 <Card title="Defects created vs closed" badge={`UAT ${data.quality.current.uatPct}% · Prod ${data.quality.current.prodPct}%`}>
                   <DefectChart data={data.quality.trend} />
                 </Card>
-                <Card title="Defect rate & defect density" badge="per bug created in the sprint">
-                  <DefectRateChart data={data.quality.trend} />
-                  {data.quality.trend.some((t) => t.defectRate === null) && (
-                    <p className="muted chart-note">Sprints with no bugs created have no value (division by zero).</p>
-                  )}
-                </Card>
               </Section>
             </div>
+
+            <Card title="Defect rate & defect density" badge="per bug created in the sprint">
+              <DefectRateChart data={data.quality.trend} />
+              {data.quality.trend.some((t) => t.defectRate === null) && (
+                <p className="muted chart-note">Sprints with no bugs created have no value (division by zero).</p>
+              )}
+            </Card>
 
             <Section number={6} title="Sprint health" aside="Status against agreed thresholds">
               <HealthTable health={data.health} sprintState={data.sprintState} />
