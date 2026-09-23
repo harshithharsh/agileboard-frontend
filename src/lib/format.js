@@ -1,4 +1,4 @@
-export const STATUS_LABEL = { on_track: 'On track', attention: 'Attention', at_risk: 'At risk', in_progress: 'In progress' };
+export const STATUS_LABEL = { on_track: 'On Track', attention: 'Attention', at_risk: 'At Risk', in_progress: 'In Progress' };
 
 export const formatValue = (value, unit) => {
   if (value === null || value === undefined) return '—';
@@ -8,7 +8,9 @@ export const formatValue = (value, unit) => {
 };
 
 export const formatDateTime = (iso) =>
-  new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  new Date(iso)
+    .toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    .replace('Sept', 'Sep');
 
 // Colours shared by charts (kept in sync with CSS tokens in index.css)
 export const COLORS = {

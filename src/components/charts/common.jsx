@@ -14,7 +14,13 @@ export const tooltipProps = {
   cursor: { fill: 'rgba(47, 111, 219, 0.06)' },
 };
 
-export const legendProps = { iconType: 'circle', iconSize: 8, wrapperStyle: { fontSize: 12, color: COLORS.muted } };
+// Legend text in one readable colour; the series colour is shown by the marker only
+export const legendProps = {
+  iconType: 'circle',
+  iconSize: 8,
+  wrapperStyle: { fontSize: 12 },
+  formatter: (value) => <span style={{ color: 'var(--muted)' }}>{value}</span>,
+};
 
 // Sprint labels on the x-axis. Combined labels ("Nexo 12 / Vertex 13") are split onto one line per team.
 function SprintTick({ x, y, payload }) {

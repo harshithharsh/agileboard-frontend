@@ -95,31 +95,31 @@ export default function App() {
 
         {data && (
           <>
-            <Section number={1} title="Sprint executive summary" aside={`Current view: ${data.context.team.name} · ${data.context.sprint.name}`}>
+            <Section number={1} title="Sprint Executive Summary" aside={`Current view: ${data.context.team.name} · ${data.context.sprint.name}`}>
               <SummaryCards summary={data.summary} velocityBand={data.velocityBand} />
             </Section>
 
-            <Section number={2} title="Sprint delivery" aside={`Last ${data.delivery.length} sprint${data.delivery.length > 1 ? 's' : ''}`}>
+            <Section number={2} title="Sprint Delivery" aside={`Last ${data.delivery.length} sprint${data.delivery.length > 1 ? 's' : ''}`}>
               <div className="grid-2">
-                <Card title="Committed vs completed story points" badge="Story points">
+                <Card title="Committed vs. Completed Story Points" badge="Story Points">
                   <DeliveryChart data={data.delivery} />
                 </Card>
-                <Card title="Velocity & completion trend" badge={data.velocityBand ? `Stable band ${data.velocityBand.low}–${data.velocityBand.high} SP` : 'No history yet'}>
+                <Card title="Velocity and Completion Trend" badge={data.velocityBand ? `Stable Band: ${data.velocityBand.low}–${data.velocityBand.high} SP` : 'No History Yet'}>
                   <VelocityChart data={data.delivery} band={data.velocityBand} />
                 </Card>
               </div>
-              <Card title="Completion and Business Value (%)" badge="Business value = stories completed ÷ stories planned">
+              <Card title="Completion and Business Value (%)" badge="Business Value = Stories Completed ÷ Stories Planned">
                 <BusinessValueChart data={data.delivery} />
               </Card>
             </Section>
 
-            <Section number={3} title="Flow metrics" aside="Efficiency of work in motion">
+            <Section number={3} title="Flow Metrics" aside="Efficiency of work in motion">
               <FlowMetrics flow={data.flow} />
             </Section>
 
             <div className="grid-2 stretch">
-              <Section number={4} title="Scope stability" aside="Added, completed, and carried work">
-                <Card title="Scope movement by sprint" badge={`Added scope ${data.scopeAddedPct}%`}>
+              <Section number={4} title="Scope Stability" aside="Added, completed, and carried work">
+                <Card title="Scope Movement by Sprint" badge={`Added Scope: ${data.scopeAddedPct}%`}>
                   <ScopeChart data={data.scope} />
                 </Card>
               </Section>
@@ -130,31 +130,31 @@ export default function App() {
                   <div className="card stat"><span>Closed</span><strong>{data.quality.current.closed}</strong></div>
                   <div className="card stat"><span>Open</span><strong>{data.quality.current.open}</strong></div>
                 </div>
-                <Card title="Defects created vs closed" badge={`UAT ${data.quality.current.uatPct}% · Prod ${data.quality.current.prodPct}%`}>
+                <Card title="Defects Created vs. Closed" badge={`UAT ${data.quality.current.uatPct}% · Prod ${data.quality.current.prodPct}%`}>
                   <DefectChart data={data.quality.trend} />
                 </Card>
               </Section>
             </div>
 
-            <Card title="Defect rate & defect density" badge="per bug created in the sprint">
+            <Card title="Defect Rate and Defect Density" badge="Per Bug Created in the Sprint">
               <DefectRateChart data={data.quality.trend} />
               {data.quality.trend.some((t) => t.defectRate === null) && (
                 <p className="muted chart-note">Sprints with no bugs created have no value (division by zero).</p>
               )}
             </Card>
 
-            <Section number={6} title="Sprint health" aside="Status against agreed thresholds">
+            <Section number={6} title="Sprint Health" aside="Status against agreed thresholds">
               <HealthTable health={data.health} sprintState={data.sprintState} />
             </Section>
 
             <div className="grid-2">
-              <Section number={7} title="Sprint burndown" aside={`${data.burndown.length}-day sprint`}>
-                <Card title="Remaining work" badge={<StatusPill status={data.sprintState} label={STATUS_LABEL[data.sprintState]} />}>
+              <Section number={7} title="Sprint Burndown" aside={`${data.burndown.length}-day sprint`}>
+                <Card title="Remaining Work" badge={<StatusPill status={data.sprintState} label={STATUS_LABEL[data.sprintState]} />}>
                   <BurndownChart data={data.burndown} />
                 </Card>
               </Section>
 
-              <Section number={8} title="Process compliance" aside="Definition of ready and done">
+              <Section number={8} title="Process Compliance" aside="Definition of Ready and Definition of Done">
                 <Card>
                   <Compliance compliance={data.compliance} />
                 </Card>
@@ -162,7 +162,7 @@ export default function App() {
             </div>
 
             <footer className="footer">
-              <span>{data.context.project.name} / {data.context.team.name} · Agile delivery analytics</span>
+              <span>{data.context.project.name} / {data.context.team.name} · Agile Delivery Analytics</span>
               <span>Source: Jira boards, synced {data.context.sync.lastSuccessAt ? formatDateTime(data.context.sync.lastSuccessAt) : 'never'}</span>
             </footer>
           </>

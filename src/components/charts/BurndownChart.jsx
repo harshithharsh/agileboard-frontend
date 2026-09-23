@@ -11,8 +11,8 @@ export default function BurndownChart({ data }) {
         <YAxis {...axisProps} width={32} />
         <Tooltip {...tooltipProps} />
         <Legend {...legendProps} />
-        <Line dataKey="ideal" name="Ideal remaining" stroke={COLORS.muted} strokeDasharray="5 5" strokeWidth={2} dot={false} />
-        <Line dataKey="actual" name="Actual remaining" stroke={COLORS.primary} strokeWidth={2} dot={{ r: 3 }} />
+        <Line dataKey="ideal" name="Ideal Remaining" stroke={COLORS.muted} strokeDasharray="5 5" strokeWidth={2} dot={false} />
+        <Line dataKey="actual" name="Actual Remaining" stroke={COLORS.primary} strokeWidth={2} dot={{ r: 3 }} />
       </LineChart>
     </ResponsiveContainer>
   );

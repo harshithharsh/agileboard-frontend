@@ -2,12 +2,12 @@ import { TrendUp, TrendDown } from './Icons.jsx';
 import { formatValue } from '../lib/format.js';
 
 function Delta({ card }) {
-  if (card.status === 'in_progress') return <span className="delta neutral">sprint in progress</span>;
-  if (card.delta === null) return <span className="delta neutral">first sprint</span>;
-  if (card.delta === 0) return <span className="delta neutral">no change</span>;
+  if (card.status === 'in_progress') return <span className="delta neutral">Sprint in progress</span>;
+  if (card.delta === null) return <span className="delta neutral">First sprint</span>;
+  if (card.delta === 0) return <span className="delta neutral">No change</span>;
   const up = card.delta > 0;
   const good = up === card.higherIsBetter;
-  const unit = card.unit === '%' ? 'pt' : card.unit === 'SP' ? ' SP' : '';
+  const unit = card.unit === '%' ? ' pts' : card.unit === 'SP' ? ' SP' : '';
   return (
     <span className={`delta ${good ? 'good' : 'bad'}`}>
       {up ? <TrendUp /> : <TrendDown />}

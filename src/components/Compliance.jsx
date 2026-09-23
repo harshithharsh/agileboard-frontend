@@ -1,10 +1,10 @@
 const ITEMS = [
   ['dor', 'Definition of Ready'],
   ['dod', 'Definition of Done'],
-  ['acceptanceCriteria', 'Acceptance criteria'],
-  ['codeReview', 'Code review'],
-  ['testCases', 'Test case completion'],
-  ['automation', 'Automation coverage'],
+  ['acceptanceCriteria', 'Acceptance Criteria'],
+  ['codeReview', 'Code Review'],
+  ['testCases', 'Test Case Completion'],
+  ['automation', 'Automation Coverage'],
 ];
 
 export default function Compliance({ compliance }) {

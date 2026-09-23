@@ -12,7 +12,7 @@ export default function ScopeChart({ data }) {
         <Tooltip {...tooltipProps} />
         <Legend {...legendProps} />
         <Bar dataKey="completed" name="Completed" stackId="s" fill={COLORS.primary} />
-        <Bar dataKey="added" name="Added scope" stackId="s" fill={COLORS.warning} />
+        <Bar dataKey="added" name="Added Scope" stackId="s" fill={COLORS.warning} />
         <Bar dataKey="spillover" name="Spillover" stackId="s" fill={COLORS.danger} radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>

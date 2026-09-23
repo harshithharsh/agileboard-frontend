@@ -2,12 +2,13 @@ import { FilterIcon, ClearIcon } from './Icons.jsx';
 import { ALL_TEAMS, teamsFor, sprintsFor, assigneesFor } from '../lib/filters.js';
 
 const RANGES = [
-  { value: '6', label: 'Last 6 sprints' },
-  { value: '3', label: 'Last 3 sprints' },
-  { value: '1', label: 'This sprint' },
+  { value: '6', label: 'Last 6 Sprints' },
+  { value: '3', label: 'Last 3 Sprints' },
+  { value: '1', label: 'This Sprint' },
 ];
 
-const shortDate = (d) => new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const shortDate = (d) =>
+  new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }).replace('Sept', 'Sep');
 const formatRange = (start, end) => `${shortDate(start)} – ${shortDate(end)}`;
 
 function Select({ label, value, onChange, options, placeholder }) {
@@ -29,7 +30,7 @@ export default function FilterBar({ options, filters, onChange, onClear, isDefau
   const assignees = assigneesFor(options, filters);
   const toOptions = (list) => list.map((x) => ({ value: x.id, label: x.name }));
   const teamOptions = [
-    ...(teams.length > 1 ? [{ value: ALL_TEAMS, label: 'All teams' }] : []),
+    ...(teams.length > 1 ? [{ value: ALL_TEAMS, label: 'All Teams' }] : []),
     ...toOptions(teams),
   ];
   // Jira sprint names already say which team they belong to ("Nexus Sprint 2")
@@ -43,7 +44,7 @@ export default function FilterBar({ options, filters, onChange, onClear, isDefau
       <div className="filters-intro">
         <FilterIcon />
         <div>
-          <h2>Dashboard filters</h2>
+          <h2>Dashboard Filters</h2>
           <p>Choose a sprint view to compare current delivery health.</p>
         </div>
       </div>
@@ -56,7 +57,7 @@ export default function FilterBar({ options, filters, onChange, onClear, isDefau
           onChange={(v) => onChange({ sprintId: v })} />
         <Select label="Release" value={filters.releaseId} options={toOptions(releases)} placeholder="All"
           onChange={(v) => onChange({ releaseId: v, sprintId: null })} />
-        <Select label="Date range" value={filters.range} options={RANGES}
+        <Select label="Date Range" value={filters.range} options={RANGES}
           onChange={(v) => onChange({ range: v })} />
         <Select label="Assignee" value={filters.assigneeId} options={toOptions(assignees)} placeholder="All"
           onChange={(v) => onChange({ assigneeId: v })} />

@@ -18,7 +18,7 @@ export default function HealthTable({ health, sprintState }) {
             </tr>
           ))}
           <tr className="state-row">
-            <td>Sprint state</td>
+            <td>Sprint State</td>
             <td colSpan={2}><b>{STATUS_LABEL[sprintState]}</b></td>
             <td><StatusPill status={sprintState} label={STATUS_LABEL[sprintState]} /></td>
           </tr>
