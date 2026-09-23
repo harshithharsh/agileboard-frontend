@@ -133,10 +133,10 @@ export default function App() {
                 <Card title="Defects created vs closed" badge={`UAT ${data.quality.current.uatPct}% · Prod ${data.quality.current.prodPct}%`}>
                   <DefectChart data={data.quality.trend} />
                 </Card>
-                <Card title="Defect rate & defect density" badge="per open defect">
+                <Card title="Defect rate & defect density" badge="per bug created in the sprint">
                   <DefectRateChart data={data.quality.trend} />
                   {data.quality.trend.some((t) => t.defectRate === null) && (
-                    <p className="muted chart-note">Sprints with no open defects have no value (division by zero).</p>
+                    <p className="muted chart-note">Sprints with no bugs created have no value (division by zero).</p>
                   )}
                 </Card>
               </Section>

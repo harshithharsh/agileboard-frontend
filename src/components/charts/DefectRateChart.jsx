@@ -2,13 +2,14 @@ import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianG
 import { COLORS } from '../../lib/format.js';
 import { axisProps, gridProps, tooltipProps, legendProps, sprintAxisProps } from './common.jsx';
 
-// Defect rate = stories ÷ open defects (bars, left axis)
-// Defect density = achieved velocity ÷ open defects (line, right axis)
+// Defect rate = stories ÷ bugs created in the sprint (bars, left axis)
+// Defect density = achieved velocity ÷ bugs created in the sprint (line, right axis)
 function formatValue(value, name, { payload }) {
-  if (value === null || value === undefined) return ['No open defects', name];
+  if (value === null || value === undefined) return ['No bugs created in this sprint', name];
+  const bugs = `${payload.createdInSprint} bug${payload.createdInSprint === 1 ? '' : 's'} created`;
   return name === 'Defect rate'
-    ? [`${value} (${payload.stories} stories ÷ ${payload.open} open)`, name]
-    : [`${value} (${payload.achievedVelocity} SP ÷ ${payload.open} open)`, name];
+    ? [`${value} (${payload.stories} stories ÷ ${bugs})`, name]
+    : [`${value} (${payload.achievedVelocity} SP ÷ ${bugs})`, name];
 }
 
 export default function DefectRateChart({ data }) {
