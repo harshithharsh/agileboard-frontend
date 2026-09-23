@@ -21,7 +21,7 @@ To point at another API, set `VITE_API_URL` in `.env.local`.
 8. Process compliance: DoR, DoD, acceptance criteria, code review, tests, automation
 9. Executive insights: generated from the data
 
-Filters: project, team, sprint, release, date range (trend length) and assignee. **Export** downloads a CSV of the headline numbers.
+Filters: project, team, sprint, release, date range (trend length) and assignee. Each dropdown only lists options for the selection above it: teams for the project, and sprints and assignees for the team. **Export** downloads a CSV of the headline numbers.
 
 ## Structure
 - `src/App.jsx` – page layout and filter state

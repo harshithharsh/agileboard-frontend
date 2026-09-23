@@ -6,6 +6,9 @@ const RANGES = [
   { value: '1', label: 'This sprint' },
 ];
 
+const shortDate = (d) => new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const formatRange = (start, end) => `${shortDate(start)} – ${shortDate(end)}`;
+
 function Select({ label, value, onChange, options, placeholder }) {
   return (
     <label className="filter">
@@ -26,6 +29,8 @@ export default function FilterBar({ options, filters, onChange }) {
   );
   const assignees = options.assignees.filter((a) => a.team_id === filters.teamId);
   const toOptions = (list) => list.map((x) => ({ value: x.id, label: x.name }));
+  const teamName = teams.find((t) => t.id === filters.teamId)?.name ?? '';
+  const sprintOptions = sprints.map((s) => ({ value: s.id, label: `${teamName} ${s.name} · ${formatRange(s.start_date, s.end_date)}` }));
 
   return (
     <section className="card filters">
@@ -41,7 +46,7 @@ export default function FilterBar({ options, filters, onChange }) {
           onChange={(v) => onChange({ projectId: v, teamId: null, releaseId: null, sprintId: null, assigneeId: null })} />
         <Select label="Team" value={filters.teamId} options={toOptions(teams)}
           onChange={(v) => onChange({ teamId: v, sprintId: null, assigneeId: null })} />
-        <Select label="Sprint" value={filters.sprintId} options={toOptions(sprints)}
+        <Select label="Sprint" value={filters.sprintId} options={sprintOptions}
           onChange={(v) => onChange({ sprintId: v })} />
         <Select label="Release" value={filters.releaseId} options={toOptions(releases)} placeholder="All"
           onChange={(v) => onChange({ releaseId: v, sprintId: null })} />
