@@ -30,7 +30,7 @@ export default function FilterBar({ options, filters, onChange }) {
   const assignees = options.assignees.filter((a) => a.team_id === filters.teamId);
   const toOptions = (list) => list.map((x) => ({ value: x.id, label: x.name }));
   const teamName = teams.find((t) => t.id === filters.teamId)?.name ?? '';
-  const sprintOptions = sprints.map((s) => ({ value: s.id, label: `${teamName} ${s.name} · ${formatRange(s.start_date, s.end_date)}` }));
+  const sprintOptions = sprints.map((s) => ({ value: s.id, label: `${teamName} ${s.name} · ${formatRange(s.start_date, s.end_date)}${s.status === 'active' ? ' (active)' : ''}` }));
 
   return (
     <section className="card filters">

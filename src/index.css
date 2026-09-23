@@ -39,6 +39,7 @@ button, select { font: inherit; color: inherit; }
 .header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
 .breadcrumb { font-size: 13px; color: var(--muted); margin-top: 2px; }
 .breadcrumb span { margin: 0 8px; color: #cbd5e1; }
+.live { margin-left: 8px; font-style: normal; font-size: 11px; font-weight: 600; color: var(--success); background: var(--success-soft); padding: 1px 8px; border-radius: 999px; }
 .header-actions { display: flex; align-items: center; gap: 10px; }
 .updated { font-size: 12px; color: var(--muted); }
 .btn {

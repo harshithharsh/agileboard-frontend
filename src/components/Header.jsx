@@ -11,6 +11,7 @@ export default function Header({ context, onRefresh, onExport, loading }) {
           {context && (
             <p className="breadcrumb">
               {context.project.name}<span>·</span>{context.team.name}<span>·</span>Sprint {context.sprint.name}
+              {context.sprint.status === 'active' && <em className="live">Active</em>}
             </p>
           )}
         </div>

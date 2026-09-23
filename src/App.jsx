@@ -78,7 +78,7 @@ export default function App() {
                 <Card title="Committed vs completed story points" badge="Story points">
                   <DeliveryChart data={data.delivery} />
                 </Card>
-                <Card title="Velocity & completion trend" badge={`Stable band ${data.velocityBand.low}–${data.velocityBand.high} SP`}>
+                <Card title="Velocity & completion trend" badge={data.velocityBand ? `Stable band ${data.velocityBand.low}–${data.velocityBand.high} SP` : 'No history yet'}>
                   <VelocityChart data={data.delivery} band={data.velocityBand} />
                 </Card>
               </div>

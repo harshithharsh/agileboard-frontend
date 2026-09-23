@@ -2,7 +2,8 @@ import { TrendUp, TrendDown } from './Icons.jsx';
 import { formatValue } from '../lib/format.js';
 
 function Delta({ card }) {
-  if (card.delta === null || card.delta === 0) return <span className="delta neutral">no change</span>;
+  if (card.delta === null) return <span className="delta neutral">first sprint</span>;
+  if (card.delta === 0) return <span className="delta neutral">no change</span>;
   const up = card.delta > 0;
   const good = up === card.higherIsBetter;
   const unit = card.unit === '%' ? 'pt' : card.unit === 'SP' ? ' SP' : '';
@@ -18,7 +19,7 @@ export default function SummaryCards({ summary, velocityBand }) {
   return (
     <div className="summary-grid">
       {summary.map((card) => {
-        const max = card.unit === '%' ? 100 : Math.max(velocityBand.high * 1.25, card.value);
+        const max = card.unit === '%' ? 100 : Math.max((velocityBand?.high ?? card.value) * 1.25, card.value);
         const width = Math.min(100, (card.value / max) * 100);
         const barClass = card.key === 'velocity' ? 'bar-primary' : card.status === 'on_track' ? 'bar-success' : 'bar-warning';
         return (
@@ -33,7 +34,7 @@ export default function SummaryCards({ summary, velocityBand }) {
             </div>
             <div className="bar"><div className={barClass} style={{ width: `${width}%` }} /></div>
             <div className="metric-foot">
-              <span>Target {card.key === 'velocity' ? `${velocityBand.low}–${velocityBand.high} SP` : card.target}</span>
+              <span>{card.key !== 'velocity' ? `Target ${card.target}` : velocityBand ? `Target ${velocityBand.low}–${velocityBand.high} SP` : 'No history yet'}</span>
               <span>Prior {formatValue(card.prior, card.unit)}</span>
             </div>
           </div>

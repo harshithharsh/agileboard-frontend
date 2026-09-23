@@ -12,7 +12,7 @@ export default function VelocityChart({ data, band }) {
         <YAxis yAxisId="pct" orientation="right" domain={[(min) => Math.min(60, Math.floor(min / 10) * 10), 100]} {...axisProps} width={36} unit="%" />
         <Tooltip {...tooltipProps} />
         <Legend {...legendProps} />
-        <ReferenceArea yAxisId="sp" y1={band.low} y2={band.high} fill={COLORS.primary} fillOpacity={0.06} />
+        {band && <ReferenceArea yAxisId="sp" y1={band.low} y2={band.high} fill={COLORS.primary} fillOpacity={0.06} />}
         <Line yAxisId="sp" dataKey="velocity" name="Velocity (SP)" stroke={COLORS.primary} strokeWidth={2} dot={{ r: 3 }} />
         <Line yAxisId="sp" dataKey="rollingAverage" name="Rolling average" stroke={COLORS.warning} strokeWidth={2} strokeDasharray="4 4" dot={false} />
         <Line yAxisId="pct" dataKey="completion" name="Completion %" stroke={COLORS.success} strokeWidth={2} dot={{ r: 3 }} />

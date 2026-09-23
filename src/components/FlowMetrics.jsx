@@ -30,7 +30,7 @@ export default function FlowMetrics({ flow }) {
       <FlowCard title="Throughput" value={throughput.current} caption="Completed items / sprint"
         status={tpDiff !== null && tpDiff < 0 ? 'attention' : 'on_track'}>
         <li><span>Previous</span><b>{throughput.previous ?? '—'}</b></li>
-        <li><span>6-sprint avg</span><b>{throughput.average}</b></li>
+        <li><span>{throughput.average === null ? 'Sprint average' : `${throughput.sprintsInAverage}-sprint avg`}</span><b>{throughput.average ?? '—'}</b></li>
         {tpDiff !== null && <li className={tpDiff >= 0 ? 'good' : 'bad'}>{tpDiff >= 0 ? '↑' : '↓'} {Math.abs(tpDiff)} items</li>}
       </FlowCard>
       <FlowCard title="Work in progress" value={`${wip.current} / ${wip.limit}`} caption="Open at sprint end / WIP limit"
