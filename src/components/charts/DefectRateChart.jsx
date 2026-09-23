@@ -4,15 +4,16 @@ import { axisProps, gridProps, tooltipProps, legendProps, sprintAxisProps } from
 
 // Defect rate = stories ÷ bugs created in the sprint (bars, left axis)
 // Defect density = achieved velocity ÷ bugs created in the sprint (line, right axis)
-function formatValue(value, name, { payload }) {
+const formatter = (average) => (value, name, { payload }) => {
   if (value === null || value === undefined) return ['No bugs created in this sprint', name];
-  const bugs = `${payload.createdInSprint} bug${payload.createdInSprint === 1 ? '' : 's'} created`;
+  const per = average ? ', avg. per team' : '';
+  const bugs = `${payload.createdInSprint} bug${payload.createdInSprint === 1 ? '' : 's'} created${per}`;
   return name === 'Defect Rate'
     ? [`${value} (${payload.stories} stories ÷ ${bugs})`, name]
     : [`${value} (${payload.achievedVelocity} SP ÷ ${bugs})`, name];
-}
+};
 
-export default function DefectRateChart({ data }) {
+export default function DefectRateChart({ data, average = false }) {
   return (
     <ResponsiveContainer width="100%" height={240}>
       <ComposedChart data={data}>
@@ -20,7 +21,7 @@ export default function DefectRateChart({ data }) {
         <XAxis dataKey="sprint" {...sprintAxisProps(data)} />
         <YAxis yAxisId="rate" {...axisProps} width={32} allowDecimals={false} />
         <YAxis yAxisId="density" orientation="right" {...axisProps} width={36} allowDecimals={false} />
-        <Tooltip {...tooltipProps} formatter={formatValue} itemSorter={(item) => (item.dataKey === 'defectRate' ? 0 : 1)} />
+        <Tooltip {...tooltipProps} formatter={formatter(average)} itemSorter={(item) => (item.dataKey === 'defectRate' ? 0 : 1)} />
         <Legend {...legendProps} itemSorter={(item) => (item.dataKey === 'defectRate' ? 0 : 1)} />
         <Bar yAxisId="rate" dataKey="defectRate" name="Defect Rate" fill={COLORS.teal} radius={[4, 4, 0, 0]} maxBarSize={36} />
         <Line yAxisId="density" dataKey="defectDensity" name="Defect Density" stroke={COLORS.gold} strokeWidth={2} dot={{ r: 4 }} connectNulls={false} />

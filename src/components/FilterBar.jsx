@@ -1,6 +1,12 @@
 import { FilterIcon, ClearIcon } from './Icons.jsx';
 import { ALL_TEAMS, teamsFor, sprintsFor, assigneesFor } from '../lib/filters.js';
 
+// How the all-teams view combines teams
+const COMBINE = [
+  { value: 'total', label: 'Team Total' },
+  { value: 'average', label: 'Team Average' },
+];
+
 const RANGES = [
   { value: '6', label: 'Last 6 Sprints' },
   { value: '3', label: 'Last 3 Sprints' },
@@ -53,6 +59,10 @@ export default function FilterBar({ options, filters, onChange, onClear, isDefau
           onChange={(v) => onChange({ projectId: v, teamId: null, releaseId: null, sprintId: null, assigneeId: null })} />
         <Select label="Team" value={filters.teamId} options={teamOptions}
           onChange={(v) => onChange({ teamId: v, sprintId: null, assigneeId: null })} />
+        {filters.teamId === ALL_TEAMS && (
+          <Select label="Show As" value={filters.combine} options={COMBINE}
+            onChange={(v) => onChange({ combine: v })} />
+        )}
         <Select label="Sprint" value={filters.sprintId} options={sprintOptions}
           onChange={(v) => onChange({ sprintId: v })} />
         <Select label="Release" value={filters.releaseId} options={toOptions(releases)} placeholder="All"

@@ -18,7 +18,7 @@ import BusinessValueChart from './components/charts/BusinessValueChart.jsx';
 import DefectRateChart from './components/charts/DefectRateChart.jsx';
 import { resolveFilters } from './lib/filters.js';
 
-const EMPTY_FILTERS = { projectId: null, teamId: null, releaseId: null, sprintId: null, assigneeId: null, range: '6' };
+const EMPTY_FILTERS = { projectId: null, teamId: null, releaseId: null, sprintId: null, assigneeId: null, range: '6', combine: 'total' };
 
 export default function App() {
   const [options, setOptions] = useState(null);
@@ -95,7 +95,7 @@ export default function App() {
 
         {data && (
           <>
-            <Section number={1} title="Sprint Executive Summary" aside={`Current view: ${data.context.team.name} · ${data.context.sprint.name}`}>
+            <Section number={1} title="Sprint Executive Summary" aside={`Current view: ${data.context.team.name}${data.context.combine === 'average' ? ' (team average)' : ''} · ${data.context.sprint.name}`}>
               <SummaryCards summary={data.summary} velocityBand={data.velocityBand} />
             </Section>
 
@@ -109,7 +109,7 @@ export default function App() {
                 </Card>
               </div>
               <Card title="Completion and Business Value (%)" badge="Business Value = Stories Completed ÷ Total Stories">
-                <BusinessValueChart data={data.delivery} />
+                <BusinessValueChart data={data.delivery} average={data.context.combine === 'average'} />
               </Card>
             </Section>
 
@@ -137,7 +137,7 @@ export default function App() {
             </div>
 
             <Card title="Defect Rate and Defect Density" badge="Per Bug Created in the Sprint">
-              <DefectRateChart data={data.quality.trend} />
+              <DefectRateChart data={data.quality.trend} average={data.context.combine === 'average'} />
               {data.quality.trend.some((t) => t.defectRate === null) && (
                 <p className="muted chart-note">Sprints with no bugs created have no value (division by zero).</p>
               )}
