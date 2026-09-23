@@ -32,7 +32,7 @@ export function exportDashboardCsv(data) {
     ['Flow', 'Value'],
     ['Cycle Time Average (Days)', flow.cycleTime.avg],
     ['Cycle Time Median (Days)', flow.cycleTime.median],
-    ['Cycle Time P85 (Days)', flow.cycleTime.p85],
+    ['Cycle Time 85th Percentile (Days)', flow.cycleTime.p85],
     ['Throughput (Items)', flow.throughput.current],
     ['WIP / Limit', `${flow.wip.current} / ${flow.wip.limit}`],
     ['Blocked Items', flow.blocked.items],

@@ -19,8 +19,14 @@ export default function FlowMetrics({ flow }) {
     <div className="flow-grid">
       <FlowCard title="Cycle Time" value={cycleTime.avg !== null ? `${cycleTime.avg}d` : '—'} caption="Average cycle time"
         status={cycleDiff !== null && cycleDiff > 0.5 ? 'attention' : 'on_track'}>
-        <li><span>Median</span><b>{cycleTime.median ?? '—'}d</b></li>
-        <li><span>P85</span><b>{cycleTime.p85 ?? '—'}d</b></li>
+        <li>
+          <span className="hint" title="Half of the completed items took this long or less.">Median</span>
+          <b>{cycleTime.median ?? '—'}d</b>
+        </li>
+        <li>
+          <span className="hint" title="85% of the completed items took this long or less; the slowest 15% took longer. A realistic delivery promise that isn't skewed by a few very old items.">85th Percentile</span>
+          <b>{cycleTime.p85 ?? '—'}d</b>
+        </li>
         {cycleDiff !== null && (
           <li className={cycleDiff <= 0 ? 'good' : 'bad'}>
             {cycleDiff <= 0 ? '↓' : '↑'} {Math.abs(cycleDiff).toFixed(1)}d vs. {cycleTime.prevSprint}
