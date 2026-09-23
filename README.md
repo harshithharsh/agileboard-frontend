@@ -11,7 +11,7 @@ In development, `/api` requests are proxied to the backend at `http://localhost:
 To point at another API, set `VITE_API_URL` in `.env.local`.
 
 ## Sections
-1. Sprint executive summary: 6 metric cards with target, prior value and change
+1. Sprint executive summary: 5 metric cards (predictability, completion, velocity, spillover, unplanned work) with target, prior value and change
 2. Sprint delivery: committed vs completed; velocity and completion trend; completion vs business value (business value = stories completed ÷ stories planned)
 3. Flow metrics: cycle time, throughput, WIP, blocked work
 4. Scope stability: completed / added / spillover per sprint

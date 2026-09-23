@@ -123,7 +123,7 @@ export default function App() {
                 </Card>
               </Section>
 
-              <Section number={5} title="Quality" aside="Defects and escape trend">
+              <Section number={5} title="Quality" aside="Defects created and closed">
                 <div className="quality-stats">
                   <div className="card stat"><span>Created</span><strong>{data.quality.current.created}</strong></div>
                   <div className="card stat"><span>Closed</span><strong>{data.quality.current.closed}</strong></div>
