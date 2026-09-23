@@ -124,7 +124,9 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1
 .flow-list li { display: flex; justify-content: space-between; color: var(--muted); }
 .flow-list b { color: var(--text); font-weight: 600; }
 .hint { cursor: help; text-decoration: underline dotted; text-underline-offset: 3px; }
-.flow-list .hover-hint { color: var(--primary); font-size: 12px; }
+.flow-list .issue-links { align-items: baseline; gap: 12px; }
+.flow-list .issue-links > span:last-child { text-align: right; line-height: 1.6; }
+.flow-list .issue-links .issue-key { font-size: 12px; }
 
 /* Hover panel on a flow card (e.g. Blocked Work -> Jira issues) */
 .flow.has-popover { position: relative; cursor: default; }

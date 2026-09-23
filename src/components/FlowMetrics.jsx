@@ -93,7 +93,16 @@ export default function FlowMetrics({ flow, jiraBaseUrl }) {
         <li><span>Total Blocked Time</span><b>{blocked.totalDays}d</b></li>
         <li><span>Longest Blocked</span><b>{blocked.longestDays}d</b></li>
         <li><span>External Dependencies</span><b>{blocked.external}</b></li>
-        {blocked.list.length > 0 && <li className="hover-hint">Hover to see the Jira issues</li>}
+        {blocked.list.length > 0 && (
+          <li className="issue-links">
+            <span>Jira Issues</span>
+            <span>
+              {[...new Set(blocked.list.map((b) => b.issueKey))].map((key, i) => (
+                <span key={key}>{i > 0 && ', '}<IssueKey issueKey={key} jiraBaseUrl={jiraBaseUrl} /></span>
+              ))}
+            </span>
+          </li>
+        )}
       </FlowCard>
     </div>
   );
