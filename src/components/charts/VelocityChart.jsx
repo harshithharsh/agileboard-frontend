@@ -11,7 +11,7 @@ export default function VelocityChart({ data, band }) {
     <ResponsiveContainer width="100%" height={260}>
       <ComposedChart data={data}>
         <CartesianGrid {...gridProps} />
-        <XAxis dataKey="sprint" {...sprintAxisProps(data)} padding={{ left: 24, right: 24 }} />
+        <XAxis dataKey="sprint" {...sprintAxisProps(data)} padding={{ left: 36, right: 36 }} />
         <YAxis {...axisProps} width={36} />
         <Tooltip {...tooltipProps} formatter={(v, name) => [`${v} SP`, name]} itemSorter={byOrder} />
         <Legend {...legendProps} itemSorter={byOrder} />

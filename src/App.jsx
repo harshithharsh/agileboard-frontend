@@ -16,9 +16,9 @@ import DefectChart from './components/charts/DefectChart.jsx';
 import BurndownChart from './components/charts/BurndownChart.jsx';
 import BusinessValueChart from './components/charts/BusinessValueChart.jsx';
 import DefectRateChart from './components/charts/DefectRateChart.jsx';
-import { resolveFilters } from './lib/filters.js';
+import { resolveFilters, quarterLabel } from './lib/filters.js';
 
-const EMPTY_FILTERS = { projectId: null, teamId: null, releaseId: null, sprintId: null, assigneeId: null, range: '6' };
+const EMPTY_FILTERS = { projectId: null, teamId: null, quarter: null, releaseId: null, sprintId: null, assigneeId: null };
 
 export default function App() {
   const [options, setOptions] = useState(null);
@@ -99,7 +99,9 @@ export default function App() {
               <SummaryCards summary={data.summary} velocityBand={data.velocityBand} />
             </Section>
 
-            <Section number={2} title="Sprint Delivery" aside={`Last ${data.delivery.length} sprint${data.delivery.length > 1 ? 's' : ''}`}>
+            <Section number={2} title="Sprint Delivery" aside={data.context.quarter
+              ? `${quarterLabel(data.context.quarter)} · ${data.delivery.length} sprint${data.delivery.length > 1 ? 's' : ''}`
+              : `Last ${data.delivery.length} sprint${data.delivery.length > 1 ? 's' : ''}`}>
               <div className="grid-2">
                 <Card title="Committed vs. Completed Story Points" badge="Story Points">
                   <DeliveryChart data={data.delivery} />

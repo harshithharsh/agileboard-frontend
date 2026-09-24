@@ -22,9 +22,15 @@ export const legendProps = {
   formatter: (value) => <span style={{ color: 'var(--muted)' }}>{value}</span>,
 };
 
-// Sprint labels on the x-axis. Combined labels ("Nexo 12 / Vertex 13") are split onto one line per team.
+// Sprint labels on the x-axis, on two lines so long names don't overlap:
+// "Compliance Sprint 1" -> "Compliance" / "Sprint 1"
+const tickLines = (name) => {
+  const m = String(name).match(/^(.*?)\s+(sprint\s+\S+)$/i);
+  return m ? [m[1], m[2]] : [String(name)];
+};
+
 function SprintTick({ x, y, payload }) {
-  const lines = String(payload.value).split(' / ');
+  const lines = tickLines(payload.value);
   return (
     <text x={x} y={y + 12} textAnchor="middle" fill={COLORS.muted} fontSize={12}>
       {lines.map((line, i) => (
@@ -36,6 +42,6 @@ function SprintTick({ x, y, payload }) {
 
 // Props for an x-axis of sprints: show every sprint, with room for two-line labels.
 export const sprintAxisProps = (data) => {
-  const lines = Math.max(1, ...data.map((d) => String(d.sprint).split(' / ').length));
+  const lines = Math.max(1, ...data.map((d) => tickLines(d.sprint).length));
   return { ...axisProps, tick: <SprintTick />, interval: 0, height: 18 + lines * 14 };
 };

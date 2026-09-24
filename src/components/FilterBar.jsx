@@ -1,11 +1,6 @@
 import { FilterIcon, ClearIcon } from './Icons.jsx';
-import { teamsFor, sprintsFor, assigneesFor } from '../lib/filters.js';
+import { teamsFor, sprintsFor, assigneesFor, quartersFor } from '../lib/filters.js';
 
-const RANGES = [
-  { value: '6', label: 'Last 6 Sprints' },
-  { value: '3', label: 'Last 3 Sprints' },
-  { value: '1', label: 'This Sprint' },
-];
 
 const shortDate = (d) =>
   new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }).replace('Sept', 'Sep');
@@ -17,7 +12,7 @@ function Select({ label, value, onChange, options, placeholder }) {
       <span>{label}</span>
       <select value={value || ''} onChange={(e) => onChange(e.target.value || null)}>
         {placeholder && <option value="">{placeholder}</option>}
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        {options.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}{o.disabled ? ' (no sprints)' : ''}</option>)}
       </select>
     </label>
   );
@@ -47,15 +42,15 @@ export default function FilterBar({ options, filters, onChange, onClear, isDefau
       </div>
       <div className="filters-grid">
         <Select label="Project" value={filters.projectId} options={toOptions(options.projects)}
-          onChange={(v) => onChange({ projectId: v, teamId: null, releaseId: null, sprintId: null, assigneeId: null })} />
+          onChange={(v) => onChange({ projectId: v, teamId: null, quarter: null, releaseId: null, sprintId: null, assigneeId: null })} />
         <Select label="Team" value={filters.teamId} options={toOptions(teams)}
-          onChange={(v) => onChange({ teamId: v, sprintId: null, assigneeId: null })} />
+          onChange={(v) => onChange({ teamId: v, quarter: null, sprintId: null, assigneeId: null })} />
+        <Select label="Quarter" value={filters.quarter} options={quartersFor(options, filters)}
+          onChange={(v) => onChange({ quarter: v, sprintId: null })} />
         <Select label="Sprint" value={filters.sprintId} options={sprintOptions}
           onChange={(v) => onChange({ sprintId: v })} />
         <Select label="Release" value={filters.releaseId} options={toOptions(releases)} placeholder="All"
-          onChange={(v) => onChange({ releaseId: v, sprintId: null })} />
-        <Select label="Date Range" value={filters.range} options={RANGES}
-          onChange={(v) => onChange({ range: v })} />
+          onChange={(v) => onChange({ releaseId: v, quarter: null, sprintId: null })} />
         <Select label="Assignee" value={filters.assigneeId} options={toOptions(assignees)} placeholder="All"
           onChange={(v) => onChange({ assigneeId: v })} />
       </div>

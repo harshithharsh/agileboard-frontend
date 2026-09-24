@@ -12,11 +12,11 @@ async function request(path, options) {
 export const api = {
   getFilters: () => request('/filters'),
   syncFromJira: () => request('/sync', { method: 'POST' }),
-  getDashboard: ({ teamId, sprintId, assigneeId, range }) => {
+  getDashboard: ({ teamId, sprintId, assigneeId, quarter }) => {
     const params = new URLSearchParams({ teamId });
     if (sprintId) params.set('sprintId', sprintId);
     if (assigneeId) params.set('assigneeId', assigneeId);
-    if (range) params.set('range', range);
+    if (quarter) params.set('quarter', quarter);
     return request(`/dashboard?${params}`);
   },
 };
