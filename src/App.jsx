@@ -147,7 +147,7 @@ export default function App() {
                   <div className="card stat"><span>Closed</span><strong>{data.quality.current.closed}</strong></div>
                   <div className="card stat"><span>Open</span><strong>{data.quality.current.open}</strong></div>
                 </div>
-                <Card title="Defects Created vs. Closed" badge={`UAT ${data.quality.current.uatPct}% · Prod ${data.quality.current.prodPct}%`}
+                <Card title="Defects Created vs. Closed"
                   exportAs={{ file: file('defects-created-closed'), rows: data.quality.trend, columns: [['sprint', 'Sprint'], ['created', 'Created'], ['closed', 'Closed'], [(r) => keys(r.createdList), 'Created (Jira)'], [(r) => keys(r.closedList), 'Closed (Jira)']] }}>
                   <DefectChart data={data.quality.trend} />
                 </Card>

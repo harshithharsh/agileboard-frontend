@@ -15,7 +15,7 @@ To point at another API, set `VITE_API_URL` in `.env.local`.
 2. Sprint delivery: committed vs completed story points; velocity trend (committed vs completed velocity with rolling average); completion vs business value (business value = stories completed ÷ total stories in the sprint)
 3. Flow metrics: cycle time, throughput, WIP, blocked work; cycle time trend (average, median and 85th percentile per sprint)
 4. Scope stability: completed / added / spillover per sprint
-5. Quality: defects created vs closed, UAT and Prod share; defect rate (stories ÷ bugs created in the sprint) and defect density (achieved velocity ÷ bugs created in the sprint)
+5. Quality: defects created vs closed; defect rate (stories ÷ bugs created in the sprint) and defect density (achieved velocity ÷ bugs created in the sprint)
 6. Sprint health: each metric against its target
 7. Sprint burndown: ideal vs actual remaining
 8. Process compliance: DoR, DoD, acceptance criteria, code review, tests, automation
