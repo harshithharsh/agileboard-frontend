@@ -18,6 +18,9 @@ import BusinessValueChart from './components/charts/BusinessValueChart.jsx';
 import DefectRateChart from './components/charts/DefectRateChart.jsx';
 import CycleTimeChart from './components/charts/CycleTimeChart.jsx';
 import { resolveFilters, quarterLabel } from './lib/filters.js';
+import { slug } from './lib/download.js';
+
+const keys = (list) => (list || []).map((d) => d.key).join(' ');
 
 const EMPTY_FILTERS = { projectId: null, teamId: null, quarter: null, releaseId: null, sprintId: null, assigneeId: null };
 
@@ -94,7 +97,10 @@ export default function App() {
         )}
         {!data && !error && options?.sprints.length > 0 && <div className="card empty">Loading dashboard…</div>}
 
-        {data && (
+        {data && (() => {
+          // File name for chart downloads: agileboard-<team>-<chart>-<sprint>
+          const file = (chart) => `agileboard-${slug(data.context.team.name)}-${chart}-${slug(data.context.sprint.name)}`;
+          return (
           <>
             <Section title="Sprint Executive Summary" aside={`Current view: ${data.context.team.name} · ${data.context.sprint.name}`}>
               <SummaryCards summary={data.summary} velocityBand={data.velocityBand} jiraBaseUrl={data.context.jiraBaseUrl} />
@@ -104,28 +110,33 @@ export default function App() {
               ? `${quarterLabel(data.context.quarter)} · ${data.delivery.length} sprint${data.delivery.length > 1 ? 's' : ''}`
               : `Last ${data.delivery.length} sprint${data.delivery.length > 1 ? 's' : ''}`}>
               <div className="grid-2">
-                <Card title="Committed vs. Completed Story Points" badge="Story Points">
+                <Card title="Committed vs. Completed Story Points" badge="Story Points"
+                  exportAs={{ file: file('committed-vs-completed'), rows: data.delivery, columns: [['sprint', 'Sprint'], ['committed', 'Committed SP'], ['completed', 'Completed SP']] }}>
                   <DeliveryChart data={data.delivery} />
                 </Card>
-                <Card title="Velocity Trend" badge={data.velocityBand ? `Stable Band: ${data.velocityBand.low}–${data.velocityBand.high} SP` : 'No History Yet'}>
+                <Card title="Velocity Trend" badge={data.velocityBand ? `Stable Band: ${data.velocityBand.low}–${data.velocityBand.high} SP` : 'No History Yet'}
+                  exportAs={{ file: file('velocity-trend'), rows: data.delivery, columns: [['sprint', 'Sprint'], ['committed', 'Committed Velocity (SP)'], ['velocity', 'Completed Velocity (SP)'], ['rollingAverage', 'Rolling Average (SP)']] }}>
                   <VelocityChart data={data.delivery} band={data.velocityBand} />
                 </Card>
               </div>
-              <Card title="Completion and Business Value (%)" badge="Business Value = Stories Completed ÷ Total Stories">
+              <Card title="Completion and Business Value (%)" badge="Business Value = Stories Completed ÷ Total Stories"
+                exportAs={{ file: file('completion-business-value'), rows: data.delivery, columns: [['sprint', 'Sprint'], ['completion', 'Completion %'], ['businessValue', 'Business Value %'], ['storiesCompleted', 'Stories Completed'], ['storiesTotal', 'Total Stories']] }}>
                 <BusinessValueChart data={data.delivery} />
               </Card>
             </Section>
 
             <Section title="Flow Metrics" aside="Efficiency of work in motion">
               <FlowMetrics flow={data.flow} jiraBaseUrl={data.context.jiraBaseUrl} />
-              <Card title="Cycle Time Trend" badge="Days from In Progress to Done">
+              <Card title="Cycle Time Trend" badge="Days from In Progress to Done"
+                exportAs={{ file: file('cycle-time-trend'), rows: data.flow.cycleTimeTrend, columns: [['sprint', 'Sprint'], ['avg', 'Average (Days)'], ['median', 'Median (Days)'], ['p85', '85th Percentile (Days)'], ['items', 'Completed Items']] }}>
                 <CycleTimeChart data={data.flow.cycleTimeTrend} />
               </Card>
             </Section>
 
             <div className="grid-2 stretch">
               <Section title="Scope Stability" aside="Added, completed, and carried work">
-                <Card title="Scope Movement by Sprint" badge={`Added Scope: ${data.scopeAddedPct}%`}>
+                <Card title="Scope Movement by Sprint" badge={`Added Scope: ${data.scopeAddedPct}%`}
+                  exportAs={{ file: file('scope-movement'), rows: data.scope, columns: [['sprint', 'Sprint'], ['completed', 'Completed SP'], ['added', 'Added Scope SP'], ['spillover', 'Spillover SP']] }}>
                   <ScopeChart data={data.scope} />
                 </Card>
               </Section>
@@ -136,13 +147,15 @@ export default function App() {
                   <div className="card stat"><span>Closed</span><strong>{data.quality.current.closed}</strong></div>
                   <div className="card stat"><span>Open</span><strong>{data.quality.current.open}</strong></div>
                 </div>
-                <Card title="Defects Created vs. Closed" badge={`UAT ${data.quality.current.uatPct}% · Prod ${data.quality.current.prodPct}%`}>
+                <Card title="Defects Created vs. Closed" badge={`UAT ${data.quality.current.uatPct}% · Prod ${data.quality.current.prodPct}%`}
+                  exportAs={{ file: file('defects-created-closed'), rows: data.quality.trend, columns: [['sprint', 'Sprint'], ['created', 'Created'], ['closed', 'Closed'], [(r) => keys(r.createdList), 'Created (Jira)'], [(r) => keys(r.closedList), 'Closed (Jira)']] }}>
                   <DefectChart data={data.quality.trend} />
                 </Card>
               </Section>
             </div>
 
-            <Card title="Defect Rate and Defect Density" badge="Per Bug Created in the Sprint">
+            <Card title="Defect Rate and Defect Density" badge="Per Bug Created in the Sprint"
+              exportAs={{ file: file('defect-rate-density'), rows: data.quality.trend, columns: [['sprint', 'Sprint'], ['stories', 'Stories'], ['achievedVelocity', 'Achieved Velocity (SP)'], ['createdInSprint', 'Bugs Created in Sprint'], ['defectRate', 'Defect Rate'], ['defectDensity', 'Defect Density']] }}>
               <DefectRateChart data={data.quality.trend} />
               {data.quality.trend.some((t) => t.defectRate === null) && (
                 <p className="muted chart-note">Sprints with no bugs created have no value (division by zero).</p>
@@ -155,7 +168,8 @@ export default function App() {
 
             <div className="grid-2">
               <Section title="Sprint Burndown" aside={`${data.burndown.length}-day sprint`}>
-                <Card title="Remaining Work" badge={<StatusPill status={data.sprintState} label={STATUS_LABEL[data.sprintState]} />}>
+                <Card title="Remaining Work" badge={<StatusPill status={data.sprintState} label={STATUS_LABEL[data.sprintState]} />}
+                  exportAs={{ file: file('burndown'), rows: data.burndown, columns: [['day', 'Day'], ['date', 'Date'], ['ideal', 'Ideal Remaining (SP)'], ['actual', 'Actual Remaining (SP)']] }}>
                   <BurndownChart data={data.burndown} />
                 </Card>
               </Section>
@@ -172,7 +186,8 @@ export default function App() {
               <span>Source: Jira boards, synced {data.context.sync.lastSuccessAt ? formatDateTime(data.context.sync.lastSuccessAt) : 'never'}</span>
             </footer>
           </>
-        )}
+          );
+        })()}
       </main>
     </div>
   );

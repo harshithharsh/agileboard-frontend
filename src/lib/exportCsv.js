@@ -1,4 +1,5 @@
 import { STATUS_LABEL } from './format.js';
+import { slug, downloadCsv } from './download.js';
 
 const COMPLIANCE_LABELS = {
   dor: 'Definition of Ready',
@@ -8,9 +9,6 @@ const COMPLIANCE_LABELS = {
   testCases: 'Test Case Completion',
   automation: 'Automation Coverage',
 };
-
-// "Vertex" + "Vertex Sprint 13" -> "vertex-sprint-13"
-const slug = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 // Builds a CSV of the dashboard's headline numbers and triggers a download.
 export function exportDashboardCsv(data) {
@@ -45,11 +43,5 @@ export function exportDashboardCsv(data) {
     ['Process Compliance', '%'],
     ...Object.entries(compliance).map(([k, v]) => [COMPLIANCE_LABELS[k] ?? k, v ?? 'Not tracked in Jira']),
   ];
-  const csv = rows.map((r) => r.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
-  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `agileboard-${slug(context.team.name)}-${slug(context.sprint.name)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadCsv(rows, `agileboard-${slug(context.team.name)}-${slug(context.sprint.name)}.csv`);
 }
