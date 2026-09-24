@@ -1,8 +1,8 @@
-export function Section({ number, title, aside, children }) {
+export function Section({ title, aside, children }) {
   return (
     <section className="section">
       <div className="section-head">
-        <h2><span className="section-num">{String(number).padStart(2, '0')}</span>{title}</h2>
+        <h2>{title}</h2>
         {aside && <span className="section-aside">{aside}</span>}
       </div>
       {children}

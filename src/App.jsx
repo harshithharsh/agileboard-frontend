@@ -95,11 +95,11 @@ export default function App() {
 
         {data && (
           <>
-            <Section number={1} title="Sprint Executive Summary" aside={`Current view: ${data.context.team.name} · ${data.context.sprint.name}`}>
+            <Section title="Sprint Executive Summary" aside={`Current view: ${data.context.team.name} · ${data.context.sprint.name}`}>
               <SummaryCards summary={data.summary} velocityBand={data.velocityBand} jiraBaseUrl={data.context.jiraBaseUrl} />
             </Section>
 
-            <Section number={2} title="Sprint Delivery" aside={data.context.quarter
+            <Section title="Sprint Delivery" aside={data.context.quarter
               ? `${quarterLabel(data.context.quarter)} · ${data.delivery.length} sprint${data.delivery.length > 1 ? 's' : ''}`
               : `Last ${data.delivery.length} sprint${data.delivery.length > 1 ? 's' : ''}`}>
               <div className="grid-2">
@@ -115,18 +115,18 @@ export default function App() {
               </Card>
             </Section>
 
-            <Section number={3} title="Flow Metrics" aside="Efficiency of work in motion">
+            <Section title="Flow Metrics" aside="Efficiency of work in motion">
               <FlowMetrics flow={data.flow} jiraBaseUrl={data.context.jiraBaseUrl} />
             </Section>
 
             <div className="grid-2 stretch">
-              <Section number={4} title="Scope Stability" aside="Added, completed, and carried work">
+              <Section title="Scope Stability" aside="Added, completed, and carried work">
                 <Card title="Scope Movement by Sprint" badge={`Added Scope: ${data.scopeAddedPct}%`}>
                   <ScopeChart data={data.scope} />
                 </Card>
               </Section>
 
-              <Section number={5} title="Quality" aside="Defects created and closed">
+              <Section title="Quality" aside="Defects created and closed">
                 <div className="quality-stats">
                   <div className="card stat"><span>Created</span><strong>{data.quality.current.created}</strong></div>
                   <div className="card stat"><span>Closed</span><strong>{data.quality.current.closed}</strong></div>
@@ -145,18 +145,18 @@ export default function App() {
               )}
             </Card>
 
-            <Section number={6} title="Sprint Health" aside="Status against agreed thresholds">
+            <Section title="Sprint Health" aside="Status against agreed thresholds">
               <HealthTable health={data.health} sprintState={data.sprintState} />
             </Section>
 
             <div className="grid-2">
-              <Section number={7} title="Sprint Burndown" aside={`${data.burndown.length}-day sprint`}>
+              <Section title="Sprint Burndown" aside={`${data.burndown.length}-day sprint`}>
                 <Card title="Remaining Work" badge={<StatusPill status={data.sprintState} label={STATUS_LABEL[data.sprintState]} />}>
                   <BurndownChart data={data.burndown} />
                 </Card>
               </Section>
 
-              <Section number={8} title="Process Compliance" aside="Definition of Ready and Definition of Done">
+              <Section title="Process Compliance" aside="Definition of Ready and Definition of Done">
                 <Card>
                   <Compliance compliance={data.compliance} />
                 </Card>
