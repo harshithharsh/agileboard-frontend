@@ -1,7 +1,9 @@
 import { TrendUp, TrendDown } from './Icons.jsx';
 import { formatValue } from '../lib/format.js';
+import IssueKey from './IssueKey.jsx';
 
 function Delta({ card }) {
+  if (card.caption) return <span className="delta neutral">{card.caption}</span>;
   if (card.status === 'in_progress') return <span className="delta neutral">Sprint in progress</span>;
   if (card.delta === null) return <span className="delta neutral">First sprint</span>;
   if (card.delta === 0) return <span className="delta neutral">No change</span>;
@@ -16,13 +18,15 @@ function Delta({ card }) {
   );
 }
 
-export default function SummaryCards({ summary, velocityBand }) {
+export default function SummaryCards({ summary, velocityBand, jiraBaseUrl }) {
   return (
     <div className="summary-grid">
       {summary.map((card) => {
         const max = card.unit === '%' ? 100 : Math.max((velocityBand?.high ?? card.value) * 1.25, card.value);
-        const width = Math.min(100, (card.value / max) * 100);
-        const barClass = card.key === 'velocity' || card.status === 'in_progress' ? 'bar-primary' : card.status === 'on_track' ? 'bar-success' : 'bar-warning';
+        const width = Math.min(100, card.barPct ?? (card.value / max) * 100);
+        const barClass = card.key === 'velocity' || card.key === 'time_elapsed' || card.status === 'in_progress'
+          ? 'bar-primary'
+          : card.status === 'on_track' ? 'bar-success' : 'bar-warning';
         return (
           <div className="card metric" key={card.key}>
             <div className="metric-head">
@@ -35,9 +39,16 @@ export default function SummaryCards({ summary, velocityBand }) {
             </div>
             <div className="bar"><div className={barClass} style={{ width: `${width}%` }} /></div>
             <div className="metric-foot">
-              <span>{card.key !== 'velocity' ? `Target ${card.target}` : velocityBand ? `Target ${velocityBand.low}–${velocityBand.high} SP` : 'No history yet'}</span>
-              <span>Prior {formatValue(card.prior, card.unit)}</span>
+              <span>{card.footLeft ?? (card.key !== 'velocity' ? `Target ${card.target}` : velocityBand ? `Target ${velocityBand.low}–${velocityBand.high} SP` : 'No history yet')}</span>
+              <span>{card.footRight ?? `Prior ${formatValue(card.prior, card.unit)}`}</span>
             </div>
+            {card.issues?.length > 0 && (
+              <div className="metric-issues">
+                {card.issues.map((i, n) => (
+                  <span key={i.key} title={i.title}>{n > 0 && ', '}<IssueKey issueKey={i.key} jiraBaseUrl={jiraBaseUrl} /></span>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}

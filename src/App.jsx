@@ -96,7 +96,7 @@ export default function App() {
         {data && (
           <>
             <Section number={1} title="Sprint Executive Summary" aside={`Current view: ${data.context.team.name} · ${data.context.sprint.name}`}>
-              <SummaryCards summary={data.summary} velocityBand={data.velocityBand} />
+              <SummaryCards summary={data.summary} velocityBand={data.velocityBand} jiraBaseUrl={data.context.jiraBaseUrl} />
             </Section>
 
             <Section number={2} title="Sprint Delivery" aside={data.context.quarter

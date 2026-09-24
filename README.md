@@ -11,7 +11,7 @@ In development, `/api` requests are proxied to the backend at `http://localhost:
 To point at another API, set `VITE_API_URL` in `.env.local`.
 
 ## Sections
-1. Sprint executive summary: 5 metric cards (predictability, completion, velocity, spillover, unplanned work) with target, prior value and change
+1. Sprint executive summary: 7 cards: time elapsed (working days passed ÷ sprint working days), predictability, completion, velocity, spillover, unplanned work, and P1 - Blocker (open P1 - Blocker issues, linked to Jira)
 2. Sprint delivery: committed vs completed story points; velocity trend (committed vs completed velocity with rolling average); completion vs business value (business value = stories completed ÷ total stories in the sprint)
 3. Flow metrics: cycle time, throughput, WIP, blocked work
 4. Scope stability: completed / added / spillover per sprint
