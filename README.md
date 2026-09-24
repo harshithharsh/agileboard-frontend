@@ -13,7 +13,7 @@ To point at another API, set `VITE_API_URL` in `.env.local`.
 ## Sections
 1. Sprint executive summary: 6 cards: time elapsed (working days passed ÷ sprint working days), predictability, velocity, spillover, unplanned work, and P1 - Blocker (open P1 - Blocker issues, linked to Jira)
 2. Sprint delivery: committed vs completed story points; velocity trend (committed vs completed velocity with rolling average); completion vs business value (business value = stories completed ÷ total stories in the sprint)
-3. Flow metrics: cycle time, throughput, WIP, blocked work
+3. Flow metrics: cycle time, throughput, WIP, blocked work; cycle time trend (average, median and 85th percentile per sprint)
 4. Scope stability: completed / added / spillover per sprint
 5. Quality: defects created vs closed, UAT and Prod share; defect rate (stories ÷ bugs created in the sprint) and defect density (achieved velocity ÷ bugs created in the sprint)
 6. Sprint health: each metric against its target

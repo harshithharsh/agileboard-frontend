@@ -16,6 +16,7 @@ import DefectChart from './components/charts/DefectChart.jsx';
 import BurndownChart from './components/charts/BurndownChart.jsx';
 import BusinessValueChart from './components/charts/BusinessValueChart.jsx';
 import DefectRateChart from './components/charts/DefectRateChart.jsx';
+import CycleTimeChart from './components/charts/CycleTimeChart.jsx';
 import { resolveFilters, quarterLabel } from './lib/filters.js';
 
 const EMPTY_FILTERS = { projectId: null, teamId: null, quarter: null, releaseId: null, sprintId: null, assigneeId: null };
@@ -117,6 +118,9 @@ export default function App() {
 
             <Section title="Flow Metrics" aside="Efficiency of work in motion">
               <FlowMetrics flow={data.flow} jiraBaseUrl={data.context.jiraBaseUrl} />
+              <Card title="Cycle Time Trend" badge="Days from In Progress to Done">
+                <CycleTimeChart data={data.flow.cycleTimeTrend} />
+              </Card>
             </Section>
 
             <div className="grid-2 stretch">
