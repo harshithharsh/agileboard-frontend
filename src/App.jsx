@@ -198,7 +198,7 @@ export default function App() {
               {data.context.sync.lastSuccessAt ? formatDateTime(data.context.sync.lastSuccessAt) : 'never'}
             </span>
           )}
-          <span>© {new Date().getFullYear()} AgileMetrix</span>
+          <span>© {new Date().getFullYear()} AgileMetrix · Powered by <strong className="powered-by">Quadpact</strong></span>
         </div>
       </footer>
     </div>

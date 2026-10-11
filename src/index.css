@@ -206,6 +206,7 @@ a.issue-key:hover { text-decoration: underline; }
 .footer-wordmark { font-size: 15px; }
 .footer-tagline { padding-left: 10px; margin-left: 2px; border-left: 1px solid var(--border); }
 .footer-meta { display: flex; flex-wrap: wrap; gap: 6px 20px; justify-content: flex-end; }
+.powered-by { color: var(--text); font-weight: 600; }
 
 /* ---------- responsive ---------- */
 @media (max-width: 1360px) {
