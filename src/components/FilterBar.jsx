@@ -57,9 +57,12 @@ export default function FilterBar({ options, filters, onChange, onClear, isDefau
         <Select label="Assignee" value={filters.assigneeId} options={toOptions(assignees)} placeholder="All"
           onChange={(v) => onChange({ assigneeId: v })} />
       </div>
-      <button className="btn btn-clear" onClick={onClear} disabled={isDefault} title="Reset all filters to their defaults">
-        <ClearIcon /> <span>Clear</span>
-      </button>
+      <span className="has-tip clear-wrap">
+        <button className="icon-btn btn-clear" onClick={onClear} disabled={isDefault} aria-label="Clear filters" aria-describedby="clear-hint">
+          <ClearIcon />
+        </button>
+        <span id="clear-hint" role="tooltip" className="tip tip-right">{isDefault ? 'Filters are already at their defaults' : 'Clear filters'}</span>
+      </span>
     </section>
   );
 }

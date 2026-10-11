@@ -136,12 +136,15 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1
 .tip::before {
   content: ''; position: absolute; left: 14px; top: -5px; width: 10px; height: 10px; background: #0f172a; transform: rotate(45deg);
 }
-.has-tip:hover .tip, .has-tip:focus-visible .tip { opacity: 1; transform: none; }
+.has-tip:hover .tip, .has-tip:focus-visible .tip, .has-tip:focus-within .tip { opacity: 1; transform: none; }
+/* Tooltip anchored to the right edge (for controls near the right side of the page) */
+.tip-right { left: auto; right: 0; }
+.tip-right::before { left: auto; right: 14px; }
 .has-tip:focus-visible .filters-icon { box-shadow: 0 0 0 2px var(--primary); }
 .filters-icon { width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center; border-radius: 10px; background: var(--primary-soft); color: var(--primary); }
 .filters-icon svg { width: 18px; height: 18px; }
 .filters-intro h2 { font-size: 16px; font-weight: 700; color: var(--text); }
-.filters .btn-clear { align-self: center; padding: 9px 14px; }
+.filters .clear-wrap { align-self: center; flex-shrink: 0; }
 /* Divider between the dropdowns and Clear, as in the design */
 .filters-grid { padding-right: 24px; border-right: 1px solid var(--border); }
 /* Wide screens: give Sprint (long labels with dates) more room, Quarter less */
@@ -151,7 +154,6 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1
     min-width: 0; gap: 10px;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 1.9fr) minmax(0, 1fr) minmax(0, 1fr);
   }
-  .filters .btn-clear { flex-shrink: 0; }
 }
 .btn-clear { align-self: center; }
 .filters-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
@@ -284,7 +286,7 @@ a.issue-key:hover { text-decoration: underline; }
   .page-title { font-size: 17px; }
   .filters-intro, .filters-grid { border-right: none; padding-right: 0; max-width: none; }
   .filters { flex-direction: column; align-items: stretch; gap: 16px; }
-  .filters .btn-clear { align-self: flex-start; }
+  .filters .clear-wrap { align-self: flex-start; }
   .summary-grid, .flow-grid { grid-template-columns: 1fr 1fr; }
   .metric-value strong { font-size: 22px; }
   .filters-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
