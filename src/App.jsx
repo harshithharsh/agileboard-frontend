@@ -13,6 +13,7 @@ import DeliveryChart from './components/charts/DeliveryChart.jsx';
 import VelocityChart from './components/charts/VelocityChart.jsx';
 import ScopeChart from './components/charts/ScopeChart.jsx';
 import DefectChart from './components/charts/DefectChart.jsx';
+import Footer from './components/Footer.jsx';
 import BurndownChart from './components/charts/BurndownChart.jsx';
 import BusinessValueChart from './components/charts/BusinessValueChart.jsx';
 import DefectRateChart from './components/charts/DefectRateChart.jsx';
@@ -200,16 +201,7 @@ export default function App({ user, onSignOut }) {
           );
         })()}
       </main>
-      <footer className="footer">
-        <div className="footer-brand">
-          <img src="/logo-icon.svg" alt="" className="footer-icon logo-light" />
-          <img src="/logo-icon-dark.svg" alt="" className="footer-icon logo-dark" />
-          <span className="brand-wordmark footer-wordmark"><span className="brand-agile">Agile</span><span className="brand-metrix">Metrix</span></span>
-        </div>
-        <div className="footer-meta">
-          <span>© {new Date().getFullYear()} AgileMetrix · Powered by <strong className="powered-by">Quadpact</strong></span>
-        </div>
-      </footer>
+      <Footer />
       {adminOpen && canAdmin && (
         <AdminOverlay
           onChanged={() => setAdminChanged(true)}

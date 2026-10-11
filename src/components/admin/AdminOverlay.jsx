@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../api/client.js';
 import Modal, { Field } from './Modal.jsx';
+import Footer from '../Footer.jsx';
 import { formatDateTime } from '../../lib/format.js';
 import { getThemeChoice, setThemeChoice } from '../../lib/theme.js';
 import {
@@ -370,6 +371,7 @@ export default function AdminOverlay({ onClose, onChanged }) {
           </div>
         </div>
       </header>
+      <div className="admin-scroll">
       <main className="admin-main">
 
 
@@ -441,6 +443,8 @@ export default function AdminOverlay({ onClose, onChanged }) {
           </div>
         )}
       </main>
+      <Footer />
+      </div>
 
       {editing?.kind === 'users' && <UserForm item={editing.item} roles={data.roles} projects={data.projects} onSave={save} onCancel={() => setEditing(null)} saving={saving} error={formError} />}
       {editing?.kind === 'roles' && <RoleForm item={editing.item} permissions={data.permissions} onSave={save} onCancel={() => setEditing(null)} saving={saving} error={formError} />}
