@@ -25,20 +25,35 @@ function SettingsPanel({ context, onClose }) {
 
   const sync = context?.sync;
   const latest = sync?.latest;
+  const status = jiraStatus(sync, false);
+  const attempt = latest
+    ? { success: 'Succeeded', failed: 'Failed', running: 'Running' }[latest.status] ?? latest.status
+    : null;
   return (
-    <div className="settings-panel" ref={ref} role="dialog" aria-label="Settings">
-      <div className="settings-title">Jira Connection</div>
-      <dl>
-        <dt>Jira site</dt>
-        <dd>{context?.jiraBaseUrl ? <a href={context.jiraBaseUrl} target="_blank" rel="noreferrer">{context.jiraBaseUrl.replace(/^https?:\/\//, '')}</a> : '—'}</dd>
-        <dt>Last successful sync</dt>
-        <dd>{sync?.lastSuccessAt ? formatDateTime(sync.lastSuccessAt) : 'Never'}</dd>
-        <dt>Last attempt</dt>
-        <dd>
-          {latest ? `${latest.status === 'success' ? 'Succeeded' : latest.status === 'failed' ? 'Failed' : 'Running'} · ${formatDateTime(latest.started_at)}` : '—'}
-          {latest?.status === 'failed' && latest.message && <div className="settings-error">{latest.message}</div>}
-        </dd>
-      </dl>
+    <div className="settings-panel" ref={ref} role="dialog" aria-label="Jira connection settings">
+      <div className="settings-head">
+        <span className="settings-title">Jira Connection</span>
+        <span className={`settings-badge jira-${status.key}`}><i className="jira-dot" />{status.key === 'connected' ? 'Connected' : status.label}</span>
+      </div>
+      <div className="settings-row">
+        <span className="settings-label">Jira site</span>
+        <span className="settings-value">
+          {context?.jiraBaseUrl
+            ? <a href={context.jiraBaseUrl} target="_blank" rel="noreferrer">{context.jiraBaseUrl.replace(/^https?:\/\//, '')}</a>
+            : '—'}
+        </span>
+      </div>
+      <div className="settings-row">
+        <span className="settings-label">Last successful sync</span>
+        <span className="settings-value">{sync?.lastSuccessAt ? formatDateTime(sync.lastSuccessAt) : 'Never'}</span>
+      </div>
+      <div className="settings-row">
+        <span className="settings-label">Last attempt</span>
+        <span className={`settings-value ${latest?.status === 'failed' ? 'is-failed' : ''}`}>
+          {latest ? `${attempt} · ${formatDateTime(latest.started_at)}` : '—'}
+        </span>
+        {latest?.status === 'failed' && latest.message && <span className="settings-error">{latest.message}</span>}
+      </div>
       <p className="settings-note">Use Refresh to pull the latest sprints and issues from Jira.</p>
     </div>
   );
