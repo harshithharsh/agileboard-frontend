@@ -457,10 +457,10 @@ a.issue-key:hover { text-decoration: underline; }
 .field { display: flex; flex-direction: column; gap: 5px; }
 .field-label { font-size: 12px; font-weight: 600; color: var(--text); }
 .field-hint { font-size: 11px; color: var(--muted); }
-.field input, .field select, .team-row input {
+.field input, .field select, .team-row input, .team-row select {
   font: inherit; font-size: 13px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); width: 100%;
 }
-.field input:focus, .field select:focus, .team-row input:focus { outline: 2px solid var(--primary-soft); border-color: var(--primary); }
+.field input:focus, .field select:focus, .team-row input:focus, .team-row select:focus { outline: 2px solid var(--primary-soft); border-color: var(--primary); }
 .field input:disabled { background: var(--surface-2); color: var(--muted); }
 .check-group { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 4px 0; }
 .check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
@@ -512,3 +512,6 @@ a.issue-key:hover { text-decoration: underline; }
 .user-signout:hover { background: var(--danger-soft); }
 .form-section { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px dashed var(--border); border-radius: 10px; }
 .signin-chip { font-size: 12px; font-weight: 500; color: var(--primary); background: var(--primary-soft); padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+
+.team-row select { min-width: 0; }
+.team-row-head span { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }

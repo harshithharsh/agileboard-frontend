@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../api/client.js';
 import Modal, { Field } from './Modal.jsx';
 import { formatDateTime } from '../../lib/format.js';
@@ -159,40 +159,87 @@ function RoleForm({ item, permissions, onSave, onCancel, saving, error }) {
   );
 }
 
+// Team name suggested from a Jira board name ("Nexo Board" -> "Nexo")
+const teamNameFor = (board) => board.name.replace(/\s+(board|sprint|scrum)$/i, '').trim() || board.name;
+
 function ProjectForm({ item, onSave, onCancel, saving, error }) {
   const [f, setF] = useState({
     key: item?.key ?? '', name: item?.name ?? '', description: item?.description ?? '', status: item?.status ?? 'active',
-    teams: (item?.teams ?? []).map((t) => ({ ...t, jiraBoardId: t.jiraBoardId ?? '' })),
+    teams: (item?.teams ?? []).map((t) => ({ ...t, jiraBoardId: t.jiraBoardId != null ? String(t.jiraBoardId) : '' })),
   });
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
   const setTeam = (i, k) => (e) => setF((s) => ({ ...s, teams: s.teams.map((t, n) => (n === i ? { ...t, [k]: e.target.value } : t)) }));
   const addTeam = () => setF((s) => ({ ...s, teams: [...s.teams, { name: '', jiraBoardId: '', wipLimit: 5 }] }));
   const removeTeam = (i) => setF((s) => ({ ...s, teams: s.teams.filter((_, n) => n !== i) }));
 
-  // Adding: pick from the active Jira projects; its Scrum boards become the teams
-  const [jira, setJira] = useState({ projects: null, error: null, boards: false });
+  // Adding: pick from the active Jira projects
+  const [jira, setJira] = useState({ projects: null, error: null });
   useEffect(() => {
     if (item) return;
     api.admin.jiraProjects()
-      .then((projects) => setJira((j) => ({ ...j, projects })))
-      .catch((e) => setJira((j) => ({ ...j, error: e.message })));
+      .then((projects) => setJira({ projects, error: null }))
+      .catch((e) => setJira({ projects: null, error: e.message }));
   }, [item]);
-  const pickJira = async (e) => {
+  const fromJira = !item && !!jira.projects?.some((p) => p.key === f.key);
+
+  // The project's Scrum boards in Jira, offered for each team
+  const boardKey = item ? item.key : fromJira ? f.key : null;
+  const [boards, setBoards] = useState({ key: null, list: null, error: null });
+  useEffect(() => {
+    if (!boardKey) return undefined;
+    let live = true;
+    setBoards({ key: boardKey, list: null, error: null });
+    api.admin.jiraBoards(boardKey)
+      .then((list) => live && setBoards({ key: boardKey, list, error: null }))
+      .catch((e) => live && setBoards({ key: boardKey, list: null, error: e.message }));
+    return () => { live = false; };
+  }, [boardKey]);
+  const boardList = boards.key === boardKey ? boards.list : null;
+  const loadingBoards = !!boardKey && boards.key === boardKey && !boards.list && !boards.error;
+  const filledFor = useRef(null);
+  // New project from Jira: start with one team per board
+  useEffect(() => {
+    if (item || !fromJira || !boardList || filledFor.current === f.key) return;
+    filledFor.current = f.key;
+    setF((s) => ({ ...s, teams: boardList.map((b) => ({ name: teamNameFor(b), jiraBoardId: String(b.id), wipLimit: 5 })) }));
+  }, [item, fromJira, boardList, f.key]);
+
+  const pickJira = (e) => {
     const p = jira.projects.find((x) => x.key === e.target.value);
-    if (!p) return setF((s) => ({ ...s, key: '', name: '', description: '', teams: [] }));
-    setF((s) => ({ ...s, key: p.key, name: p.name.trim(), description: p.description, teams: [] }));
-    setJira((j) => ({ ...j, boards: true }));
-    try {
-      const boards = await api.admin.jiraBoards(p.key);
-      const teamName = (b) => b.name.replace(/\s+(board|sprint|scrum)$/i, '').trim() || b.name;
-      setF((s) => (s.key === p.key ? { ...s, teams: boards.map((b) => ({ name: teamName(b), jiraBoardId: String(b.id), wipLimit: 5 })) } : s));
-    } catch {
-      // No boards found: teams can still be added by hand
-    } finally {
-      setJira((j) => ({ ...j, boards: false }));
-    }
+    filledFor.current = null;
+    setF((s) => (p
+      ? { ...s, key: p.key, name: p.name.trim(), description: p.description, teams: [] }
+      : { ...s, key: '', name: '', description: '', teams: [] }));
   };
-  const fromJira = !item && jira.projects?.some((p) => p.key === f.key);
+  const pickBoard = (i) => (e) => {
+    const board = boardList?.find((b) => String(b.id) === e.target.value);
+    setF((s) => ({
+      ...s,
+      teams: s.teams.map((t, n) => (n === i ? { ...t, jiraBoardId: e.target.value, name: t.name || (board ? teamNameFor(board) : '') } : t)),
+    }));
+  };
+
+  const boardField = (t, i) => {
+    if (!boardList) {
+      return <input value={t.jiraBoardId} onChange={setTeam(i, 'jiraBoardId')} placeholder={loadingBoards ? 'Loading boards…' : 'Jira board id'} inputMode="numeric" aria-label="Jira board id" disabled={loadingBoards} />;
+    }
+    const used = new Set(f.teams.filter((_, n) => n !== i).map((x) => x.jiraBoardId));
+    const known = boardList.some((b) => String(b.id) === t.jiraBoardId);
+    return (
+      <select value={t.jiraBoardId} onChange={pickBoard(i)} aria-label="Jira board">
+        <option value="">Select a board</option>
+        {t.jiraBoardId && !known && <option value={t.jiraBoardId}>Board #{t.jiraBoardId} (not in this project)</option>}
+        {boardList.map((b) => (
+          <option key={b.id} value={String(b.id)} disabled={used.has(String(b.id))}>{b.name} (#{b.id}){used.has(String(b.id)) ? ' · in use' : ''}</option>
+        ))}
+      </select>
+    );
+  };
+
+  const teamsHint = loadingBoards ? 'Loading the project’s Scrum boards from Jira…'
+    : boards.error && boardKey ? `Could not load boards from Jira (${boards.error}). Enter the board id from the board's URL (…/boards/524).`
+    : boardList ? (boardList.length ? 'Each team is synced from one of the project’s Scrum boards in Jira.' : 'This project has no Scrum boards in Jira.')
+    : <>Each team is synced from its Jira board. Find the board id in the board's URL (…/boards/<b>524</b>).</>;
 
   return (
     <Modal title={item ? 'Edit Project' : 'Add Project'} width={600} onClose={onCancel}
@@ -210,7 +257,7 @@ function ProjectForm({ item, onSave, onCancel, saving, error }) {
       )}
       <div className="form-grid">
         <Field label="Project name"><input value={f.name} onChange={set('name')} autoFocus={!!item} /></Field>
-        <Field label="Key" hint={fromJira ? 'From Jira' : 'Jira project key, e.g. FIBI'}><input value={f.key} onChange={set('key')} readOnly={fromJira} /></Field>
+        <Field label="Key" hint={item ? 'The Jira project key can’t be changed.' : fromJira ? 'From Jira' : 'Jira project key, e.g. FIBI'}><input value={f.key} onChange={set('key')} readOnly={fromJira || !!item} /></Field>
       </div>
       <Field label="Description"><input value={f.description ?? ''} onChange={set('description')} /></Field>
       <Field label="Status" hint="Inactive projects are hidden from the dashboard and not synced.">
@@ -218,16 +265,15 @@ function ProjectForm({ item, onSave, onCancel, saving, error }) {
       </Field>
       <div className="field">
         <span className="field-label">Teams</span>
-        <span className="field-hint">
-          {jira.boards ? 'Loading the project’s Scrum boards from Jira…'
-            : fromJira ? 'Filled in from the project’s Scrum boards in Jira. Remove any board you don’t want to track.'
-            : <>Each team is synced from its Jira board. Find the board id in the board's URL (…/boards/<b>524</b>).</>}
-        </span>
+        <span className="field-hint">{teamsHint}</span>
         <div className="team-rows">
+          {f.teams.length > 0 && (
+            <div className="team-row team-row-head" aria-hidden="true"><span>Team name</span><span>Jira board</span><span>WIP</span><span /></div>
+          )}
           {f.teams.map((t, i) => (
             <div className="team-row" key={t.id ?? `new-${i}`}>
               <input value={t.name} onChange={setTeam(i, 'name')} placeholder="Team name" aria-label="Team name" />
-              <input value={t.jiraBoardId} onChange={setTeam(i, 'jiraBoardId')} placeholder="Jira board id" inputMode="numeric" aria-label="Jira board id" />
+              {boardField(t, i)}
               <input value={t.wipLimit} onChange={setTeam(i, 'wipLimit')} placeholder="WIP" inputMode="numeric" aria-label="WIP limit" title="WIP limit" />
               <button type="button" className="action-btn action-danger" onClick={() => removeTeam(i)} disabled={t.sprints > 0}
                 title={t.sprints > 0 ? 'This team has synced sprints and can’t be removed' : 'Remove team'} aria-label="Remove team"><TrashIcon /></button>
