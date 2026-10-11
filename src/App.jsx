@@ -190,7 +190,8 @@ export default function App() {
       </main>
       <footer className="footer">
         <div className="footer-brand">
-          <img src="/logo-icon.svg" alt="" className="footer-icon" />
+          <img src="/logo-icon.svg" alt="" className="footer-icon logo-light" />
+          <img src="/logo-icon-dark.svg" alt="" className="footer-icon logo-dark" />
           <span className="brand-wordmark footer-wordmark"><span className="brand-agile">Agile</span><span className="brand-metrix">Metrix</span></span>
         </div>
         <div className="footer-meta">

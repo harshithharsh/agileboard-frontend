@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client.js';
 import Modal, { Field } from './Modal.jsx';
+import { getThemeChoice, setThemeChoice } from '../../lib/theme.js';
 import {
-  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SearchIcon,
+  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SearchIcon, SunIcon, MoonIcon, MonitorIcon, PaletteIcon,
 } from '../Icons.jsx';
 
 const PERMISSION_LABELS = { view: 'View', create: 'Create', edit: 'Edit', delete: 'Delete', admin: 'Admin' };
@@ -40,6 +41,40 @@ function AdminCard({ icon, tone, title, subtitle, addLabel, onAdd, children, cou
         <button className="btn-primary-solid" onClick={onAdd}><PlusIcon /> {addLabel}</button>
       </div>
       <div className="admin-table-wrap">{children}</div>
+    </section>
+  );
+}
+
+// Light / dark / system theme switch (saved in this browser)
+const THEMES = [
+  { value: 'light', label: 'Light', icon: <SunIcon /> },
+  { value: 'dark', label: 'Dark', icon: <MoonIcon /> },
+  { value: 'system', label: 'System', icon: <MonitorIcon /> },
+];
+
+function AppearanceCard() {
+  const [choice, setChoice] = useState(getThemeChoice);
+  const choose = (value) => {
+    setThemeChoice(value);
+    setChoice(value);
+  };
+  return (
+    <section className="admin-card admin-card-wide appearance-card">
+      <div className="admin-card-head">
+        <span className="admin-card-icon tone-blue"><PaletteIcon /></span>
+        <div className="admin-card-titles">
+          <h2>Appearance</h2>
+          <p>Choose a light or dark theme. System follows your computer’s setting. Saved in this browser.</p>
+        </div>
+        <div className="segmented" role="radiogroup" aria-label="Theme">
+          {THEMES.map((t) => (
+            <button key={t.value} role="radio" aria-checked={choice === t.value}
+              className={`segment${choice === t.value ? ' active' : ''}`} onClick={() => choose(t.value)}>
+              {t.icon} {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
@@ -248,7 +283,7 @@ export default function AdminOverlay({ onClose, onChanged }) {
         <div className="admin-top">
           <div>
             <h1>Admin</h1>
-            <p>Manage users, roles and projects.</p>
+            <p>Appearance, users, roles and projects.</p>
           </div>
           <div className="admin-top-actions">
             <label className="admin-search">
@@ -266,6 +301,8 @@ export default function AdminOverlay({ onClose, onChanged }) {
 
         {view && (
           <div className="admin-grid">
+            <AppearanceCard />
+
             <AdminCard icon={<UsersIcon />} tone="purple" title="Users & Role Assignment" subtitle="Add users and assign roles across projects."
               addLabel="Add User" onAdd={() => openEdit('users')} count={view.users.length} wide>
               <table className="admin-table">

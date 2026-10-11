@@ -24,7 +24,7 @@ export function downloadCsv(rows, filename) {
 // Snapshot of a DOM element (e.g. a chart card) as a PNG, without the export buttons.
 export async function downloadPng(node, filename) {
   const dataUrl = await toPng(node, {
-    backgroundColor: '#ffffff',
+    backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#ffffff',
     pixelRatio: 2,
     filter: (el) => !el.classList?.contains('export-actions'),
   });

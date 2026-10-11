@@ -68,7 +68,8 @@ export default function Header({ context, onRefresh, onExport, onOpenAdmin, load
     <header className="header">
       <div className="header-brand">
         <a className="brand" href="/" aria-label="AgileMetrix home">
-          <img className="brand-icon" src="/logo-icon.svg" alt="" />
+          <img className="brand-icon logo-light" src="/logo-icon.svg" alt="" />
+          <img className="brand-icon logo-dark" src="/logo-icon-dark.svg" alt="" />
           <span className="brand-wordmark"><span className="brand-agile">Agile</span><span className="brand-metrix">Metrix</span></span>
         </a>
         <span className="brand-divider" aria-hidden="true" />
