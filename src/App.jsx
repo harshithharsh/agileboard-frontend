@@ -18,6 +18,7 @@ import BusinessValueChart from './components/charts/BusinessValueChart.jsx';
 import DefectRateChart from './components/charts/DefectRateChart.jsx';
 import CycleTimeChart from './components/charts/CycleTimeChart.jsx';
 import AdminOverlay from './components/admin/AdminOverlay.jsx';
+import IssueTypesTable from './components/IssueTypesTable.jsx';
 import { resolveFilters, quarterLabel } from './lib/filters.js';
 import { slug } from './lib/download.js';
 
@@ -141,6 +142,14 @@ export default function App() {
                 <Card title="Scope Movement by Sprint" badge={`Added Scope: ${data.scopeAddedPct}%`}
                   exportAs={{ file: file('scope-movement'), rows: data.scope, columns: [['sprint', 'Sprint'], ['completed', 'Completed SP'], ['added', 'Added Scope SP'], ['spillover', 'Spillover SP']] }}>
                   <ScopeChart data={data.scope} />
+                </Card>
+                <Card title="Issues by Type" badge={data.context.sprint.name}
+                  exportAs={{
+                    file: file('issues-by-type'),
+                    rows: [...data.issueTypes.rows, data.issueTypes.total],
+                    columns: [['label', 'Issue Type'], ['planned', 'Planned'], ['added', 'Added'], ['completed', 'Completed']],
+                  }}>
+                  <IssueTypesTable issueTypes={data.issueTypes} />
                 </Card>
               </Section>
 

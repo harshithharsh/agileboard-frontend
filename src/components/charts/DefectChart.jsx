@@ -34,7 +34,7 @@ function DefectTooltip({ active, payload, label }) {
 
 export default function DefectChart({ data }) {
   return (
-    <ResponsiveContainer width="100%" height={200}>
+    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
       <LineChart data={data}>
         <CartesianGrid {...gridProps} />
         <XAxis dataKey="sprint" {...sprintAxisProps(data)} padding={{ left: 36, right: 36 }} />
