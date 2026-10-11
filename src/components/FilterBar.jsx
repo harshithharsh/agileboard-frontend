@@ -38,12 +38,10 @@ export default function FilterBar({ options, filters, onChange, onClear, isDefau
 
   return (
     <section className="card filters">
-      <div className="filters-intro">
+      <div className="filters-intro" title="Select criteria to view insights." aria-describedby="filters-hint">
         <span className="filters-icon"><FilterIcon /></span>
-        <div>
-          <h2>Filters</h2>
-          <p>Select criteria to view insights.</p>
-        </div>
+        <h2>Filters</h2>
+        <span id="filters-hint" className="visually-hidden">Select criteria to view insights.</span>
       </div>
       <div className="filters-grid">
         <Select label="Project" value={filters.projectId} options={toOptions(options.projects)}
