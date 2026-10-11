@@ -371,9 +371,7 @@ export default function AdminOverlay({ onClose, onChanged }) {
       <main className="admin-main">
         <div className="admin-top">
           <div>
-            <span className="admin-eyebrow">AgileMetrix · Administration</span>
             <h1>Workspace Settings</h1>
-            <p>Manage user access, roles and the Jira projects in your workspace.</p>
           </div>
           <div className="admin-top-actions">
             <button className="icon-btn" onClick={onClose} title="Back to dashboard (Esc)" aria-label="Close settings"><ClearIcon /></button>
