@@ -497,10 +497,8 @@ a.issue-key:hover { text-decoration: underline; }
 .login-brand img { height: 40px; }
 .login-brand .brand-wordmark { font-size: 26px; }
 .login-card h1 { font-size: 20px; font-weight: 700; text-align: center; }
-.login-sub { text-align: center; color: var(--muted); font-size: 13px; margin-top: -8px; }
 .login-notice { font-size: 13px; color: var(--primary); background: var(--primary-soft); padding: 8px 10px; border-radius: 8px; text-align: center; }
 .login-submit { justify-content: center; padding: 11px 14px; font-size: 14px; margin-top: 4px; }
-.login-help { font-size: 12px; color: var(--muted); text-align: center; }
 .login-foot { font-size: 12px; color: var(--muted); }
 .login-foot strong { color: var(--text); }
 

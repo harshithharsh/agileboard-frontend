@@ -32,7 +32,6 @@ export default function Login({ onSignedIn, notice }) {
           <span className="brand-wordmark"><span className="brand-agile">Agile</span><span className="brand-metrix">Metrix</span></span>
         </div>
         <h1>Sign in</h1>
-        <p className="login-sub">Sprint analytics for your Jira teams</p>
         {notice && !error && <p className="login-notice">{notice}</p>}
         {error && <p className="form-error" role="alert">{error}</p>}
         <label className="field">
@@ -44,7 +43,6 @@ export default function Login({ onSignedIn, notice }) {
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
         </label>
         <button className="btn-primary-solid login-submit" disabled={busy || !username || !password}>{busy ? 'Signing in…' : 'Sign in'}</button>
-        <p className="login-help">No account? Ask an AgileMetrix administrator to set up your sign-in.</p>
       </form>
       <p className="login-foot">© {new Date().getFullYear()} AgileMetrix · Powered by <strong>Quadpact</strong></p>
     </div>
