@@ -368,15 +368,13 @@ export default function AdminOverlay({ onClose, onChanged }) {
 
   return (
     <div className="admin-overlay" role="dialog" aria-modal="true" aria-label="Workspace settings">
-      <main className="admin-main">
+      <header className="admin-header">
         <div className="admin-top">
-          <div>
-            <h1>Workspace Settings</h1>
-          </div>
-          <div className="admin-top-actions">
-            <button className="icon-btn" onClick={onClose} title="Back to dashboard (Esc)" aria-label="Close settings"><ClearIcon /></button>
-          </div>
+          <h1>Workspace Settings</h1>
+          <button className="icon-btn" onClick={onClose} title="Back to dashboard (Esc)" aria-label="Close settings"><ClearIcon /></button>
         </div>
+      </header>
+      <main className="admin-main">
 
 
         {loadError && <div className="card error">Could not load admin data: {loadError}</div>}
