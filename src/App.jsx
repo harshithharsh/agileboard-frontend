@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from './api/client.js';
 import { exportDashboardCsv } from './lib/exportCsv.js';
-import { STATUS_LABEL, formatDateTime } from './lib/format.js';
+import { STATUS_LABEL } from './lib/format.js';
 import Header from './components/Header.jsx';
 import FilterBar from './components/FilterBar.jsx';
 import { Section, Card, StatusPill } from './components/Section.jsx';
@@ -189,15 +189,8 @@ export default function App() {
         <div className="footer-brand">
           <img src="/logo-icon.svg" alt="" className="footer-icon" />
           <span className="brand-wordmark footer-wordmark"><span className="brand-agile">Agile</span><span className="brand-metrix">Metrix</span></span>
-          <span className="footer-tagline">Agile delivery analytics</span>
         </div>
         <div className="footer-meta">
-          {data && (
-            <span>
-              {data.context.project.name} / {data.context.team.name} · Data from Jira, synced{' '}
-              {data.context.sync.lastSuccessAt ? formatDateTime(data.context.sync.lastSuccessAt) : 'never'}
-            </span>
-          )}
           <span>© {new Date().getFullYear()} AgileMetrix · Powered by <strong className="powered-by">Quadpact</strong></span>
         </div>
       </footer>
