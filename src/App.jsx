@@ -17,6 +17,7 @@ import BurndownChart from './components/charts/BurndownChart.jsx';
 import BusinessValueChart from './components/charts/BusinessValueChart.jsx';
 import DefectRateChart from './components/charts/DefectRateChart.jsx';
 import CycleTimeChart from './components/charts/CycleTimeChart.jsx';
+import AdminOverlay from './components/admin/AdminOverlay.jsx';
 import { resolveFilters, quarterLabel } from './lib/filters.js';
 import { slug } from './lib/download.js';
 
@@ -30,6 +31,8 @@ export default function App() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminChanged, setAdminChanged] = useState(false);
   const [syncError, setSyncError] = useState(null);
   const [error, setError] = useState(null);
 
@@ -83,7 +86,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header context={data?.context} loading={loading || syncing} syncing={syncing} onRefresh={refresh} onExport={() => data && exportDashboardCsv(data)} />
+      <Header context={data?.context} loading={loading || syncing} syncing={syncing} onRefresh={refresh} onExport={() => data && exportDashboardCsv(data)} onOpenAdmin={() => setAdminOpen(true)} />
       <main className={loading ? 'is-loading' : ''}>
         {options && <FilterBar options={options} filters={filters} onChange={updateFilters} onClear={clearFilters} isDefault={isDefault} />}
         {syncError && <div className="card warning">Could not sync from Jira: {syncError}. Showing the last synced data.</div>}
@@ -194,6 +197,20 @@ export default function App() {
           <span>© {new Date().getFullYear()} AgileMetrix · Powered by <strong className="powered-by">Quadpact</strong></span>
         </div>
       </footer>
+      {adminOpen && (
+        <AdminOverlay
+          onChanged={() => setAdminChanged(true)}
+          onClose={() => {
+            setAdminOpen(false);
+            // Projects/teams may have changed: refresh the filter options and the dashboard
+            if (adminChanged) {
+              setAdminChanged(false);
+              loadFilters();
+              load();
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

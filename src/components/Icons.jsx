@@ -31,3 +31,27 @@ export const JiraMark = () => (
     <path d="M12 7.2 16.8 12 12 16.8 7.2 12z" fill="#0052CC" />
   </svg>
 );
+export const KeyIcon = () => (
+  <svg {...base} width={22} height={22}><circle cx="7.5" cy="15.5" r="4.5" /><path d="m10.7 12.3 9.8-9.8" /><path d="m17 6 3 3" /><path d="m14.5 8.5 2 2" /></svg>
+);
+export const UsersIcon = () => (
+  <svg {...base} width={22} height={22}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+);
+export const ShieldIcon = () => (
+  <svg {...base} width={22} height={22}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></svg>
+);
+export const BoxIcon = () => (
+  <svg {...base} width={22} height={22}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22V12" /></svg>
+);
+export const PlusIcon = () => <svg {...base}><path d="M12 5v14" /><path d="M5 12h14" /></svg>;
+export const EditIcon = () => <svg {...base}><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg>;
+export const TrashIcon = () => (
+  <svg {...base}><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+);
+export const HomeIcon = () => (
+  <svg {...base} width={20} height={20}><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M9 22V12h6v10" /></svg>
+);
+export const SearchIcon = () => <svg {...base}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>;
+export const PlugIcon = () => (
+  <svg {...base}><path d="M12 22v-5" /><path d="M9 8V2" /><path d="M15 8V2" /><path d="M18 8v5a6 6 0 0 1-12 0V8z" /></svg>
+);

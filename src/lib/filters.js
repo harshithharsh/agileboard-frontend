@@ -36,6 +36,13 @@ export const assigneesFor = (options, { teamId }) => options.assignees.filter((a
 // the quarter of the team's latest sprint, and the latest sprint in that quarter.
 export function resolveFilters(filters, options) {
   const next = { ...filters };
+  // Drop selections that no longer exist (e.g. a project deactivated in Admin)
+  if (next.projectId && !options.projects.some((p) => p.id === next.projectId)) {
+    Object.assign(next, { projectId: null, teamId: null, quarter: null, sprintId: null, releaseId: null, assigneeId: null });
+  }
+  if (next.teamId && !options.teams.some((t) => t.id === next.teamId && t.project_id === next.projectId)) {
+    Object.assign(next, { teamId: null, quarter: null, sprintId: null, assigneeId: null });
+  }
   next.projectId ??= options.projects[0]?.id ?? null;
   next.teamId ??= teamsFor(options, next.projectId)[0]?.id ?? null;
   const latest = teamSprints(options, next)[0];

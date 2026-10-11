@@ -59,8 +59,8 @@ function SettingsPanel({ context, onClose }) {
   );
 }
 
-export default function Header({ context, onRefresh, onExport, loading, syncing }) {
-  const [settingsOpen, setSettingsOpen] = useState(false);
+export default function Header({ context, onRefresh, onExport, onOpenAdmin, loading, syncing }) {
+  const [jiraOpen, setJiraOpen] = useState(false);
   const status = jiraStatus(context?.sync, syncing);
   const lastSync = context?.sync?.lastSuccessAt;
 
@@ -76,14 +76,19 @@ export default function Header({ context, onRefresh, onExport, loading, syncing 
       </div>
 
       <div className="header-actions">
-        <span
-          className={`jira-status jira-${status.key}`}
-          title={lastSync ? `Last synced from Jira: ${formatDateTime(lastSync)}` : 'Not synced from Jira yet'}
-        >
-          <JiraMark />
-          <span className="jira-label">{status.label}</span>
-          <i className="jira-dot" />
-        </span>
+        <div className="settings-wrap">
+          <button
+            className={`jira-status jira-${status.key}`}
+            onClick={() => setJiraOpen((o) => !o)}
+            aria-expanded={jiraOpen}
+            title={lastSync ? `Last synced from Jira: ${formatDateTime(lastSync)}. Click for details.` : 'Not synced from Jira yet'}
+          >
+            <JiraMark />
+            <span className="jira-label">{status.label}</span>
+            <i className="jira-dot" />
+          </button>
+          {jiraOpen && <SettingsPanel context={context} onClose={() => setJiraOpen(false)} />}
+        </div>
         <span className="actions-divider" aria-hidden="true" />
         <button className="icon-btn" onClick={onRefresh} disabled={loading} title="Refresh: pull the latest data from Jira" aria-label="Refresh">
           <span className={syncing ? 'spin' : ''}><RefreshIcon /></span>
@@ -91,12 +96,9 @@ export default function Header({ context, onRefresh, onExport, loading, syncing 
         <button className="icon-btn" onClick={onExport} disabled={!context} title="Export the dashboard as CSV" aria-label="Export">
           <DownloadIcon />
         </button>
-        <div className="settings-wrap">
-          <button className="icon-btn" onClick={() => setSettingsOpen((o) => !o)} title="Settings" aria-label="Settings" aria-expanded={settingsOpen}>
-            <SettingsIcon />
-          </button>
-          {settingsOpen && <SettingsPanel context={context} onClose={() => setSettingsOpen(false)} />}
-        </div>
+        <button className="icon-btn" onClick={onOpenAdmin} title="Settings: API keys, users, roles and projects" aria-label="Settings">
+          <SettingsIcon />
+        </button>
       </div>
     </header>
   );
