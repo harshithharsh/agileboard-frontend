@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client.js';
 import Modal, { Field } from './Modal.jsx';
 import {
-  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, HomeIcon, SearchIcon, SettingsIcon,
+  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SearchIcon,
 } from '../Icons.jsx';
 
 const PERMISSION_LABELS = { view: 'View', create: 'Create', edit: 'Edit', delete: 'Delete', admin: 'Admin' };
@@ -244,17 +244,6 @@ export default function AdminOverlay({ onClose, onChanged }) {
 
   return (
     <div className="admin-overlay" role="dialog" aria-modal="true" aria-label="Admin">
-      <aside className="admin-sidebar">
-        <div className="admin-logo">
-          <img src="/logo-icon.svg" alt="" />
-          <span className="brand-wordmark"><span className="admin-agile">Agile</span><span className="brand-metrix">Metrix</span></span>
-        </div>
-        <nav>
-          <button className="admin-nav" onClick={onClose}><HomeIcon /> Dashboard</button>
-          <button className="admin-nav active" aria-current="page"><SettingsIcon /> Admin</button>
-        </nav>
-      </aside>
-
       <main className="admin-main">
         <div className="admin-top">
           <div>
@@ -266,7 +255,7 @@ export default function AdminOverlay({ onClose, onChanged }) {
               <SearchIcon />
               <input type="search" placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search admin" />
             </label>
-            <button className="icon-btn" onClick={onClose} title="Close admin" aria-label="Close admin"><ClearIcon /></button>
+            <button className="icon-btn" onClick={onClose} title="Back to dashboard (Esc)" aria-label="Close admin"><ClearIcon /></button>
           </div>
         </div>
 

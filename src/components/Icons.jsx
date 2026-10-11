@@ -45,7 +45,4 @@ export const EditIcon = () => <svg {...base}><path d="M17 3a2.85 2.85 0 1 1 4 4L
 export const TrashIcon = () => (
   <svg {...base}><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
 );
-export const HomeIcon = () => (
-  <svg {...base} width={20} height={20}><path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M9 22V12h6v10" /></svg>
-);
 export const SearchIcon = () => <svg {...base}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>;
