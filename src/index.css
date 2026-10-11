@@ -581,20 +581,8 @@ a.issue-key:hover { text-decoration: underline; }
 .sg-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .sg-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 12px; font-weight: 500; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; }
 .sg-chip svg { color: var(--muted); }
-.sg-body { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 24px; align-items: start; }
+.sg-body { min-width: 0; }
 .sg-objectives { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
 .sg-objectives li { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 13px; font-weight: 500; line-height: 1.45; }
 .sg-num { flex-shrink: 0; min-width: 26px; padding: 1px 0; text-align: center; font-size: 11px; font-weight: 700; color: var(--primary); background: var(--primary-soft); border-radius: 6px; font-variant-numeric: tabular-nums; }
 .sg-empty { font-size: 13px; color: var(--muted); padding: 14px; border: 1px dashed var(--border-strong); border-radius: 10px; background: var(--surface); }
-.sg-tracking { display: flex; flex-direction: column; gap: 16px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
-.sg-progress { display: flex; flex-direction: column; gap: 6px; }
-.sg-progress-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--muted); }
-.sg-progress-head strong { font-size: 15px; color: var(--text); }
-.sg-bar { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
-.sg-bar i { display: block; height: 100%; border-radius: inherit; }
-.sg-bar-time { background: var(--primary); }
-.sg-bar-work { background: var(--success); }
-.sg-progress-caption { font-size: 11px; color: var(--muted); }
-@container (max-width: 760px) {
-  .sg-body { grid-template-columns: 1fr; }
-}

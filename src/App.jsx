@@ -179,7 +179,7 @@ function buildWidgets(data) {
         <SummaryCards summary={data.summary} velocityBand={data.velocityBand} jiraBaseUrl={data.context.jiraBaseUrl} />
       </Section>
     ),
-    'sprint-goal': <SprintGoal sprint={data.context.sprint} summary={data.summary} />,
+    'sprint-goal': <SprintGoal sprint={data.context.sprint} />,
     committed: (
       <Card title="Committed vs. Completed Story Points" badge="Story Points"
         exportAs={{ file: file('committed-vs-completed'), rows: data.delivery, columns: [['sprint', 'Sprint'], ['committed', 'Committed SP'], ['completed', 'Completed SP']] }}>
