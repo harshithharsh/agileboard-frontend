@@ -4,7 +4,7 @@ import Modal, { Field } from './Modal.jsx';
 import { formatDateTime } from '../../lib/format.js';
 import { getThemeChoice, setThemeChoice } from '../../lib/theme.js';
 import {
-  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SunIcon, MoonIcon, MonitorIcon, PaletteIcon,
+  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SunIcon, MoonIcon, MonitorIcon,
 } from '../Icons.jsx';
 
 const PERMISSION_LABELS = { view: 'View', create: 'Create', edit: 'Edit', delete: 'Delete', admin: 'Admin' };
@@ -53,30 +53,23 @@ const THEMES = [
   { value: 'system', label: 'System', icon: <MonitorIcon /> },
 ];
 
-function AppearanceCard() {
+// Compact theme switch in the header: icons only, label in the tooltip
+function ThemeSwitch() {
   const [choice, setChoice] = useState(getThemeChoice);
   const choose = (value) => {
     setThemeChoice(value);
     setChoice(value);
   };
   return (
-    <section className="admin-card admin-card-wide appearance-card">
-      <div className="admin-card-head">
-        <span className="admin-card-icon tone-blue"><PaletteIcon /></span>
-        <div className="admin-card-titles">
-          <h2>Appearance</h2>
-          <p>Choose a light or dark theme. System follows your computer’s setting. Saved in this browser.</p>
-        </div>
-        <div className="segmented" role="radiogroup" aria-label="Theme">
-          {THEMES.map((t) => (
-            <button key={t.value} role="radio" aria-checked={choice === t.value}
-              className={`segment${choice === t.value ? ' active' : ''}`} onClick={() => choose(t.value)}>
-              {t.icon} {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    </section>
+    <div className="segmented segmented-sm" role="radiogroup" aria-label="Theme">
+      {THEMES.map((t) => (
+        <button key={t.value} role="radio" aria-checked={choice === t.value} aria-label={`${t.label} theme`}
+          title={t.value === 'system' ? 'System theme (follows your computer)' : `${t.label} theme`}
+          className={`segment${choice === t.value ? ' active' : ''}`} onClick={() => choose(t.value)}>
+          {t.icon}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -371,7 +364,10 @@ export default function AdminOverlay({ onClose, onChanged }) {
       <header className="admin-header">
         <div className="admin-top">
           <h1>Workspace Settings</h1>
-          <button className="icon-btn" onClick={onClose} title="Back to dashboard (Esc)" aria-label="Close settings"><ClearIcon /></button>
+          <div className="admin-top-actions">
+            <ThemeSwitch />
+            <button className="icon-btn" onClick={onClose} title="Back to dashboard (Esc)" aria-label="Close settings"><ClearIcon /></button>
+          </div>
         </div>
       </header>
       <main className="admin-main">
@@ -382,7 +378,6 @@ export default function AdminOverlay({ onClose, onChanged }) {
 
         {view && (
           <div className="admin-grid">
-            <AppearanceCard />
 
             <AdminCard icon={<UsersIcon />} tone="purple" title="Users & Role Assignment" subtitle="Add users and assign roles across projects."
               addLabel="Add User" onAdd={() => openEdit('users')} count={view.users.length} wide>
