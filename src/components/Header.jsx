@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { RefreshIcon, DownloadIcon, ChartIcon, SettingsIcon, JiraMark, ChevronDownIcon, SignOutIcon } from './Icons.jsx';
+import { RefreshIcon, DownloadIcon, ChartIcon, SettingsIcon, JiraMark, ChevronDownIcon, SignOutIcon, LayoutIcon } from './Icons.jsx';
 import { formatDateTime } from '../lib/format.js';
 
 // Jira connection state, from the last sync runs
@@ -87,7 +87,7 @@ function UserMenu({ user, onSignOut }) {
   );
 }
 
-export default function Header({ context, onRefresh, onExport, onOpenAdmin, loading, syncing, canSync = true, user, onSignOut }) {
+export default function Header({ context, onRefresh, onExport, onOpenAdmin, loading, syncing, canSync = true, user, onSignOut, onCustomize, customizing }) {
   const [jiraOpen, setJiraOpen] = useState(false);
   const status = jiraStatus(context?.sync, syncing);
   const lastSync = context?.sync?.lastSuccessAt;
@@ -122,6 +122,10 @@ export default function Header({ context, onRefresh, onExport, onOpenAdmin, load
         <button className="icon-btn" onClick={onRefresh} disabled={loading || !canSync}
           title={canSync ? 'Refresh: pull the latest data from Jira' : 'Your role can’t refresh from Jira (needs Edit permission)'} aria-label="Refresh">
           <span className={syncing ? 'spin' : ''}><RefreshIcon /></span>
+        </button>
+        <button className={`icon-btn${customizing ? ' is-active' : ''}`} onClick={onCustomize ?? undefined} disabled={!onCustomize}
+          title={customizing ? 'Customizing the dashboard' : 'Customize: rearrange, resize or hide widgets'} aria-label="Customize dashboard" aria-pressed={!!customizing}>
+          <LayoutIcon />
         </button>
         <button className="icon-btn" onClick={onExport} disabled={!context} title="Export the dashboard as CSV" aria-label="Export">
           <DownloadIcon />

@@ -33,6 +33,10 @@ export const api = {
   },
 
   // Admin: kind = 'users' | 'roles' | 'projects'
+  me: {
+    preferences: () => request('/me/preferences'),
+    savePreferences: (body) => send('PUT', '/me/preferences', body),
+  },
   admin: {
     load: () => request('/admin'),
     create: (kind, body) => send('POST', `/admin/${kind}`, body),

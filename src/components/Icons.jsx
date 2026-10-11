@@ -60,3 +60,24 @@ export const ChevronDownIcon = () => <svg {...base} width={14} height={14}><path
 export const SignOutIcon = () => (
   <svg {...base}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5" /><path d="M21 12H9" /></svg>
 );
+export const LayoutIcon = () => (
+  <svg {...base} width={18} height={18}><rect x="3" y="3" width="7" height="9" rx="1" /><rect x="14" y="3" width="7" height="5" rx="1" /><rect x="14" y="12" width="7" height="9" rx="1" /><rect x="3" y="16" width="7" height="5" rx="1" /></svg>
+);
+export const GripIcon = () => (
+  <svg {...base}><circle cx="9" cy="6" r="1" /><circle cx="15" cy="6" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="9" cy="18" r="1" /><circle cx="15" cy="18" r="1" /></svg>
+);
+export const EyeOffIcon = () => (
+  <svg {...base}><path d="M9.9 4.2A10.9 10.9 0 0 1 12 4c7 0 10 8 10 8a17.6 17.6 0 0 1-3.2 4.2" /><path d="M6.6 6.6A17.4 17.4 0 0 0 2 12s3 8 10 8a9.7 9.7 0 0 0 5.4-1.6" /><path d="M14.1 14.1a3 3 0 1 1-4.2-4.2" /><path d="m2 2 20 20" /></svg>
+);
+export const ArrowLeftIcon = () => (
+  <svg {...base}><path d="M19 12H5" /><path d="m12 19-7-7 7-7" /></svg>
+);
+export const ArrowRightIcon = () => (
+  <svg {...base}><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+);
+export const WidthIcon = () => (
+  <svg {...base}><path d="M21 12H3" /><path d="m7 8-4 4 4 4" /><path d="m17 8 4 4-4 4" /></svg>
+);
+export const ResetIcon = () => (
+  <svg {...base}><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>
+);

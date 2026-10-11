@@ -20,6 +20,9 @@ import DefectRateChart from './components/charts/DefectRateChart.jsx';
 import CycleTimeChart from './components/charts/CycleTimeChart.jsx';
 import AdminOverlay from './components/admin/AdminOverlay.jsx';
 import IssueTypesTable from './components/IssueTypesTable.jsx';
+import WidgetGrid from './components/WidgetGrid.jsx';
+import { LayoutIcon, PlusIcon, ResetIcon } from './components/Icons.jsx';
+import { DEFAULT_LAYOUT, normalizeLayout, sameLayout, updateWidget, widgetTitle } from './lib/layout.js';
 import { resolveFilters, quarterLabel } from './lib/filters.js';
 import { slug } from './lib/download.js';
 
@@ -40,6 +43,37 @@ export default function App({ user, onSignOut }) {
   const [adminChanged, setAdminChanged] = useState(false);
   const [syncError, setSyncError] = useState(null);
   const [error, setError] = useState(null);
+
+  // Dashboard layout: saved per user; `draft` is the layout being edited while customizing
+  const [layout, setLayout] = useState(DEFAULT_LAYOUT);
+  const [draft, setDraft] = useState(null);
+  const [layoutSaving, setLayoutSaving] = useState(false);
+  const [layoutError, setLayoutError] = useState(null);
+  const editing = draft !== null;
+  useEffect(() => {
+    api.me.preferences()
+      .then((p) => setLayout(normalizeLayout(p.dashboardLayout)))
+      .catch(() => {}); // fall back to the default layout
+  }, []);
+  const startCustomize = () => {
+    setLayoutError(null);
+    setDraft(layout);
+  };
+  const cancelCustomize = () => setDraft(null);
+  const saveLayout = async () => {
+    setLayoutSaving(true);
+    setLayoutError(null);
+    try {
+      const isDefault = sameLayout(draft, DEFAULT_LAYOUT);
+      await api.me.savePreferences({ dashboardLayout: isDefault ? null : draft });
+      setLayout(draft);
+      setDraft(null);
+    } catch (e) {
+      setLayoutError(`Could not save your layout: ${e.message}`);
+    } finally {
+      setLayoutSaving(false);
+    }
+  };
 
   const loadFilters = useCallback(
     () =>
@@ -91,7 +125,7 @@ export default function App({ user, onSignOut }) {
 
   return (
     <div className="app">
-      <Header context={data?.context} loading={loading || syncing} syncing={syncing} onRefresh={refresh} onExport={() => data && exportDashboardCsv(data)} onOpenAdmin={canAdmin ? () => setAdminOpen(true) : null} canSync={canSync} user={user} onSignOut={onSignOut} />
+      <Header context={data?.context} loading={loading || syncing} syncing={syncing} onRefresh={refresh} onExport={() => data && exportDashboardCsv(data)} onOpenAdmin={canAdmin ? () => setAdminOpen(true) : null} onCustomize={data && !editing ? startCustomize : null} customizing={editing} canSync={canSync} user={user} onSignOut={onSignOut} />
       <main className={loading ? 'is-loading' : ''}>
         {options && <FilterBar options={options} filters={filters} onChange={updateFilters} onClear={clearFilters} isDefault={isDefault} />}
         {syncError && <div className="card warning">Could not sync from Jira: {syncError}. Showing the last synced data.</div>}
@@ -105,101 +139,12 @@ export default function App({ user, onSignOut }) {
         )}
         {!data && !error && options?.sprints.length > 0 && <div className="card empty">Loading dashboard…</div>}
 
-        {data && (() => {
-          // File name for chart downloads: agileboard-<team>-<chart>-<sprint>
-          const file = (chart) => `agilemetrix-${slug(data.context.team.name)}-${chart}-${slug(data.context.sprint.name)}`;
-          return (
-          <>
-            <Section title="Sprint Executive Summary" aside={`Current view: ${data.context.team.name} · ${data.context.sprint.name}`}>
-              <SummaryCards summary={data.summary} velocityBand={data.velocityBand} jiraBaseUrl={data.context.jiraBaseUrl} />
-            </Section>
+        {editing && (
+          <CustomizeBar draft={draft} saving={layoutSaving} error={layoutError} changed={!sameLayout(draft, layout)}
+            onChange={setDraft} onReset={() => setDraft(DEFAULT_LAYOUT)} onCancel={cancelCustomize} onSave={saveLayout} />
+        )}
 
-            <Section title="Sprint Delivery" aside={data.context.quarter
-              ? `${quarterLabel(data.context.quarter)} · ${data.delivery.length} sprint${data.delivery.length > 1 ? 's' : ''}`
-              : `Last ${data.delivery.length} sprint${data.delivery.length > 1 ? 's' : ''}`}>
-              <div className="grid-2">
-                <Card title="Committed vs. Completed Story Points" badge="Story Points"
-                  exportAs={{ file: file('committed-vs-completed'), rows: data.delivery, columns: [['sprint', 'Sprint'], ['committed', 'Committed SP'], ['completed', 'Completed SP']] }}>
-                  <DeliveryChart data={data.delivery} />
-                </Card>
-                <Card title="Velocity Trend" badge={data.velocityBand ? `Stable Band: ${data.velocityBand.low}–${data.velocityBand.high} SP` : 'No History Yet'}
-                  exportAs={{ file: file('velocity-trend'), rows: data.delivery, columns: [['sprint', 'Sprint'], ['committed', 'Committed Velocity (SP)'], ['velocity', 'Completed Velocity (SP)'], ['rollingAverage', 'Rolling Average (SP)']] }}>
-                  <VelocityChart data={data.delivery} band={data.velocityBand} />
-                </Card>
-              </div>
-              <Card title="Completion and Business Value (%)" badge="Business Value = Stories Completed ÷ Total Stories"
-                exportAs={{ file: file('completion-business-value'), rows: data.delivery, columns: [['sprint', 'Sprint'], ['completion', 'Completion %'], ['businessValue', 'Business Value %'], ['storiesCompleted', 'Stories Completed'], ['storiesTotal', 'Total Stories']] }}>
-                <BusinessValueChart data={data.delivery} />
-              </Card>
-            </Section>
-
-            <Section title="Flow Metrics" aside="Efficiency of work in motion">
-              <FlowMetrics flow={data.flow} jiraBaseUrl={data.context.jiraBaseUrl} />
-              <Card title="Cycle Time Trend" badge="Days from In Progress to Done"
-                exportAs={{ file: file('cycle-time-trend'), rows: data.flow.cycleTimeTrend, columns: [['sprint', 'Sprint'], ['avg', 'Average (Days)'], ['median', 'Median (Days)'], ['p85', '85th Percentile (Days)'], ['items', 'Completed Items']] }}>
-                <CycleTimeChart data={data.flow.cycleTimeTrend} />
-              </Card>
-            </Section>
-
-            <div className="grid-2 stretch">
-              <Section title="Scope Stability" aside="Added, completed, and carried work">
-                <Card title="Scope Movement by Sprint" badge={`Added Scope: ${data.scopeAddedPct}%`}
-                  exportAs={{ file: file('scope-movement'), rows: data.scope, columns: [['sprint', 'Sprint'], ['completed', 'Completed SP'], ['added', 'Added Scope SP'], ['spillover', 'Spillover SP']] }}>
-                  <ScopeChart data={data.scope} />
-                </Card>
-                <Card title="Issues by Type" badge={data.context.sprint.name}
-                  exportAs={{
-                    file: file('issues-by-type'),
-                    rows: [...data.issueTypes.rows, data.issueTypes.total],
-                    columns: [['label', 'Issue Type'], ['planned', 'Planned'], ['added', 'Added'], ['completed', 'Completed']],
-                  }}>
-                  <IssueTypesTable issueTypes={data.issueTypes} />
-                </Card>
-              </Section>
-
-              <Section title="Quality" aside="Defects created and closed">
-                <div className="quality-stats">
-                  <div className="card stat"><span>Created</span><strong>{data.quality.current.created}</strong></div>
-                  <div className="card stat"><span>Closed</span><strong>{data.quality.current.closed}</strong></div>
-                  <div className="card stat"><span>Open</span><strong>{data.quality.current.open}</strong></div>
-                </div>
-                <Card title="Defects Created vs. Closed"
-                  exportAs={{ file: file('defects-created-closed'), rows: data.quality.trend, columns: [['sprint', 'Sprint'], ['created', 'Created'], ['closed', 'Closed'], [(r) => keys(r.createdList), 'Created (Jira)'], [(r) => keys(r.closedList), 'Closed (Jira)']] }}>
-                  <DefectChart data={data.quality.trend} />
-                </Card>
-              </Section>
-            </div>
-
-            <Card title="Defect Rate and Defect Density" badge="Per Bug Created in the Sprint"
-              exportAs={{ file: file('defect-rate-density'), rows: data.quality.trend, columns: [['sprint', 'Sprint'], ['stories', 'Stories'], ['achievedVelocity', 'Achieved Velocity (SP)'], ['createdInSprint', 'Bugs Created in Sprint'], ['defectRate', 'Defect Rate'], ['defectDensity', 'Defect Density']] }}>
-              <DefectRateChart data={data.quality.trend} />
-              {data.quality.trend.some((t) => t.defectRate === null) && (
-                <p className="muted chart-note">Sprints with no bugs created have no value (division by zero).</p>
-              )}
-            </Card>
-
-            <Section title="Sprint Health" aside="Status against agreed thresholds">
-              <HealthTable health={data.health} sprintState={data.sprintState} />
-            </Section>
-
-            <div className="grid-2">
-              <Section title="Sprint Burndown" aside={`${data.burndown.length}-day sprint`}>
-                <Card title="Remaining Work" badge={<StatusPill status={data.sprintState} label={STATUS_LABEL[data.sprintState]} />}
-                  exportAs={{ file: file('burndown'), rows: data.burndown, columns: [['day', 'Day'], ['date', 'Date'], ['ideal', 'Ideal Remaining (SP)'], ['actual', 'Actual Remaining (SP)']] }}>
-                  <BurndownChart data={data.burndown} />
-                </Card>
-              </Section>
-
-              <Section title="Process Compliance" aside="Definition of Ready and Definition of Done">
-                <Card>
-                  <Compliance compliance={data.compliance} />
-                </Card>
-              </Section>
-            </div>
-
-          </>
-          );
-        })()}
+        {data && <WidgetGrid layout={editing ? draft : layout} widgets={buildWidgets(data)} editing={editing} onChange={setDraft} />}
       </main>
       <Footer />
       {adminOpen && canAdmin && (
@@ -216,6 +161,140 @@ export default function App({ user, onSignOut }) {
           }}
         />
       )}
+    </div>
+  );
+}
+
+// The content of each dashboard widget (ids and default order in lib/layout.js)
+function buildWidgets(data) {
+  // File name for chart downloads: agilemetrix-<team>-<chart>-<sprint>
+  const file = (chart) => `agilemetrix-${slug(data.context.team.name)}-${chart}-${slug(data.context.sprint.name)}`;
+  const n = data.delivery.length;
+  const sprints = `${n} sprint${n > 1 ? 's' : ''}`;
+  const trendRange = data.context.quarter ? `${quarterLabel(data.context.quarter)} · ${sprints}` : `last ${sprints}`;
+  return {
+    summary: (
+      <Section title="Sprint Executive Summary" aside={`Current view: ${data.context.team.name} · ${data.context.sprint.name} · Trends: ${trendRange}`}>
+        <SummaryCards summary={data.summary} velocityBand={data.velocityBand} jiraBaseUrl={data.context.jiraBaseUrl} />
+      </Section>
+    ),
+    committed: (
+      <Card title="Committed vs. Completed Story Points" badge="Story Points"
+        exportAs={{ file: file('committed-vs-completed'), rows: data.delivery, columns: [['sprint', 'Sprint'], ['committed', 'Committed SP'], ['completed', 'Completed SP']] }}>
+        <DeliveryChart data={data.delivery} />
+      </Card>
+    ),
+    velocity: (
+      <Card title="Velocity Trend" badge={data.velocityBand ? `Stable Band: ${data.velocityBand.low}–${data.velocityBand.high} SP` : 'No History Yet'}
+        exportAs={{ file: file('velocity-trend'), rows: data.delivery, columns: [['sprint', 'Sprint'], ['committed', 'Committed Velocity (SP)'], ['velocity', 'Completed Velocity (SP)'], ['rollingAverage', 'Rolling Average (SP)']] }}>
+        <VelocityChart data={data.delivery} band={data.velocityBand} />
+      </Card>
+    ),
+    'business-value': (
+      <Card title="Completion and Business Value (%)" badge="Business Value = Stories Completed ÷ Total Stories"
+        exportAs={{ file: file('completion-business-value'), rows: data.delivery, columns: [['sprint', 'Sprint'], ['completion', 'Completion %'], ['businessValue', 'Business Value %'], ['storiesCompleted', 'Stories Completed'], ['storiesTotal', 'Total Stories']] }}>
+        <BusinessValueChart data={data.delivery} />
+      </Card>
+    ),
+    flow: (
+      <Section title="Flow Metrics" aside="Efficiency of work in motion">
+        <FlowMetrics flow={data.flow} jiraBaseUrl={data.context.jiraBaseUrl} />
+      </Section>
+    ),
+    'cycle-time': (
+      <Card title="Cycle Time Trend" badge="Days from In Progress to Done"
+        exportAs={{ file: file('cycle-time-trend'), rows: data.flow.cycleTimeTrend, columns: [['sprint', 'Sprint'], ['avg', 'Average (Days)'], ['median', 'Median (Days)'], ['p85', '85th Percentile (Days)'], ['items', 'Completed Items']] }}>
+        <CycleTimeChart data={data.flow.cycleTimeTrend} />
+      </Card>
+    ),
+    scope: (
+      <Card title="Scope Movement by Sprint" badge={`Added Scope: ${data.scopeAddedPct}%`}
+        exportAs={{ file: file('scope-movement'), rows: data.scope, columns: [['sprint', 'Sprint'], ['completed', 'Completed SP'], ['added', 'Added Scope SP'], ['spillover', 'Spillover SP']] }}>
+        <ScopeChart data={data.scope} />
+      </Card>
+    ),
+    quality: (
+      <Section title="Quality" aside="Defects created and closed">
+        <div className="quality-stats">
+          <div className="card stat"><span>Created</span><strong>{data.quality.current.created}</strong></div>
+          <div className="card stat"><span>Closed</span><strong>{data.quality.current.closed}</strong></div>
+          <div className="card stat"><span>Open</span><strong>{data.quality.current.open}</strong></div>
+        </div>
+        <Card title="Defects Created vs. Closed"
+          exportAs={{ file: file('defects-created-closed'), rows: data.quality.trend, columns: [['sprint', 'Sprint'], ['created', 'Created'], ['closed', 'Closed'], [(r) => keys(r.createdList), 'Created (Jira)'], [(r) => keys(r.closedList), 'Closed (Jira)']] }}>
+          <DefectChart data={data.quality.trend} />
+        </Card>
+      </Section>
+    ),
+    'issue-types': (
+      <Card title="Issues by Type" badge={data.context.sprint.name}
+        exportAs={{
+          file: file('issues-by-type'),
+          rows: [...data.issueTypes.rows, data.issueTypes.total],
+          columns: [['label', 'Issue Type'], ['planned', 'Planned'], ['added', 'Added'], ['completed', 'Completed']],
+        }}>
+        <IssueTypesTable issueTypes={data.issueTypes} />
+      </Card>
+    ),
+    'defect-rate': (
+      <Card title="Defect Rate and Defect Density" badge="Per Bug Created in the Sprint"
+        exportAs={{ file: file('defect-rate-density'), rows: data.quality.trend, columns: [['sprint', 'Sprint'], ['stories', 'Stories'], ['achievedVelocity', 'Achieved Velocity (SP)'], ['createdInSprint', 'Bugs Created in Sprint'], ['defectRate', 'Defect Rate'], ['defectDensity', 'Defect Density']] }}>
+        <DefectRateChart data={data.quality.trend} />
+        {data.quality.trend.some((t) => t.defectRate === null) && (
+          <p className="muted chart-note">Sprints with no bugs created have no value (division by zero).</p>
+        )}
+      </Card>
+    ),
+    health: (
+      <Section title="Sprint Health" aside="Status against agreed thresholds">
+        <HealthTable health={data.health} sprintState={data.sprintState} />
+      </Section>
+    ),
+    burndown: (
+      <Section title="Sprint Burndown" aside={`${data.burndown.length}-day sprint`}>
+        <Card title="Remaining Work" badge={<StatusPill status={data.sprintState} label={STATUS_LABEL[data.sprintState]} />}
+          exportAs={{ file: file('burndown'), rows: data.burndown, columns: [['day', 'Day'], ['date', 'Date'], ['ideal', 'Ideal Remaining (SP)'], ['actual', 'Actual Remaining (SP)']] }}>
+          <BurndownChart data={data.burndown} />
+        </Card>
+      </Section>
+    ),
+    compliance: (
+      <Section title="Process Compliance" aside="Definition of Ready and Definition of Done">
+        <Card>
+          <Compliance compliance={data.compliance} />
+        </Card>
+      </Section>
+    ),
+  };
+}
+
+// Shown while customizing: hidden widgets to add back, reset, cancel, save
+function CustomizeBar({ draft, saving, error, changed, onChange, onReset, onCancel, onSave }) {
+  const hidden = draft.filter((w) => w.hidden);
+  return (
+    <div className="card customize-bar" role="region" aria-label="Customize dashboard">
+      <div className="customize-main">
+        <div className="customize-intro">
+          <strong><LayoutIcon /> Customize your dashboard</strong>
+          <span>Drag widgets to rearrange them, change their width or hide the ones you don’t need. Your layout is saved to your account.</span>
+        </div>
+        <div className="customize-actions">
+          <button className="btn" onClick={onReset} disabled={saving || sameLayout(draft, DEFAULT_LAYOUT)} title="Back to the standard layout"><ResetIcon /> Reset</button>
+          <button className="btn" onClick={onCancel} disabled={saving}>Cancel</button>
+          <button className="btn-primary-solid" onClick={onSave} disabled={saving || !changed}>{saving ? 'Saving…' : 'Save layout'}</button>
+        </div>
+      </div>
+      {hidden.length > 0 && (
+        <div className="customize-hidden">
+          <span className="muted">Hidden:</span>
+          {hidden.map((w) => (
+            <button key={w.id} className="hidden-chip" onClick={() => onChange(updateWidget(draft, w.id, { hidden: false }))} title="Show this widget again">
+              <PlusIcon /> {widgetTitle(w.id)}
+            </button>
+          ))}
+        </div>
+      )}
+      {error && <p className="form-error">{error}</p>}
     </div>
   );
 }
