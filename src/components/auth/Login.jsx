@@ -25,13 +25,12 @@ export default function Login({ onSignedIn, notice }) {
 
   return (
     <div className="login-page">
-      <form className="login-card" onSubmit={submit}>
+      <form className="login-card" onSubmit={submit} aria-label="Sign in">
         <div className="login-brand">
           <img src="/logo-icon.svg" alt="" className="logo-light" />
           <img src="/logo-icon-dark.svg" alt="" className="logo-dark" />
           <span className="brand-wordmark"><span className="brand-agile">Agile</span><span className="brand-metrix">Metrix</span></span>
         </div>
-        <h1>Sign in</h1>
         {notice && !error && <p className="login-notice">{notice}</p>}
         {error && <p className="form-error" role="alert">{error}</p>}
         <label className="field">

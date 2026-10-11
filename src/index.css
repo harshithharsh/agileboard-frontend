@@ -496,7 +496,6 @@ a.issue-key:hover { text-decoration: underline; }
 .login-brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
 .login-brand img { height: 40px; }
 .login-brand .brand-wordmark { font-size: 26px; }
-.login-card h1 { font-size: 20px; font-weight: 700; text-align: center; }
 .login-notice { font-size: 13px; color: var(--primary); background: var(--primary-soft); padding: 8px 10px; border-radius: 8px; text-align: center; }
 .login-submit { justify-content: center; padding: 11px 14px; font-size: 14px; margin-top: 4px; }
 .login-foot { font-size: 12px; color: var(--muted); }
