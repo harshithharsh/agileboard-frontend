@@ -181,14 +181,26 @@ export default function App() {
               </Section>
             </div>
 
-            <footer className="footer">
-              <span>{data.context.project.name} / {data.context.team.name} · Agile Delivery Analytics</span>
-              <span>Source: Jira boards, synced {data.context.sync.lastSuccessAt ? formatDateTime(data.context.sync.lastSuccessAt) : 'never'}</span>
-            </footer>
           </>
           );
         })()}
       </main>
+      <footer className="footer">
+        <div className="footer-brand">
+          <img src="/logo-icon.svg" alt="" className="footer-icon" />
+          <span className="brand-wordmark footer-wordmark"><span className="brand-agile">Agile</span><span className="brand-metrix">Metrix</span></span>
+          <span className="footer-tagline">Agile delivery analytics</span>
+        </div>
+        <div className="footer-meta">
+          {data && (
+            <span>
+              {data.context.project.name} / {data.context.team.name} · Data from Jira, synced{' '}
+              {data.context.sync.lastSuccessAt ? formatDateTime(data.context.sync.lastSuccessAt) : 'never'}
+            </span>
+          )}
+          <span>© {new Date().getFullYear()} AgileMetrix</span>
+        </div>
+      </footer>
     </div>
   );
 }
