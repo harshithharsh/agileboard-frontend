@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../api/client.js';
 import Modal, { Field } from './Modal.jsx';
 import { formatDateTime } from '../../lib/format.js';
 import { getThemeChoice, setThemeChoice } from '../../lib/theme.js';
 import {
-  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SearchIcon, SunIcon, MoonIcon, MonitorIcon, PaletteIcon,
+  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SunIcon, MoonIcon, MonitorIcon, PaletteIcon,
 } from '../Icons.jsx';
 
 const PERMISSION_LABELS = { view: 'View', create: 'Create', edit: 'Edit', delete: 'Delete', admin: 'Admin' };
@@ -302,7 +302,6 @@ function FormButtons({ onCancel, onSave, saving, label = 'Save' }) {
 export default function AdminOverlay({ onClose, onChanged }) {
   const [data, setData] = useState(null);
   const [loadError, setLoadError] = useState(null);
-  const [search, setSearch] = useState('');
   const [editing, setEditing] = useState(null); // { kind, item }
   const [deleting, setDeleting] = useState(null); // { kind, item, label }
   const [saving, setSaving] = useState(false);
@@ -365,17 +364,7 @@ export default function AdminOverlay({ onClose, onChanged }) {
   const openEdit = (kind, item = null) => { setFormError(null); setEditing({ kind, item }); };
   const openDelete = (kind, item, label) => { setFormError(null); setDeleting({ kind, item, label }); };
 
-  // Search across every table
-  const q = search.trim().toLowerCase();
-  const match = (...values) => !q || values.some((v) => String(v ?? '').toLowerCase().includes(q));
-  const view = useMemo(() => {
-    if (!data) return null;
-    return {
-      users: data.users.filter((u) => match(u.name, u.email, u.username, u.role, u.projects.join(' '), u.status)),
-      roles: data.roles.filter((r) => match(r.name, r.description, r.permissions.join(' '))),
-      projects: data.projects.filter((p) => match(p.name, p.key, p.description, p.teams.map((t) => t.name).join(' '), p.status)),
-    };
-  }, [data, q]); // eslint-disable-line react-hooks/exhaustive-deps
+  const view = data;
 
   return (
     <div className="admin-overlay" role="dialog" aria-modal="true" aria-label="Workspace settings">
@@ -387,10 +376,6 @@ export default function AdminOverlay({ onClose, onChanged }) {
             <p>Manage user access, roles and the Jira projects in your workspace.</p>
           </div>
           <div className="admin-top-actions">
-            <label className="admin-search">
-              <SearchIcon />
-              <input type="search" placeholder="Search users, roles, projects…" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search settings" />
-            </label>
             <button className="icon-btn" onClick={onClose} title="Back to dashboard (Esc)" aria-label="Close settings"><ClearIcon /></button>
           </div>
         </div>
@@ -419,7 +404,7 @@ export default function AdminOverlay({ onClose, onChanged }) {
                       <td><RowActions onEdit={() => openEdit('users', u)} onDelete={() => openDelete('users', u, u.name)} /></td>
                     </tr>
                   ))}
-                  {!view.users.length && <Empty cols={7} text="No matching users" />}
+                  {!view.users.length && <Empty cols={7} text="No users yet" />}
                 </tbody>
               </table>
             </AdminCard>
@@ -434,13 +419,11 @@ export default function AdminOverlay({ onClose, onChanged }) {
                       <td><b>{r.name}</b></td>
                       <td className="muted">{r.description || '—'}</td>
                       <td>{r.permissions.length === data.permissions.length ? 'All permissions' : r.permissions.map((p) => PERMISSION_LABELS[p]).join(', ')}</td>
-                      <td className="num link-num">
-                        <button className="btn-link" onClick={() => setSearch(r.name)} title={`Show users with the ${r.name} role`}>{r.users}</button>
-                      </td>
+                      <td className="num">{r.users}</td>
                       <td><RowActions onEdit={() => openEdit('roles', r)} onDelete={() => openDelete('roles', r, r.name)} /></td>
                     </tr>
                   ))}
-                  {!view.roles.length && <Empty cols={5} text="No matching roles" />}
+                  {!view.roles.length && <Empty cols={5} text="No roles yet" />}
                 </tbody>
               </table>
             </AdminCard>
@@ -460,7 +443,7 @@ export default function AdminOverlay({ onClose, onChanged }) {
                       <td><RowActions onEdit={() => openEdit('projects', p)} onDelete={() => openDelete('projects', p, p.name)} /></td>
                     </tr>
                   ))}
-                  {!view.projects.length && <Empty cols={6} text="No matching projects" />}
+                  {!view.projects.length && <Empty cols={6} text="No projects yet" />}
                 </tbody>
               </table>
             </AdminCard>
