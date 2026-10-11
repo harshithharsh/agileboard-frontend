@@ -378,19 +378,20 @@ export default function AdminOverlay({ onClose, onChanged }) {
   }, [data, q]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="admin-overlay" role="dialog" aria-modal="true" aria-label="Admin">
+    <div className="admin-overlay" role="dialog" aria-modal="true" aria-label="Workspace settings">
       <main className="admin-main">
         <div className="admin-top">
           <div>
-            <h1>Admin</h1>
-            <p>Appearance, users, roles and projects.</p>
+            <span className="admin-eyebrow">AgileMetrix · Administration</span>
+            <h1>Workspace Settings</h1>
+            <p>Manage user access, roles and the Jira projects in your workspace.</p>
           </div>
           <div className="admin-top-actions">
             <label className="admin-search">
               <SearchIcon />
-              <input type="search" placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search admin" />
+              <input type="search" placeholder="Search users, roles, projects…" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search settings" />
             </label>
-            <button className="icon-btn" onClick={onClose} title="Back to dashboard (Esc)" aria-label="Close admin"><ClearIcon /></button>
+            <button className="icon-btn" onClick={onClose} title="Back to dashboard (Esc)" aria-label="Close settings"><ClearIcon /></button>
           </div>
         </div>
 
