@@ -1,8 +1,8 @@
 // Dashboard widgets: default order and width. Each user can rearrange, resize and hide them;
 // the saved layout is [{ id, size, hidden }] (see /api/me/preferences).
 export const WIDGETS = [
-  { id: 'sprint-goal', title: 'Sprint Goal', size: 'full' },
   { id: 'summary', title: 'Sprint Executive Summary', size: 'full' },
+  { id: 'sprint-goal', title: 'Sprint Goal', size: 'full' },
   { id: 'committed', title: 'Committed vs. Completed Story Points', size: 'half' },
   { id: 'velocity', title: 'Velocity Trend', size: 'half' },
   { id: 'business-value', title: 'Completion and Business Value', size: 'full' },

@@ -174,12 +174,12 @@ function buildWidgets(data) {
   const sprints = `${n} sprint${n > 1 ? 's' : ''}`;
   const trendRange = data.context.quarter ? `${quarterLabel(data.context.quarter)} · ${sprints}` : `last ${sprints}`;
   return {
-    'sprint-goal': <SprintGoal sprint={data.context.sprint} />,
     summary: (
       <Section title="Sprint Executive Summary" aside={`Current view: ${data.context.team.name} · ${data.context.sprint.name} · Trends: ${trendRange}`}>
         <SummaryCards summary={data.summary} velocityBand={data.velocityBand} jiraBaseUrl={data.context.jiraBaseUrl} />
       </Section>
     ),
+    'sprint-goal': <SprintGoal sprint={data.context.sprint} summary={data.summary} />,
     committed: (
       <Card title="Committed vs. Completed Story Points" badge="Story Points"
         exportAs={{ file: file('committed-vs-completed'), rows: data.delivery, columns: [['sprint', 'Sprint'], ['committed', 'Committed SP'], ['completed', 'Completed SP']] }}>
