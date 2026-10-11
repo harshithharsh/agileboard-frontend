@@ -124,8 +124,20 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1
 
 /* ---------- filters ---------- */
 .filters { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
-.filters-intro { display: flex; gap: 12px; align-items: center; padding-right: 24px; border-right: 1px solid var(--border); align-self: stretch; cursor: help; }
-.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.filters-intro { display: flex; gap: 12px; align-items: center; padding-right: 24px; border-right: 1px solid var(--border); align-self: stretch; cursor: default; }
+/* Custom tooltip: shown immediately on hover or keyboard focus */
+.has-tip { position: relative; outline: none; }
+.tip {
+  position: absolute; left: 0; top: calc(100% + 10px); z-index: 30; white-space: nowrap; pointer-events: none;
+  background: #0f172a; color: #fff; font-size: 12px; font-weight: 500; padding: 6px 10px; border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+  opacity: 0; transform: translateY(-2px); transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.tip::before {
+  content: ''; position: absolute; left: 14px; top: -5px; width: 10px; height: 10px; background: #0f172a; transform: rotate(45deg);
+}
+.has-tip:hover .tip, .has-tip:focus-visible .tip { opacity: 1; transform: none; }
+.has-tip:focus-visible .filters-icon { box-shadow: 0 0 0 2px var(--primary); }
 .filters-icon { width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center; border-radius: 10px; background: var(--primary-soft); color: var(--primary); }
 .filters-icon svg { width: 18px; height: 18px; }
 .filters-intro h2 { font-size: 16px; font-weight: 700; color: var(--text); }
