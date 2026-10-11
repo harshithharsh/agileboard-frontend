@@ -38,5 +38,7 @@ export const api = {
     create: (kind, body) => send('POST', `/admin/${kind}`, body),
     update: (kind, id, body) => send('PUT', `/admin/${kind}/${id}`, body),
     remove: (kind, id) => send('DELETE', `/admin/${kind}/${id}`),
+    jiraProjects: () => request('/admin/jira/projects'),
+    jiraBoards: (key) => request(`/admin/jira/projects/${encodeURIComponent(key)}/boards`),
   },
 };

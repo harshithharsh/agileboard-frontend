@@ -168,13 +168,49 @@ function ProjectForm({ item, onSave, onCancel, saving, error }) {
   const setTeam = (i, k) => (e) => setF((s) => ({ ...s, teams: s.teams.map((t, n) => (n === i ? { ...t, [k]: e.target.value } : t)) }));
   const addTeam = () => setF((s) => ({ ...s, teams: [...s.teams, { name: '', jiraBoardId: '', wipLimit: 5 }] }));
   const removeTeam = (i) => setF((s) => ({ ...s, teams: s.teams.filter((_, n) => n !== i) }));
+
+  // Adding: pick from the active Jira projects; its Scrum boards become the teams
+  const [jira, setJira] = useState({ projects: null, error: null, boards: false });
+  useEffect(() => {
+    if (item) return;
+    api.admin.jiraProjects()
+      .then((projects) => setJira((j) => ({ ...j, projects })))
+      .catch((e) => setJira((j) => ({ ...j, error: e.message })));
+  }, [item]);
+  const pickJira = async (e) => {
+    const p = jira.projects.find((x) => x.key === e.target.value);
+    if (!p) return setF((s) => ({ ...s, key: '', name: '', description: '', teams: [] }));
+    setF((s) => ({ ...s, key: p.key, name: p.name.trim(), description: p.description, teams: [] }));
+    setJira((j) => ({ ...j, boards: true }));
+    try {
+      const boards = await api.admin.jiraBoards(p.key);
+      const teamName = (b) => b.name.replace(/\s+(board|sprint|scrum)$/i, '').trim() || b.name;
+      setF((s) => (s.key === p.key ? { ...s, teams: boards.map((b) => ({ name: teamName(b), jiraBoardId: String(b.id), wipLimit: 5 })) } : s));
+    } catch {
+      // No boards found: teams can still be added by hand
+    } finally {
+      setJira((j) => ({ ...j, boards: false }));
+    }
+  };
+  const fromJira = !item && jira.projects?.some((p) => p.key === f.key);
+
   return (
     <Modal title={item ? 'Edit Project' : 'Add Project'} width={600} onClose={onCancel}
       footer={<FormButtons onCancel={onCancel} onSave={() => onSave(f)} saving={saving} />}>
       {error && <p className="form-error">{error}</p>}
+      {!item && (
+        <Field label="Jira project" hint={jira.error ? `${jira.error}. You can still enter the project by hand.` : 'Active projects in Jira. Projects already in AgileMetrix can’t be picked again.'}>
+          <select value={fromJira ? f.key : ''} onChange={pickJira} disabled={!jira.projects} autoFocus>
+            <option value="">{jira.projects ? `Select a Jira project (${jira.projects.filter((p) => !p.added).length} available)` : jira.error ? 'Could not load Jira projects' : 'Loading projects from Jira…'}</option>
+            {jira.projects?.map((p) => (
+              <option key={p.key} value={p.key} disabled={p.added}>{p.name.trim()} ({p.key}){p.added ? ' · already added' : ''}</option>
+            ))}
+          </select>
+        </Field>
+      )}
       <div className="form-grid">
-        <Field label="Project name"><input value={f.name} onChange={set('name')} autoFocus /></Field>
-        <Field label="Key" hint="Jira project key, e.g. FIBI"><input value={f.key} onChange={set('key')} /></Field>
+        <Field label="Project name"><input value={f.name} onChange={set('name')} autoFocus={!!item} /></Field>
+        <Field label="Key" hint={fromJira ? 'From Jira' : 'Jira project key, e.g. FIBI'}><input value={f.key} onChange={set('key')} readOnly={fromJira} /></Field>
       </div>
       <Field label="Description"><input value={f.description ?? ''} onChange={set('description')} /></Field>
       <Field label="Status" hint="Inactive projects are hidden from the dashboard and not synced.">
@@ -182,7 +218,11 @@ function ProjectForm({ item, onSave, onCancel, saving, error }) {
       </Field>
       <div className="field">
         <span className="field-label">Teams</span>
-        <span className="field-hint">Each team is synced from its Jira board. Find the board id in the board's URL (…/boards/<b>524</b>).</span>
+        <span className="field-hint">
+          {jira.boards ? 'Loading the project’s Scrum boards from Jira…'
+            : fromJira ? 'Filled in from the project’s Scrum boards in Jira. Remove any board you don’t want to track.'
+            : <>Each team is synced from its Jira board. Find the board id in the board's URL (…/boards/<b>524</b>).</>}
+        </span>
         <div className="team-rows">
           {f.teams.map((t, i) => (
             <div className="team-row" key={t.id ?? `new-${i}`}>
