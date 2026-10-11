@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client.js';
-import { formatDateTime } from '../../lib/format.js';
 import Modal, { Field } from './Modal.jsx';
 import {
-  ClearIcon, KeyIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, HomeIcon, SearchIcon,
-  PlugIcon, SettingsIcon, JiraMark,
+  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, HomeIcon, SearchIcon, SettingsIcon,
 } from '../Icons.jsx';
 
-const INTEGRATIONS = { jira: 'Jira', azure_devops: 'Azure DevOps', redmine: 'Redmine', other: 'Other' };
 const PERMISSION_LABELS = { view: 'View', create: 'Create', edit: 'Edit', delete: 'Delete', admin: 'Admin' };
 
 // ---------------------------------------------------------------------------
@@ -22,25 +19,18 @@ const initials = (name = '') => name.split(/\s+/).filter(Boolean).slice(0, 2).ma
 const AVATAR_COLORS = ['#1E3A8A', '#0f766e', '#7c3aed', '#b45309', '#be123c', '#0369a1'];
 const avatarColor = (name = '') => AVATAR_COLORS[[...name].reduce((n, c) => n + c.charCodeAt(0), 0) % AVATAR_COLORS.length];
 
-function IntegrationMark({ integration }) {
-  if (integration === 'jira') return <JiraMark />;
-  const color = { azure_devops: '#0078D4', redmine: '#B32024' }[integration] ?? '#64748b';
-  return <span className="integration-dot" style={{ background: color }} />;
-}
-
-function RowActions({ onEdit, onDelete, extra }) {
+function RowActions({ onEdit, onDelete }) {
   return (
     <div className="row-actions">
-      {extra}
       <button className="action-btn" onClick={onEdit} title="Edit" aria-label="Edit"><EditIcon /></button>
       <button className="action-btn action-danger" onClick={onDelete} title="Delete" aria-label="Delete"><TrashIcon /></button>
     </div>
   );
 }
 
-function AdminCard({ icon, tone, title, subtitle, addLabel, onAdd, children, count }) {
+function AdminCard({ icon, tone, title, subtitle, addLabel, onAdd, children, count, wide = false }) {
   return (
-    <section className="admin-card">
+    <section className={`admin-card${wide ? ' admin-card-wide' : ''}`}>
       <div className="admin-card-head">
         <span className={`admin-card-icon tone-${tone}`}>{icon}</span>
         <div className="admin-card-titles">
@@ -61,37 +51,6 @@ const Empty = ({ cols, text }) => (
 // ---------------------------------------------------------------------------
 // Forms
 // ---------------------------------------------------------------------------
-
-function ApiKeyForm({ item, onSave, onCancel, saving, error }) {
-  const [f, setF] = useState({
-    name: item?.name ?? '', integration: item?.integration ?? 'jira', baseUrl: item?.base_url ?? '',
-    accountEmail: item?.account_email ?? '', secret: '', status: item?.status ?? 'active',
-  });
-  const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
-  const isJira = f.integration === 'jira';
-  return (
-    <Modal title={item ? 'Edit API Key' : 'Add API Key'} onClose={onCancel}
-      footer={<FormButtons onCancel={onCancel} onSave={() => onSave(f)} saving={saving} />}>
-      {error && <p className="form-error">{error}</p>}
-      <div className="form-grid">
-        <Field label="Name"><input value={f.name} onChange={set('name')} placeholder="e.g. Jira Production" autoFocus /></Field>
-        <Field label="Integration">
-          <select value={f.integration} onChange={set('integration')}>
-            {Object.entries(INTEGRATIONS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-        </Field>
-        <Field label={`Base URL${isJira ? '' : ' (optional)'}`}><input value={f.baseUrl} onChange={set('baseUrl')} placeholder="https://yourcompany.atlassian.net" /></Field>
-        <Field label={`Account email${isJira ? '' : ' (optional)'}`}><input type="email" value={f.accountEmail} onChange={set('accountEmail')} placeholder="you@company.com" /></Field>
-      </div>
-      <Field label="Key / token" hint={item ? `Current key ends in ${item.masked.slice(-4)}. Leave blank to keep it.` : 'Stored encrypted; only the last 4 characters are ever shown.'}>
-        <input type="password" value={f.secret} onChange={set('secret')} autoComplete="new-password" placeholder={item ? '••••••••' : 'Paste the API token'} />
-      </Field>
-      <Field label="Status" hint={isJira ? 'The Jira sync uses the most recently updated active Jira key.' : 'Only Jira keys are used by the sync today.'}>
-        <select value={f.status} onChange={set('status')}><option value="active">Active</option><option value="inactive">Inactive</option></select>
-      </Field>
-    </Modal>
-  );
-}
 
 function UserForm({ item, roles, projects, onSave, onCancel, saving, error }) {
   const [f, setF] = useState({
@@ -214,7 +173,6 @@ export default function AdminOverlay({ onClose, onChanged }) {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState(null);
   const [toast, setToast] = useState(null);
-  const [tests, setTests] = useState({}); // api key id -> { ok, message } | 'testing'
 
   const load = useCallback(() => api.admin.load().then(setData).catch((e) => setLoadError(e.message)), []);
   useEffect(() => { load(); }, [load]);
@@ -269,16 +227,6 @@ export default function AdminOverlay({ onClose, onChanged }) {
     }
   };
 
-  const testKey = async (key) => {
-    setTests((t) => ({ ...t, [key.id]: 'testing' }));
-    try {
-      const result = await api.admin.testApiKey(key.id);
-      setTests((t) => ({ ...t, [key.id]: result }));
-    } catch (e) {
-      setTests((t) => ({ ...t, [key.id]: { ok: false, message: e.message } }));
-    }
-  };
-
   const openEdit = (kind, item = null) => { setFormError(null); setEditing({ kind, item }); };
   const openDelete = (kind, item, label) => { setFormError(null); setDeleting({ kind, item, label }); };
 
@@ -288,7 +236,6 @@ export default function AdminOverlay({ onClose, onChanged }) {
   const view = useMemo(() => {
     if (!data) return null;
     return {
-      apiKeys: data.apiKeys.filter((k) => match(k.name, INTEGRATIONS[k.integration], k.base_url, k.status)),
       users: data.users.filter((u) => match(u.name, u.email, u.role, u.projects.join(' '), u.status)),
       roles: data.roles.filter((r) => match(r.name, r.description, r.permissions.join(' '))),
       projects: data.projects.filter((p) => match(p.name, p.key, p.description, p.teams.map((t) => t.name).join(' '), p.status)),
@@ -312,7 +259,7 @@ export default function AdminOverlay({ onClose, onChanged }) {
         <div className="admin-top">
           <div>
             <h1>Admin</h1>
-            <p>Configure API keys, manage users, roles and projects.</p>
+            <p>Manage users, roles and projects.</p>
           </div>
           <div className="admin-top-actions">
             <label className="admin-search">
@@ -330,41 +277,8 @@ export default function AdminOverlay({ onClose, onChanged }) {
 
         {view && (
           <div className="admin-grid">
-            <AdminCard icon={<KeyIcon />} tone="blue" title="API Keys" subtitle="Manage API keys for integrations (e.g. Jira, Azure DevOps)."
-              addLabel="Add API Key" onAdd={() => openEdit('api-keys')}>
-              <table className="admin-table">
-                <thead><tr><th>Name</th><th>Integration</th><th>Key / Token</th><th>Status</th><th className="col-actions">Actions</th></tr></thead>
-                <tbody>
-                  {view.apiKeys.map((k) => {
-                    const t = tests[k.id];
-                    return (
-                      <tr key={k.id}>
-                        <td>
-                          <b>{k.name}</b>
-                          {k.last_used_at && <div className="cell-sub">Used by sync {formatDateTime(k.last_used_at)}</div>}
-                          {t && t !== 'testing' && <div className={`cell-sub ${t.ok ? 'text-ok' : 'text-bad'}`}>{t.message}</div>}
-                        </td>
-                        <td><span className="integration"><IntegrationMark integration={k.integration} /> {INTEGRATIONS[k.integration]}</span></td>
-                        <td className="mono">{k.masked}</td>
-                        <td><StatusBadge status={k.status} /></td>
-                        <td>
-                          <RowActions onEdit={() => openEdit('api-keys', k)} onDelete={() => openDelete('api-keys', k, k.name)}
-                            extra={k.integration === 'jira' && (
-                              <button className="action-btn" onClick={() => testKey(k)} disabled={t === 'testing'} title="Test connection" aria-label="Test connection">
-                                <span className={t === 'testing' ? 'spin' : ''}><PlugIcon /></span>
-                              </button>
-                            )} />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {!view.apiKeys.length && <Empty cols={5} text={q ? 'No matching API keys' : 'No API keys yet. The Jira sync is using the token in the backend .env file.'} />}
-                </tbody>
-              </table>
-            </AdminCard>
-
             <AdminCard icon={<UsersIcon />} tone="purple" title="Users & Role Assignment" subtitle="Add users and assign roles across projects."
-              addLabel="Add User" onAdd={() => openEdit('users')} count={view.users.length}>
+              addLabel="Add User" onAdd={() => openEdit('users')} count={view.users.length} wide>
               <table className="admin-table">
                 <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Projects</th><th>Status</th><th className="col-actions">Actions</th></tr></thead>
                 <tbody>
@@ -427,7 +341,6 @@ export default function AdminOverlay({ onClose, onChanged }) {
         )}
       </main>
 
-      {editing?.kind === 'api-keys' && <ApiKeyForm item={editing.item} onSave={save} onCancel={() => setEditing(null)} saving={saving} error={formError} />}
       {editing?.kind === 'users' && <UserForm item={editing.item} roles={data.roles} projects={data.projects} onSave={save} onCancel={() => setEditing(null)} saving={saving} error={formError} />}
       {editing?.kind === 'roles' && <RoleForm item={editing.item} permissions={data.permissions} onSave={save} onCancel={() => setEditing(null)} saving={saving} error={formError} />}
       {editing?.kind === 'projects' && <ProjectForm item={editing.item} onSave={save} onCancel={() => setEditing(null)} saving={saving} error={formError} />}

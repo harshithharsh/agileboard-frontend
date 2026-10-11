@@ -23,12 +23,11 @@ export const api = {
     return request(`/dashboard?${params}`);
   },
 
-  // Admin: kind = 'api-keys' | 'users' | 'roles' | 'projects'
+  // Admin: kind = 'users' | 'roles' | 'projects'
   admin: {
     load: () => request('/admin'),
     create: (kind, body) => send('POST', `/admin/${kind}`, body),
     update: (kind, id, body) => send('PUT', `/admin/${kind}/${id}`, body),
     remove: (kind, id) => send('DELETE', `/admin/${kind}/${id}`),
-    testApiKey: (id) => send('POST', `/admin/api-keys/${id}/test`),
   },
 };
