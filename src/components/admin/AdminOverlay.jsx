@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client.js';
 import Modal, { Field } from './Modal.jsx';
+import { formatDateTime } from '../../lib/format.js';
 import { getThemeChoice, setThemeChoice } from '../../lib/theme.js';
 import {
   ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SearchIcon, SunIcon, MoonIcon, MonitorIcon, PaletteIcon,
@@ -91,6 +92,7 @@ function UserForm({ item, roles, projects, onSave, onCancel, saving, error }) {
   const [f, setF] = useState({
     name: item?.name ?? '', email: item?.email ?? '', roleId: item?.role_id ?? roles.find((r) => r.name === 'Viewer')?.id ?? '',
     projectIds: item?.project_ids ?? [], status: item?.status ?? 'active',
+    username: item?.username ?? '', password: '',
   });
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
   const toggleProject = (id) => setF((s) => ({ ...s, projectIds: s.projectIds.includes(id) ? s.projectIds.filter((p) => p !== id) : [...s.projectIds, id] }));
@@ -112,6 +114,18 @@ function UserForm({ item, roles, projects, onSave, onCancel, saving, error }) {
         <Field label="Status">
           <select value={f.status} onChange={set('status')}><option value="active">Active</option><option value="inactive">Inactive</option></select>
         </Field>
+      </div>
+      <div className="form-section">
+        <span className="field-label">Sign-in</span>
+        <span className="field-hint">
+          {item?.can_sign_in ? 'This person can sign in. Clear the username to remove their sign-in.' : 'Give this person a username and password so they can sign in.'}
+        </span>
+        <div className="form-grid">
+          <Field label="Username"><input value={f.username} onChange={set('username')} autoComplete="off" placeholder="e.g. harshith" /></Field>
+          <Field label={item?.can_sign_in ? 'New password' : 'Password'} hint={item?.can_sign_in ? 'Leave blank to keep the current password.' : 'At least 8 characters.'}>
+            <input type="password" value={f.password} onChange={set('password')} autoComplete="new-password" />
+          </Field>
+        </div>
       </div>
       <Field label="Projects">
         <div className="check-group">
@@ -271,7 +285,7 @@ export default function AdminOverlay({ onClose, onChanged }) {
   const view = useMemo(() => {
     if (!data) return null;
     return {
-      users: data.users.filter((u) => match(u.name, u.email, u.role, u.projects.join(' '), u.status)),
+      users: data.users.filter((u) => match(u.name, u.email, u.username, u.role, u.projects.join(' '), u.status)),
       roles: data.roles.filter((r) => match(r.name, r.description, r.permissions.join(' '))),
       projects: data.projects.filter((p) => match(p.name, p.key, p.description, p.teams.map((t) => t.name).join(' '), p.status)),
     };
@@ -294,7 +308,6 @@ export default function AdminOverlay({ onClose, onChanged }) {
           </div>
         </div>
 
-        <p className="admin-notice">There is no sign-in yet, so anyone who can open AgileMetrix can change these settings, and roles are not enforced.</p>
 
         {loadError && <div className="card error">Could not load admin data: {loadError}</div>}
         {!view && !loadError && <div className="card empty">Loading…</div>}
@@ -306,19 +319,20 @@ export default function AdminOverlay({ onClose, onChanged }) {
             <AdminCard icon={<UsersIcon />} tone="purple" title="Users & Role Assignment" subtitle="Add users and assign roles across projects."
               addLabel="Add User" onAdd={() => openEdit('users')} count={view.users.length} wide>
               <table className="admin-table">
-                <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Projects</th><th>Status</th><th className="col-actions">Actions</th></tr></thead>
+                <thead><tr><th>Name</th><th>Email</th><th>Sign-in</th><th>Role</th><th>Projects</th><th>Status</th><th className="col-actions">Actions</th></tr></thead>
                 <tbody>
                   {view.users.map((u) => (
                     <tr key={u.id}>
                       <td><span className="person"><span className="avatar" style={{ background: avatarColor(u.name) }}>{initials(u.name)}</span><b>{u.name}</b></span></td>
                       <td className="muted email">{u.email || '—'}</td>
+                      <td>{u.can_sign_in ? <span className="signin-chip" title={u.last_login_at ? `Last signed in ${formatDateTime(u.last_login_at)}` : 'Has not signed in yet'}>@{u.username}</span> : <span className="muted">—</span>}</td>
                       <td>{u.role || <span className="muted">No role</span>}</td>
                       <td>{u.projects.join(', ') || <span className="muted">—</span>}</td>
                       <td><StatusBadge status={u.status} /></td>
                       <td><RowActions onEdit={() => openEdit('users', u)} onDelete={() => openDelete('users', u, u.name)} /></td>
                     </tr>
                   ))}
-                  {!view.users.length && <Empty cols={6} text="No matching users" />}
+                  {!view.users.length && <Empty cols={7} text="No matching users" />}
                 </tbody>
               </table>
             </AdminCard>

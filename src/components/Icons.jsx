@@ -56,3 +56,7 @@ export const MonitorIcon = () => (
 export const PaletteIcon = () => (
   <svg {...base} width={22} height={22}><circle cx="13.5" cy="6.5" r="1" /><circle cx="17.5" cy="10.5" r="1" /><circle cx="8.5" cy="7.5" r="1" /><circle cx="6.5" cy="12.5" r="1" /><path d="M12 2a10 10 0 0 0 0 20c.93 0 1.5-.75 1.5-1.5 0-.39-.15-.74-.39-1.01-.24-.26-.38-.6-.38-.99 0-.83.67-1.5 1.5-1.5H16a6 6 0 0 0 6-6c0-4.97-4.48-9-10-9z" /></svg>
 );
+export const ChevronDownIcon = () => <svg {...base} width={14} height={14}><path d="m6 9 6 6 6-6" /></svg>;
+export const SignOutIcon = () => (
+  <svg {...base}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5" /><path d="M21 12H9" /></svg>
+);

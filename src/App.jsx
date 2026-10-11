@@ -26,7 +26,10 @@ const keys = (list) => (list || []).map((d) => d.key).join(' ');
 
 const EMPTY_FILTERS = { projectId: null, teamId: null, quarter: null, releaseId: null, sprintId: null, assigneeId: null };
 
-export default function App() {
+export default function App({ user, onSignOut }) {
+  const perms = user?.permissions ?? [];
+  const canAdmin = perms.includes('admin');
+  const canSync = canAdmin || perms.includes('edit');
   const [options, setOptions] = useState(null);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [data, setData] = useState(null);
@@ -87,7 +90,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header context={data?.context} loading={loading || syncing} syncing={syncing} onRefresh={refresh} onExport={() => data && exportDashboardCsv(data)} onOpenAdmin={() => setAdminOpen(true)} />
+      <Header context={data?.context} loading={loading || syncing} syncing={syncing} onRefresh={refresh} onExport={() => data && exportDashboardCsv(data)} onOpenAdmin={canAdmin ? () => setAdminOpen(true) : null} canSync={canSync} user={user} onSignOut={onSignOut} />
       <main className={loading ? 'is-loading' : ''}>
         {options && <FilterBar options={options} filters={filters} onChange={updateFilters} onClear={clearFilters} isDefault={isDefault} />}
         {syncError && <div className="card warning">Could not sync from Jira: {syncError}. Showing the last synced data.</div>}
@@ -207,7 +210,7 @@ export default function App() {
           <span>© {new Date().getFullYear()} AgileMetrix · Powered by <strong className="powered-by">Quadpact</strong></span>
         </div>
       </footer>
-      {adminOpen && (
+      {adminOpen && canAdmin && (
         <AdminOverlay
           onChanged={() => setAdminChanged(true)}
           onClose={() => {

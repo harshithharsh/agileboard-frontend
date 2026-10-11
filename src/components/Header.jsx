@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { RefreshIcon, DownloadIcon, ChartIcon, SettingsIcon, JiraMark } from './Icons.jsx';
+import { RefreshIcon, DownloadIcon, ChartIcon, SettingsIcon, JiraMark, ChevronDownIcon, SignOutIcon } from './Icons.jsx';
 import { formatDateTime } from '../lib/format.js';
 
 // Jira connection state, from the last sync runs
@@ -59,7 +59,35 @@ function SettingsPanel({ context, onClose }) {
   );
 }
 
-export default function Header({ context, onRefresh, onExport, onOpenAdmin, loading, syncing }) {
+// Signed-in user's initials and name, with a Sign out menu
+function UserMenu({ user, onSignOut }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (e) => !ref.current?.contains(e.target) && setOpen(false);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+  const initials = user.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+  return (
+    <div className="settings-wrap" ref={ref}>
+      <button className="user-btn" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={`Account: ${user.name}`}>
+        <span className="user-avatar">{initials}</span>
+        <ChevronDownIcon />
+      </button>
+      {open && (
+        <div className="settings-panel user-panel" role="menu">
+          <div className="user-panel-name">{user.name}</div>
+          <div className="user-panel-meta">@{user.username} · {user.role || 'No role'}</div>
+          <button className="user-signout" role="menuitem" onClick={onSignOut}><SignOutIcon /> Sign out</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function Header({ context, onRefresh, onExport, onOpenAdmin, loading, syncing, canSync = true, user, onSignOut }) {
   const [jiraOpen, setJiraOpen] = useState(false);
   const status = jiraStatus(context?.sync, syncing);
   const lastSync = context?.sync?.lastSuccessAt;
@@ -91,15 +119,19 @@ export default function Header({ context, onRefresh, onExport, onOpenAdmin, load
           {jiraOpen && <SettingsPanel context={context} onClose={() => setJiraOpen(false)} />}
         </div>
         <span className="actions-divider" aria-hidden="true" />
-        <button className="icon-btn" onClick={onRefresh} disabled={loading} title="Refresh: pull the latest data from Jira" aria-label="Refresh">
+        <button className="icon-btn" onClick={onRefresh} disabled={loading || !canSync}
+          title={canSync ? 'Refresh: pull the latest data from Jira' : 'Your role can’t refresh from Jira (needs Edit permission)'} aria-label="Refresh">
           <span className={syncing ? 'spin' : ''}><RefreshIcon /></span>
         </button>
         <button className="icon-btn" onClick={onExport} disabled={!context} title="Export the dashboard as CSV" aria-label="Export">
           <DownloadIcon />
         </button>
-        <button className="icon-btn" onClick={onOpenAdmin} title="Settings: API keys, users, roles and projects" aria-label="Settings">
-          <SettingsIcon />
-        </button>
+        {onOpenAdmin && (
+          <button className="icon-btn" onClick={onOpenAdmin} title="Settings: appearance, users, roles and projects" aria-label="Settings">
+            <SettingsIcon />
+          </button>
+        )}
+        {user && <UserMenu user={user} onSignOut={onSignOut} />}
       </div>
     </header>
   );

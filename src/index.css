@@ -486,3 +486,32 @@ a.issue-key:hover { text-decoration: underline; }
 .logo-dark { display: none !important; }
 :root[data-theme='dark'] .logo-light { display: none !important; }
 :root[data-theme='dark'] .logo-dark { display: block !important; }
+
+/* ---------- Sign-in ---------- */
+.login-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px 16px; background: var(--bg); }
+.login-card {
+  width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 14px; padding: 32px 28px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow-pop);
+}
+.login-brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
+.login-brand img { height: 40px; }
+.login-brand .brand-wordmark { font-size: 26px; }
+.login-card h1 { font-size: 20px; font-weight: 700; text-align: center; }
+.login-sub { text-align: center; color: var(--muted); font-size: 13px; margin-top: -8px; }
+.login-notice { font-size: 13px; color: var(--primary); background: var(--primary-soft); padding: 8px 10px; border-radius: 8px; text-align: center; }
+.login-submit { justify-content: center; padding: 11px 14px; font-size: 14px; margin-top: 4px; }
+.login-help { font-size: 12px; color: var(--muted); text-align: center; }
+.login-foot { font-size: 12px; color: var(--muted); }
+.login-foot strong { color: var(--text); }
+
+/* user menu */
+.user-btn { display: inline-flex; align-items: center; gap: 4px; padding: 3px 6px 3px 3px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--muted); cursor: pointer; }
+.user-btn:hover { border-color: var(--border-strong); }
+.user-avatar { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--btn-primary); color: #fff; font-size: 12px; font-weight: 700; }
+.user-panel { width: 240px; }
+.user-panel-name { font-size: 14px; font-weight: 600; }
+.user-panel-meta { font-size: 12px; color: var(--muted); margin-top: 2px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.user-signout { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 8px; padding: 8px; border: 0; border-radius: 8px; background: transparent; color: var(--danger); font-size: 13px; font-weight: 500; cursor: pointer; }
+.user-signout:hover { background: var(--danger-soft); }
+.form-section { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px dashed var(--border); border-radius: 10px; }
+.signin-chip { font-size: 12px; font-weight: 500; color: var(--primary); background: var(--primary-soft); padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
