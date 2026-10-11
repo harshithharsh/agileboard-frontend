@@ -18,3 +18,16 @@ export const TrendUp = () => (
 export const TrendDown = () => (
   <svg {...base} width={12} height={12}><path d="m7 7 10 10" /><path d="M17 7v10H7" /></svg>
 );
+export const ChartIcon = () => (
+  <svg {...base} width={20} height={20}><path d="M3 21h18" /><path d="M6 17v-5" /><path d="M10 17V8" /><path d="M14 17v-7" /><path d="M18 17V5" /></svg>
+);
+export const SettingsIcon = () => (
+  <svg {...base} width={18} height={18}><path d="M12 2.5 20.2 7.25v9.5L12 21.5l-8.2-4.75v-9.5z" /><circle cx="12" cy="12" r="3" /></svg>
+);
+// Generic two-tone diamond for the Jira connection badge
+export const JiraMark = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 1.5 22.5 12 12 22.5 1.5 12z" fill="#2684FF" />
+    <path d="M12 7.2 16.8 12 12 16.8 7.2 12z" fill="#0052CC" />
+  </svg>
+);

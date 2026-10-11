@@ -4,7 +4,12 @@ import { teamsFor, sprintsFor, assigneesFor, quartersFor } from '../lib/filters.
 
 const shortDate = (d) =>
   new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }).replace('Sept', 'Sep');
-const formatRange = (start, end) => `${shortDate(start)} – ${shortDate(end)}`;
+// '7 Oct' + '20 Oct' -> '7–20 Oct'; across months -> '29 Sep – 6 Oct'
+const formatRange = (start, end) => {
+  const [d1, m1] = shortDate(start).split(' ');
+  const [d2, m2] = shortDate(end).split(' ');
+  return m1 === m2 ? `${d1}–${d2} ${m2}` : `${d1} ${m1} – ${d2} ${m2}`;
+};
 
 function Select({ label, value, onChange, options, placeholder }) {
   return (
@@ -34,10 +39,10 @@ export default function FilterBar({ options, filters, onChange, onClear, isDefau
   return (
     <section className="card filters">
       <div className="filters-intro">
-        <FilterIcon />
+        <span className="filters-icon"><FilterIcon /></span>
         <div>
-          <h2>Dashboard Filters</h2>
-          <p>Choose a sprint view to compare current delivery health.</p>
+          <h2>Filters</h2>
+          <p>Select criteria to view insights.</p>
         </div>
       </div>
       <div className="filters-grid">
