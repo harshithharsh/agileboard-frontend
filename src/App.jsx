@@ -99,7 +99,7 @@ export default function App() {
 
         {data && (() => {
           // File name for chart downloads: agileboard-<team>-<chart>-<sprint>
-          const file = (chart) => `agileboard-${slug(data.context.team.name)}-${chart}-${slug(data.context.sprint.name)}`;
+          const file = (chart) => `agilemetrix-${slug(data.context.team.name)}-${chart}-${slug(data.context.sprint.name)}`;
           return (
           <>
             <Section title="Sprint Executive Summary" aside={`Current view: ${data.context.team.name} · ${data.context.sprint.name}`}>

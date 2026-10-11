@@ -5,6 +5,8 @@
   --border: #e4e7ee;
   --text: #0f172a;
   --muted: #64748b;
+  --brand-blue: #1E3A8A;
+  --brand-teal: #14B8A6;
   --primary: #2f6fdb;
   --primary-soft: #e8effc;
   --success: #2e8b57;
@@ -32,11 +34,14 @@ button, select { font: inherit; color: inherit; }
   padding: 14px 32px; background: var(--surface); border-bottom: 1px solid var(--border);
 }
 .header-brand { display: flex; align-items: center; gap: 14px; }
-.logo {
-  width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
-  background: var(--primary); color: #fff; font-weight: 700; font-size: 18px;
-}
-.header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+/* AgileMetrix brand */
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.brand-icon { height: 36px; width: auto; display: block; }
+.brand-wordmark { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.brand-agile { color: var(--brand-blue); }
+.brand-metrix { color: var(--brand-teal); }
+.brand-divider { width: 1px; height: 32px; background: var(--border); }
+.header h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
 .breadcrumb { font-size: 13px; color: var(--muted); margin-top: 2px; }
 .breadcrumb span { margin: 0 8px; color: #cbd5e1; }
 .live { margin-left: 8px; font-style: normal; font-size: 12px; font-weight: 600; color: var(--success); background: var(--success-soft); padding: 1px 8px; border-radius: 999px; }
@@ -206,7 +211,7 @@ a.issue-key:hover { text-decoration: underline; }
 }
 @media (max-width: 640px) {
   .header, main { padding-left: 16px; padding-right: 16px; }
-  .header-actions .updated, .btn span { display: none; }
+  .header-actions .updated, .btn span, .brand-divider, .brand-wordmark { display: none; }
   .summary-grid, .flow-grid { grid-template-columns: 1fr 1fr; }
   .metric-value strong { font-size: 22px; }
   .filters-grid { grid-template-columns: 1fr 1fr; }

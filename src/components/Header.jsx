@@ -5,9 +5,13 @@ export default function Header({ context, onRefresh, onExport, loading, syncing 
   return (
     <header className="header">
       <div className="header-brand">
-        <div className="logo">{context?.project.name?.[0] ?? 'A'}</div>
+        <a className="brand" href="/" aria-label="AgileMetrix home">
+          <img className="brand-icon" src="/logo-icon.svg" alt="" />
+          <span className="brand-wordmark"><span className="brand-agile">Agile</span><span className="brand-metrix">Metrix</span></span>
+        </a>
+        <span className="brand-divider" aria-hidden="true" />
         <div>
-          <h1>Agile Sprint Performance Dashboard</h1>
+          <h1>Sprint Performance Dashboard</h1>
           {context && (
             <p className="breadcrumb">
               {context.project.name}<span>·</span>{context.team.name}<span>·</span>{/sprint/i.test(context.sprint.name) ? '' : 'Sprint '}{context.sprint.name}

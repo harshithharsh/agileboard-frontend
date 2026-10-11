@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -4 100 100" role="img" aria-label="AgileMetrix">
+  <title>AgileMetrix</title>
+  <defs>
+    <!-- Arrow shape, reused for drawing and for cutting a gap out of the "A" -->
+    <path id="am-arrow-body" d="M22 66 Q55 58 73 25 L81 30 Q61 66 22 66 Z"/>
+    <path id="am-arrow-head" d="M68 22 L95 6 L93 34 Z"/>
+    <mask id="am-gap" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="92">
+      <rect width="100" height="92" fill="#fff"/>
+      <use href="#am-arrow-body" fill="#000" stroke="#000" stroke-width="6" stroke-linejoin="round"/>
+      <use href="#am-arrow-head" fill="#000" stroke="#000" stroke-width="6" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <g fill="#1E3A8A" mask="url(#am-gap)">
+    <path d="M3 90 L37 22 Q45 8 53 22 L63 39 L55 47 L45 30 L16 86 Q14 90 9 90 Z"/>
+    <path d="M57 52 L67 44 L95 90 L61 90 Q57 90 57 86 Z"/>
+  </g>
+  <g fill="#14B8A6">
+    <rect x="24" y="74" width="9" height="16" rx="1"/>
+    <rect x="37" y="64" width="9" height="26" rx="1"/>
+    <use href="#am-arrow-body"/>
+    <use href="#am-arrow-head"/>
+  </g>
+</svg>

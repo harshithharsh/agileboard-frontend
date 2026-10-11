@@ -14,7 +14,7 @@ const COMPLIANCE_LABELS = {
 export function exportDashboardCsv(data) {
   const { context, summary, health, flow, quality, compliance } = data;
   const rows = [
-    ['AgileBoard Sprint Report'],
+    ['AgileMetrix Sprint Report'],
     ['Project', context.project.name],
     ['Team', context.team.name],
     ['Sprint', context.sprint.name],
@@ -43,5 +43,5 @@ export function exportDashboardCsv(data) {
     ['Process Compliance', '%'],
     ...Object.entries(compliance).map(([k, v]) => [COMPLIANCE_LABELS[k] ?? k, v ?? 'Not tracked in Jira']),
   ];
-  downloadCsv(rows, `agileboard-${slug(context.team.name)}-${slug(context.sprint.name)}.csv`);
+  downloadCsv(rows, `agilemetrix-${slug(context.team.name)}-${slug(context.sprint.name)}.csv`);
 }

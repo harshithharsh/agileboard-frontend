@@ -1,5 +1,7 @@
 # AgileBoard – Frontend
 
+Branded as **AgileMetrix**. Logo files are in `public/`: `logo.svg` (horizontal logo), `logo-icon.svg` (icon only), `favicon.svg` and `apple-touch-icon.png`. All SVGs are flat vector with transparent backgrounds; brand colours are deep blue `#1E3A8A` and teal `#14B8A6`.
+
 React (Vite) sprint performance dashboard, based on the Lovable design. Charts use Recharts.
 
 ## Setup
