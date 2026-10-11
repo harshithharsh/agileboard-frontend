@@ -1,6 +1,7 @@
 // Dashboard widgets: default order and width. Each user can rearrange, resize and hide them;
 // the saved layout is [{ id, size, hidden }] (see /api/me/preferences).
 export const WIDGETS = [
+  { id: 'sprint-goal', title: 'Sprint Goal', size: 'full' },
   { id: 'summary', title: 'Sprint Executive Summary', size: 'full' },
   { id: 'committed', title: 'Committed vs. Completed Story Points', size: 'half' },
   { id: 'velocity', title: 'Velocity Trend', size: 'half' },
@@ -30,7 +31,13 @@ export function normalizeLayout(saved) {
     seen.add(w.id);
     layout.push({ id: w.id, size: w.size === 'full' ? 'full' : 'half', hidden: w.hidden === true });
   }
-  for (const w of DEFAULT_LAYOUT) if (!seen.has(w.id)) layout.push(w);
+  // New widgets go right after the widget they follow in the default layout
+  DEFAULT_LAYOUT.forEach((w, i) => {
+    if (seen.has(w.id)) return;
+    const before = DEFAULT_LAYOUT.slice(0, i).reverse().find((d) => seen.has(d.id));
+    layout.splice(before ? layout.findIndex((l) => l.id === before.id) + 1 : 0, 0, w);
+    seen.add(w.id);
+  });
   return layout;
 }
 

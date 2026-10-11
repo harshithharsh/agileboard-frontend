@@ -21,6 +21,7 @@ import CycleTimeChart from './components/charts/CycleTimeChart.jsx';
 import AdminOverlay from './components/admin/AdminOverlay.jsx';
 import IssueTypesTable from './components/IssueTypesTable.jsx';
 import WidgetGrid from './components/WidgetGrid.jsx';
+import SprintGoal from './components/SprintGoal.jsx';
 import { LayoutIcon, PlusIcon, ResetIcon } from './components/Icons.jsx';
 import { DEFAULT_LAYOUT, normalizeLayout, sameLayout, updateWidget, widgetTitle } from './lib/layout.js';
 import { resolveFilters, quarterLabel } from './lib/filters.js';
@@ -173,6 +174,7 @@ function buildWidgets(data) {
   const sprints = `${n} sprint${n > 1 ? 's' : ''}`;
   const trendRange = data.context.quarter ? `${quarterLabel(data.context.quarter)} · ${sprints}` : `last ${sprints}`;
   return {
+    'sprint-goal': <SprintGoal sprint={data.context.sprint} />,
     summary: (
       <Section title="Sprint Executive Summary" aside={`Current view: ${data.context.team.name} · ${data.context.sprint.name} · Trends: ${trendRange}`}>
         <SummaryCards summary={data.summary} velocityBand={data.velocityBand} jiraBaseUrl={data.context.jiraBaseUrl} />

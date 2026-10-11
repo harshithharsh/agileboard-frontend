@@ -570,3 +570,12 @@ a.issue-key:hover { text-decoration: underline; }
   .customize-actions { width: 100%; }
   .customize-actions .btn-primary-solid { margin-left: auto; }
 }
+
+/* Sprint goal */
+.sprint-goal { display: flex; flex-direction: column; gap: 12px; border-left: 4px solid var(--primary); }
+.sprint-goal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+.sprint-goal-head h3 { font-size: 14px; font-weight: 600; }
+.sprint-goal-meta { display: flex; align-items: center; gap: 6px 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.sprint-goal-text { font-size: 15px; font-weight: 500; line-height: 1.5; }
+.sprint-goal-list { margin: 0; padding-left: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 6px 32px; font-size: 14px; line-height: 1.5; }
+.sprint-goal-list li::marker { color: var(--primary); }
