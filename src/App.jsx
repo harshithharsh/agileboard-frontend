@@ -110,6 +110,20 @@ export default function App({ user, onSignOut }) {
     setSyncError(null);
     try {
       await api.syncFromJira();
+      // The sync runs on the server; check every 3 s until it has finished (up to 15 minutes)
+      const deadline = Date.now() + 15 * 60 * 1000;
+      for (;;) {
+        await new Promise((r) => setTimeout(r, 3000));
+        const status = await api.syncStatus();
+        if (!status.running) {
+          if (status.latest?.status === 'failed') setSyncError(status.latest.message || 'The sync failed');
+          break;
+        }
+        if (Date.now() > deadline) {
+          setSyncError('The sync is taking unusually long. It continues on the server; refresh the page later');
+          break;
+        }
+      }
     } catch (e) {
       setSyncError(e.message);
     } finally {

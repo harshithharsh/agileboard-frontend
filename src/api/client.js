@@ -23,7 +23,9 @@ export const api = {
     logout: () => send('POST', '/auth/logout'),
   },
   getFilters: () => request('/filters'),
+  // Starts a sync in the background (202); syncStatus() tells when it has finished
   syncFromJira: () => request('/sync', { method: 'POST' }),
+  syncStatus: () => request('/sync'),
   getDashboard: ({ teamId, sprintId, assigneeId, quarter }) => {
     const params = new URLSearchParams({ teamId });
     if (sprintId) params.set('sprintId', sprintId);
