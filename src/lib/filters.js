@@ -2,26 +2,34 @@
 
 export const teamsFor = (options, projectId) => options.teams.filter((t) => t.project_id === projectId);
 
-// Calendar quarter a sprint belongs to, by its start date: '2026-07-29' -> '2026-Q3'
-export const quarterOf = (date) => `${date.slice(0, 4)}-Q${Math.floor((Number(date.slice(5, 7)) - 1) / 3) + 1}`;
+// Indian financial-year quarter a sprint belongs to, by its start date (the year runs April to March):
+// Q1 Apr–Jun, Q2 Jul–Sep, Q3 Oct–Dec, Q4 Jan–Mar. '2026-10-07' -> 'FY2026-Q3', '2027-02-01' -> 'FY2026-Q4'
+export const quarterOf = (date) => {
+  const year = Number(date.slice(0, 4)), month = Number(date.slice(5, 7));
+  return `FY${month >= 4 ? year : year - 1}-Q${Math.floor(((month + 8) % 12) / 3) + 1}`;
+};
 
-const QUARTER_MONTHS = { 1: 'Jan – Mar', 2: 'Apr – Jun', 3: 'Jul – Sep', 4: 'Oct – Dec' };
+// 'FY2026' -> 'FY 2026-27'
+const fyName = (fy) => `FY ${fy}-${String(Number(fy) + 1).slice(2)}`;
+const QUARTER_MONTHS = { 1: 'Apr – Jun', 2: 'Jul – Sep', 3: 'Oct – Dec', 4: 'Jan – Mar' };
+// Months with their calendar year: Q4 falls in the next calendar year
+const quarterMonths = (fy, q) => `${QUARTER_MONTHS[q]} ${Number(fy) + (q === '4' ? 1 : 0)}`;
 export const quarterLabel = (key) => {
-  const [year, q] = key.split('-Q');
-  return `Q${q} ${year} · ${QUARTER_MONTHS[q]}`;
+  const [fy, q] = key.slice(2).split('-Q');
+  return `Q${q} ${fyName(fy)} · ${quarterMonths(fy, q)}`;
 };
 
 const teamSprints = (options, { teamId, releaseId }) =>
   options.sprints.filter((s) => s.team_id === teamId && (!releaseId || s.release_id === releaseId));
 
-// Q1–Q4 for every year the team has sprints in, newest first; quarters without sprints are disabled.
+// Q1–Q4 for every financial year the team has sprints in, newest first; quarters without sprints are disabled.
 export function quartersFor(options, filters) {
   const withSprints = new Set(teamSprints(options, filters).map((s) => quarterOf(s.start_date)));
-  const years = [...new Set([...withSprints].map((k) => k.slice(0, 4)))].sort().reverse();
-  return years.flatMap((year) =>
+  const years = [...new Set([...withSprints].map((k) => k.slice(2, 6)))].sort().reverse();
+  return years.flatMap((fy) =>
     [4, 3, 2, 1].map((q) => {
-      const key = `${year}-Q${q}`;
-      return { value: key, label: `Q${q} ${year}`, disabled: !withSprints.has(key) };
+      const key = `FY${fy}-Q${q}`;
+      return { value: key, label: `Q${q} FY${fy.slice(2)}-${String(Number(fy) + 1).slice(2)} · ${QUARTER_MONTHS[q].replace(/ /g, '')}`, disabled: !withSprints.has(key) };
     })
   );
 }
