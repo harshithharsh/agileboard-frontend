@@ -214,7 +214,7 @@ function buildWidgets(data) {
     ),
     flow: (
       <Section title="Flow Metrics" aside="Efficiency of work in motion">
-        <FlowMetrics flow={data.flow} jiraBaseUrl={data.context.jiraBaseUrl} />
+        <FlowMetrics flow={data.flow} jiraBaseUrl={data.context.jiraBaseUrl} sprintName={data.context.sprint.name} />
       </Section>
     ),
     'cycle-time': (

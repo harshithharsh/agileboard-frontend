@@ -597,3 +597,18 @@ a.issue-key:hover { text-decoration: underline; }
 .scope-status { display: inline-block; font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--text); white-space: nowrap; }
 .scope-status.done { background: var(--success-soft); color: var(--success); }
 .modal-foot .btn { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Blocked work drill-down */
+.stage-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.stage-tile { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--border); border-left: 4px solid var(--stage-color, var(--muted)); border-radius: 10px; background: var(--surface); }
+.stage-tile span { font-size: 12px; color: var(--muted); font-weight: 500; }
+.stage-tile strong { font-size: 22px; font-weight: 700; }
+.stage-tile small { font-size: 11px; color: var(--muted); }
+.stage-pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; color: var(--stage-color, var(--muted)); background: var(--surface-2); white-space: nowrap; }
+.stage-developer { --stage-color: var(--primary); }
+.stage-qa { --stage-color: var(--warning); }
+.stage-ba { --stage-color: #8b5cf6; }
+.scope-status.blocked { background: var(--danger-soft); color: var(--danger); }
+.muted.small, .small { font-size: 12px; }
+.scope-table td .muted.small { margin-top: 2px; }
+.dialog-note { margin-top: 10px; }
