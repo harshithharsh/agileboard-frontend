@@ -611,4 +611,3 @@ a.issue-key:hover { text-decoration: underline; }
 .scope-status.blocked { background: var(--danger-soft); color: var(--danger); }
 .muted.small, .small { font-size: 12px; }
 .scope-table td .muted.small { margin-top: 2px; }
-.dialog-note { margin-top: 10px; }

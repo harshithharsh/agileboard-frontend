@@ -57,7 +57,6 @@ export default function BlockedDialog({ blocked, sprintName, jiraBaseUrl, onClos
           </tbody>
         </table>
       </div>
-      <p className="muted small dialog-note">Stuck with = the role that had the issue when it was blocked, judged from its Jira status. Assignee = who has it now for open blockers, or who had it then for resolved ones.</p>
     </Modal>
   );
 }
