@@ -190,7 +190,7 @@ function buildWidgets(data) {
   return {
     summary: (
       <Section title="Sprint Executive Summary" aside={`Current view: ${data.context.team.name} · ${data.context.sprint.name} · Trends: ${trendRange}`}>
-        <SummaryCards summary={data.summary} velocityBand={data.velocityBand} jiraBaseUrl={data.context.jiraBaseUrl} />
+        <SummaryCards summary={data.summary} velocityBand={data.velocityBand} jiraBaseUrl={data.context.jiraBaseUrl} sprintName={data.context.sprint.name} />
       </Section>
     ),
     'sprint-goal': <SprintGoal sprint={data.context.sprint} />,

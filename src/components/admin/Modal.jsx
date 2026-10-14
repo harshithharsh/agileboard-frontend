@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ClearIcon } from '../Icons.jsx';
 
-// Small dialog on top of the Admin overlay. Escape or the ✕ closes it.
+// Small dialog on top of the page. Escape or the ✕ closes it. Rendered at the end of <body> so a
+// containing widget (container queries create a containing block) can't clip or offset it.
 export default function Modal({ title, onClose, children, footer, width = 480 }) {
   useEffect(() => {
     const onKey = (e) => {
@@ -14,7 +16,7 @@ export default function Modal({ title, onClose, children, footer, width = 480 })
     return () => document.removeEventListener('keydown', onKey, true);
   }, [onClose]);
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal" role="dialog" aria-modal="true" aria-label={title} style={{ maxWidth: width }}>
         <div className="modal-head">
@@ -24,7 +26,8 @@ export default function Modal({ title, onClose, children, footer, width = 480 })
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

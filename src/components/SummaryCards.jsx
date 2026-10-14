@@ -1,6 +1,8 @@
 import { TrendUp, TrendDown } from './Icons.jsx';
 import { formatValue } from '../lib/format.js';
+import { useState } from 'react';
 import IssueKey from './IssueKey.jsx';
+import AddedIssuesDialog from './AddedIssuesDialog.jsx';
 
 function Delta({ card }) {
   if (card.caption) return <span className="delta neutral">{card.caption}</span>;
@@ -18,8 +20,10 @@ function Delta({ card }) {
   );
 }
 
-export default function SummaryCards({ summary, velocityBand, jiraBaseUrl }) {
+export default function SummaryCards({ summary, velocityBand, jiraBaseUrl, sprintName }) {
+  const [scopeCard, setScopeCard] = useState(null);
   return (
+    <>
     <div className="summary-grid">
       {summary.map((card) => {
         const max = card.unit === '%' ? 100 : Math.max((velocityBand?.high ?? card.value) * 1.25, card.value);
@@ -42,6 +46,11 @@ export default function SummaryCards({ summary, velocityBand, jiraBaseUrl }) {
               <span>{card.footLeft ?? (card.key !== 'velocity' ? `Target ${card.target}` : velocityBand ? `Target ${velocityBand.low}–${velocityBand.high} SP` : 'No history yet')}</span>
               <span>{card.footRight ?? `Prior ${formatValue(card.prior, card.unit)}`}</span>
             </div>
+            {card.addedIssues?.length > 0 && (
+              <button className="metric-link" onClick={() => setScopeCard(card)} title="See the issues added to the sprint after it started">
+                View {card.addedIssues.length} added issue{card.addedIssues.length === 1 ? '' : 's'} ›
+              </button>
+            )}
             {card.issues?.length > 0 && (
               <div className="metric-issues">
                 {card.issues.map((i, n) => (
@@ -53,5 +62,7 @@ export default function SummaryCards({ summary, velocityBand, jiraBaseUrl }) {
         );
       })}
     </div>
+    {scopeCard && <AddedIssuesDialog card={scopeCard} sprintName={sprintName} jiraBaseUrl={jiraBaseUrl} onClose={() => setScopeCard(null)} />}
+    </>
   );
 }
