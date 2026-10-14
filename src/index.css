@@ -314,7 +314,7 @@ a.issue-key:hover { text-decoration: underline; }
 .issue-types td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
 .issue-types .num { text-align: center; width: 18%; }
 .issue-types tbody tr:hover td { background: var(--row-hover); }
-.issue-types .total-row td { background: var(--text); color: var(--surface); font-weight: 700; border-bottom: 0; }
+.issue-types .total-row td { background: var(--primary-soft); color: var(--primary); font-weight: 700; border-top: 2px solid var(--primary); border-bottom: 0; }
 .status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
 .status i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .status-on_track { color: var(--success); background: var(--success-soft); }
