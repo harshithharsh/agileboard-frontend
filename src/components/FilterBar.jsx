@@ -11,13 +11,21 @@ const formatRange = (start, end) => {
   return m1 === m2 ? `${d1}–${d2} ${m2}` : `${d1} ${m1} – ${d2} ${m2}`;
 };
 
+// Options may carry a `group` (consecutive options with the same group share an <optgroup>)
 function Select({ label, value, onChange, options, placeholder }) {
+  const groups = [];
+  for (const o of options) {
+    const last = groups.at(-1);
+    if (last && last.name === o.group) last.items.push(o);
+    else groups.push({ name: o.group, items: [o] });
+  }
+  const render = (o) => <option key={o.value} value={o.value}>{o.label}</option>;
   return (
     <label className="filter">
       <span>{label}</span>
       <select value={value || ''} onChange={(e) => onChange(e.target.value || null)}>
         {placeholder && <option value="">{placeholder}</option>}
-        {options.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}{o.disabled ? ' (no sprints)' : ''}</option>)}
+        {groups.map((g, i) => (g.name ? <optgroup key={g.name + i} label={g.name}>{g.items.map(render)}</optgroup> : g.items.map(render)))}
       </select>
     </label>
   );
@@ -30,11 +38,14 @@ export default function FilterBar({ options, filters, onChange, onClear, isDefau
   const assignees = assigneesFor(options, filters);
   const toOptions = (list) => list.map((x) => ({ value: x.id, label: x.name }));
 
-  // Jira sprint names already say which team they belong to ("Nexus Sprint 2")
-  const sprintOptions = sprints.map((s) => ({
-    value: s.id,
-    label: `${s.name} · ${formatRange(s.start_date, s.end_date)}${s.status === 'active' ? ' (active)' : ''}`,
-  }));
+  // Jira sprint names already say which team they belong to ("Nexus Sprint 2"); running sprints first
+  const sprintOptions = [...sprints]
+    .sort((a, b) => (b.status === 'active') - (a.status === 'active'))
+    .map((s) => ({
+      value: s.id,
+      label: `${s.name} · ${formatRange(s.start_date, s.end_date)}`,
+      group: s.status === 'active' ? 'Current sprint' : 'Completed sprints',
+    }));
 
   return (
     <section className="card filters">
@@ -52,9 +63,9 @@ export default function FilterBar({ options, filters, onChange, onClear, isDefau
           onChange={(v) => onChange({ quarter: v, sprintId: null })} />
         <Select label="Sprint" value={filters.sprintId} options={sprintOptions}
           onChange={(v) => onChange({ sprintId: v })} />
-        <Select label="Release" value={filters.releaseId} options={toOptions(releases)} placeholder="All"
+        <Select label="Release" value={filters.releaseId} options={toOptions(releases)} placeholder="All releases"
           onChange={(v) => onChange({ releaseId: v, quarter: null, sprintId: null })} />
-        <Select label="Assignee" value={filters.assigneeId} options={toOptions(assignees)} placeholder="All"
+        <Select label="Assignee" value={filters.assigneeId} options={toOptions(assignees)} placeholder="All assignees"
           onChange={(v) => onChange({ assigneeId: v })} />
       </div>
       <span className="has-tip clear-wrap">

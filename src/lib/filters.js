@@ -22,16 +22,14 @@ export const quarterLabel = (key) => {
 const teamSprints = (options, { teamId, releaseId }) =>
   options.sprints.filter((s) => s.team_id === teamId && (!releaseId || s.release_id === releaseId));
 
-// Q1–Q4 for every financial year the team has sprints in, newest first; quarters without sprints are disabled.
+// Quarters that have sprints for the team, newest first, grouped by financial year:
+// group 'FY 2026-27', option 'Q3 · Oct – Dec 2026'
 export function quartersFor(options, filters) {
-  const withSprints = new Set(teamSprints(options, filters).map((s) => quarterOf(s.start_date)));
-  const years = [...new Set([...withSprints].map((k) => k.slice(2, 6)))].sort().reverse();
-  return years.flatMap((fy) =>
-    [4, 3, 2, 1].map((q) => {
-      const key = `FY${fy}-Q${q}`;
-      return { value: key, label: `Q${q} FY${fy.slice(2)}-${String(Number(fy) + 1).slice(2)} · ${QUARTER_MONTHS[q].replace(/ /g, '')}`, disabled: !withSprints.has(key) };
-    })
-  );
+  const keys = [...new Set(teamSprints(options, filters).map((s) => quarterOf(s.start_date)))].sort().reverse();
+  return keys.map((key) => {
+    const [fy, q] = key.slice(2).split('-Q');
+    return { value: key, label: `Q${q} · ${quarterMonths(fy, q)}`, group: fyName(fy) };
+  });
 }
 
 // Sprints of the selected team in the selected quarter (and release), newest first.

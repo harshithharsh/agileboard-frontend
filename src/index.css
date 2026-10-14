@@ -209,18 +209,19 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1
 .filters .clear-wrap { align-self: center; flex-shrink: 0; }
 /* Divider between the dropdowns and Clear, as in the design */
 .filters-grid { padding-right: 24px; border-right: 1px solid var(--border); }
-/* Wide screens: give Sprint (long labels with dates) more room, Quarter less */
+/* Wide screens: give Sprint and Quarter (labels with dates) more room */
 @media (min-width: 1200px) {
   .filters { flex-wrap: nowrap; }
   .filters .filters-grid {
     min-width: 0; gap: 10px;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 1.9fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.3fr) minmax(0, 1.7fr) minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 .btn-clear { align-self: center; }
-.filters-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.filters-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
 .filter { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
 .filter select {
+  width: 100%; min-width: 0;
   appearance: none; padding: 8px 32px 8px 12px; font-size: 13px; cursor: pointer;
   border: 1px solid var(--border); border-radius: 8px; background: var(--surface)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
