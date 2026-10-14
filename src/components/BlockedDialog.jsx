@@ -1,7 +1,5 @@
 import Modal from './admin/Modal.jsx';
 import IssueKey from './IssueKey.jsx';
-import { DownloadIcon } from './Icons.jsx';
-import { downloadCsv, slug } from '../lib/download.js';
 
 const when = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—');
 const STAGE_HINT = {
@@ -16,14 +14,8 @@ const STAGE_HINT = {
 export default function BlockedDialog({ blocked, sprintName, jiraBaseUrl, onClose }) {
   // Still-blocked first, then longest
   const rows = [...blocked.list].sort((a, b) => (b.open - a.open) || (b.days - a.days));
-  const saveCsv = () => downloadCsv(
-    [['Issue', 'Summary', 'Stuck With', 'Blocked In Status', 'Assignee', 'Blocked Since', 'Days Blocked', 'State', 'Reason', 'Current Status'],
-      ...rows.map((b) => [b.issueKey, b.title, b.stage, b.blockedIn ?? '', b.assignee ?? '', b.startedAt ?? '', b.days, b.open ? 'Still blocked' : 'Resolved', b.reason ?? '', b.currentStatus ?? ''])],
-    `agilemetrix-blocked-${slug(sprintName)}.csv`
-  );
   return (
-    <Modal title={`Blocked Work · ${sprintName}`} width={980} onClose={onClose}
-      footer={<button className="btn" onClick={saveCsv}><DownloadIcon /> Download CSV</button>}>
+    <Modal title={`Blocked Work · ${sprintName}`} width={980} onClose={onClose}>
       <div className="stage-summary">
         {blocked.byStage.map((s) => (
           <div key={s.stage} className={`stage-tile stage-${s.stage.toLowerCase()}`} title={STAGE_HINT[s.stage]}>
