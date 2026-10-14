@@ -1,4 +1,4 @@
-// Which teams, sprints and assignees belong to the current filter selection.
+// Which teams and sprints belong to the current filter selection.
 
 export const teamsFor = (options, projectId) => options.teams.filter((t) => t.project_id === projectId);
 
@@ -36,18 +36,16 @@ export function quartersFor(options, filters) {
 export const sprintsFor = (options, filters) =>
   teamSprints(options, filters).filter((s) => !filters.quarter || quarterOf(s.start_date) === filters.quarter);
 
-export const assigneesFor = (options, { teamId }) => options.assignees.filter((a) => a.team_id === teamId);
-
 // Fill in defaults whenever a parent filter is cleared: first project, its first team,
 // the quarter of the team's latest sprint, and the latest sprint in that quarter.
 export function resolveFilters(filters, options) {
   const next = { ...filters };
   // Drop selections that no longer exist (e.g. a project deactivated in Admin)
   if (next.projectId && !options.projects.some((p) => p.id === next.projectId)) {
-    Object.assign(next, { projectId: null, teamId: null, quarter: null, sprintId: null, releaseId: null, assigneeId: null });
+    Object.assign(next, { projectId: null, teamId: null, quarter: null, sprintId: null, releaseId: null });
   }
   if (next.teamId && !options.teams.some((t) => t.id === next.teamId && t.project_id === next.projectId)) {
-    Object.assign(next, { teamId: null, quarter: null, sprintId: null, assigneeId: null });
+    Object.assign(next, { teamId: null, quarter: null, sprintId: null });
   }
   next.projectId ??= options.projects[0]?.id ?? null;
   next.teamId ??= teamsFor(options, next.projectId)[0]?.id ?? null;

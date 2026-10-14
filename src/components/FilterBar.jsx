@@ -1,5 +1,5 @@
 import { FilterIcon, ClearIcon } from './Icons.jsx';
-import { teamsFor, sprintsFor, assigneesFor, quartersFor } from '../lib/filters.js';
+import { teamsFor, sprintsFor, quartersFor } from '../lib/filters.js';
 
 
 const shortDate = (d) =>
@@ -35,7 +35,6 @@ export default function FilterBar({ options, filters, onChange, onClear, isDefau
   const teams = teamsFor(options, filters.projectId);
   const releases = options.releases.filter((r) => r.project_id === filters.projectId);
   const sprints = sprintsFor(options, filters);
-  const assignees = assigneesFor(options, filters);
   const toOptions = (list) => list.map((x) => ({ value: x.id, label: x.name }));
 
   // Jira sprint names already say which team they belong to ("Nexus Sprint 2"); running sprints first
@@ -56,17 +55,15 @@ export default function FilterBar({ options, filters, onChange, onClear, isDefau
       </div>
       <div className="filters-grid">
         <Select label="Project" value={filters.projectId} options={toOptions(options.projects)}
-          onChange={(v) => onChange({ projectId: v, teamId: null, quarter: null, releaseId: null, sprintId: null, assigneeId: null })} />
+          onChange={(v) => onChange({ projectId: v, teamId: null, quarter: null, releaseId: null, sprintId: null })} />
         <Select label="Team" value={filters.teamId} options={toOptions(teams)}
-          onChange={(v) => onChange({ teamId: v, quarter: null, sprintId: null, assigneeId: null })} />
+          onChange={(v) => onChange({ teamId: v, quarter: null, sprintId: null })} />
         <Select label="Quarter" value={filters.quarter} options={quartersFor(options, filters)}
           onChange={(v) => onChange({ quarter: v, sprintId: null })} />
         <Select label="Sprint" value={filters.sprintId} options={sprintOptions}
           onChange={(v) => onChange({ sprintId: v })} />
         <Select label="Release" value={filters.releaseId} options={toOptions(releases)} placeholder="All releases"
           onChange={(v) => onChange({ releaseId: v, quarter: null, sprintId: null })} />
-        <Select label="Assignee" value={filters.assigneeId} options={toOptions(assignees)} placeholder="All assignees"
-          onChange={(v) => onChange({ assigneeId: v })} />
       </div>
       <span className="has-tip clear-wrap">
         <button className="icon-btn btn-clear" onClick={onClear} disabled={isDefault} aria-label="Clear filters" aria-describedby="clear-hint">

@@ -29,7 +29,7 @@ import { slug } from './lib/download.js';
 
 const keys = (list) => (list || []).map((d) => d.key).join(' ');
 
-const EMPTY_FILTERS = { projectId: null, teamId: null, quarter: null, releaseId: null, sprintId: null, assigneeId: null };
+const EMPTY_FILTERS = { projectId: null, teamId: null, quarter: null, releaseId: null, sprintId: null };
 
 export default function App({ user, onSignOut }) {
   const perms = user?.permissions ?? [];

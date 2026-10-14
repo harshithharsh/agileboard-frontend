@@ -214,7 +214,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1
   .filters { flex-wrap: nowrap; }
   .filters .filters-grid {
     min-width: 0; gap: 10px;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.3fr) minmax(0, 1.7fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.3fr) minmax(0, 1.7fr) minmax(0, 1fr);
   }
 }
 .btn-clear { align-self: center; }
