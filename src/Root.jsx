@@ -11,12 +11,26 @@ export default function Root() {
   useEffect(() => {
     api.auth.me().then(({ user }) => setUser(user)).catch(() => setUser(null));
     const onExpired = () => {
-      setNotice('Your session has ended. Please sign in again.');
+      setNotice('You were signed out after a period of inactivity. Please sign in again.');
       setUser(null);
     };
     window.addEventListener('auth:required', onExpired);
     return () => window.removeEventListener('auth:required', onExpired);
   }, []);
+
+  // Coming back to the tab after a long break: check the session straight away, so the sign-in
+  // page shows now rather than on the next click
+  useEffect(() => {
+    if (!user) return undefined;
+    const onReturn = () => {
+      if (document.visibilityState !== 'visible') return;
+      api.auth.me().catch((e) => {
+        if (e.status === 401) window.dispatchEvent(new Event('auth:required'));
+      });
+    };
+    document.addEventListener('visibilitychange', onReturn);
+    return () => document.removeEventListener('visibilitychange', onReturn);
+  }, [user]);
 
   const signOut = async () => {
     await api.auth.logout().catch(() => {});
