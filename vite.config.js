@@ -7,7 +7,8 @@ const { version } = JSON.parse(readFileSync(new URL('./package.json', import.met
 
 export default defineConfig({
   plugins: [react()],
-  define: { __APP_VERSION__: JSON.stringify(version) },
+  // Version and build time, shown in the footer ('Last Updated On' = when this build was made)
+  define: { __APP_VERSION__: JSON.stringify(version), __BUILD_TIME__: JSON.stringify(new Date().toISOString()) },
   server: {
     port: 5173,
     proxy: { '/api': 'http://localhost:4000' },

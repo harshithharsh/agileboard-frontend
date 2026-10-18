@@ -613,4 +613,4 @@ a.issue-key:hover { text-decoration: underline; }
 .muted.small, .small { font-size: 12px; }
 .scope-table td .muted.small { margin-top: 2px; }
 
-.app-version { font-size: 11px; font-weight: 600; color: var(--muted); padding: 1px 8px; border: 1px solid var(--border); border-radius: 999px; font-variant-numeric: tabular-nums; }
+.app-version { color: var(--muted); font-variant-numeric: tabular-nums; }
