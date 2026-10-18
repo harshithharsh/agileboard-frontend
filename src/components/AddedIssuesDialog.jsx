@@ -24,7 +24,6 @@ export default function AddedIssuesDialog({ card, sprintName, jiraBaseUrl, onClo
   }
   const people = [...byPerson.values()].sort((a, b) => b.issues - a.issues || b.points - a.points);
   const most = people[0]?.issues || 1;
-  const doneCount = issues.filter((i) => i.done).length;
 
   const saveCsv = () => downloadCsv(
     [['Issue', 'Summary', 'Type', 'Story Points', 'Added On', 'Added By', 'Status'],
@@ -34,12 +33,7 @@ export default function AddedIssuesDialog({ card, sprintName, jiraBaseUrl, onClo
 
   return (
     <Modal title={`Scope Change · ${sprintName}`} width={960} onClose={onClose}
-      footer={(
-        <>
-          <span className="scope-foot-note">Sorted by when the issue was added · {doneCount} of {issues.length} done</span>
-          <button className="btn" onClick={saveCsv}><DownloadIcon /> Download CSV</button>
-        </>
-      )}>
+      footer={<button className="btn" onClick={saveCsv}><DownloadIcon /> Download CSV</button>}>
       <div className="scope-stats">
         <div className="scope-stat"><span>Issues Added</span><strong>{issues.length}</strong></div>
         <div className="scope-stat"><span>Story Points Added</span><strong>{card.addedPoints} <small>SP</small></strong></div>
