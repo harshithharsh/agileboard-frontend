@@ -653,7 +653,7 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 .scope-stat.warn { border-color: var(--warning); background: var(--warning-soft); }
 .scope-stat.warn strong { color: var(--warning-text); }
 .scope-section-title { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
-.scope-people { margin-bottom: 16px; }
+.scope-people { margin-bottom: 16px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
 .scope-people ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 6px 28px; }
 .scope-people li { display: grid; grid-template-columns: 150px minmax(60px, 1fr) 120px; align-items: center; gap: 10px; font-size: 13px; }
 .scope-person { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
