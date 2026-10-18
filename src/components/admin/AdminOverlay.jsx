@@ -75,13 +75,14 @@ function ThemeSwitch() {
   );
 }
 
-// Workspace-wide date and time format, with a live preview
+// Workspace-wide date and time format: a settings list with a live preview
 function DateTimeCard({ onSaved }) {
   const current = getDisplaySettings();
   const [f, setF] = useState(current);
   const [state, setState] = useState({ saving: false, error: null, saved: false });
   const changed = f.dateFormat !== current.dateFormat || f.timeFormat !== current.timeFormat;
   const now = new Date();
+  const pick = (patch) => { setF((s) => ({ ...s, ...patch })); setState((s) => ({ ...s, saved: false, error: null })); };
   const save = async () => {
     setState({ saving: true, error: null, saved: false });
     try {
@@ -93,33 +94,45 @@ function DateTimeCard({ onSaved }) {
     }
   };
   return (
-    <section className="admin-card admin-card-wide datetime-card">
-      <div className="admin-card-head">
-        <span className="admin-card-icon tone-blue"><ClockIcon /></span>
-        <div className="admin-card-titles">
-          <h2>Date and Time</h2>
-          <p>How dates and times appear across AgileMetrix, for everyone.</p>
-        </div>
-        <button className="btn-primary-solid" onClick={save} disabled={!changed || state.saving}>{state.saving ? 'Saving…' : 'Save'}</button>
+    <section className="admin-card settings-card">
+      <div className="settings-card-head">
+        <h2>Date and time</h2>
+        <p>Applies to everyone in the workspace.</p>
       </div>
-      <div className="datetime-body">
-        <Field label="Date format">
-          <select value={f.dateFormat} onChange={(e) => { setF((s) => ({ ...s, dateFormat: e.target.value })); setState((s) => ({ ...s, saved: false })); }}>
-            {DATE_FORMATS.map((o) => <option key={o.value} value={o.value}>{o.label}  ({o.value})</option>)}
-          </select>
-        </Field>
-        <Field label="Time format">
-          <select value={f.timeFormat} onChange={(e) => { setF((s) => ({ ...s, timeFormat: e.target.value })); setState((s) => ({ ...s, saved: false })); }}>
-            {TIME_FORMATS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </Field>
-        <div className="datetime-preview">
-          <span className="field-label">Preview</span>
-          <strong>{formatDate(now, { format: f.dateFormat })}, {formatTime(now, { format: f.timeFormat })}</strong>
-          <span className="muted small">{state.saved ? 'Saved. Everyone sees this format now.' : changed ? 'Not saved yet' : 'Current format'}</span>
+      <div className="pref-row">
+        <div className="pref-row-text">
+          <span className="pref-row-label">Date format</span>
+          <span className="pref-row-hint">How dates appear in filters, cards, charts and reports.</span>
+        </div>
+        <select value={f.dateFormat} onChange={(e) => pick({ dateFormat: e.target.value })} aria-label="Date format">
+          {DATE_FORMATS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </div>
+      <div className="pref-row">
+        <div className="pref-row-text">
+          <span className="pref-row-label">Time format</span>
+          <span className="pref-row-hint">12-hour clock with AM/PM, or 24-hour clock.</span>
+        </div>
+        <div className="segmented" role="radiogroup" aria-label="Time format">
+          {[['12h', '12-hour'], ['24h', '24-hour']].map(([value, label]) => (
+            <button key={value} role="radio" aria-checked={f.timeFormat === value}
+              className={`segment${f.timeFormat === value ? ' active' : ''}`} onClick={() => pick({ timeFormat: value })}>{label}</button>
+          ))}
         </div>
       </div>
-      {state.error && <p className="form-error">{state.error}</p>}
+      <div className="pref-row">
+        <div className="pref-row-text">
+          <span className="pref-row-label">Preview</span>
+          <span className="pref-row-hint">Right now, in the format above.</span>
+        </div>
+        <span className="pref-preview">{formatDate(now, { format: f.dateFormat })}, {formatTime(now, { format: f.timeFormat })}</span>
+      </div>
+      <div className="settings-card-foot">
+        {state.error && <span className="form-error">{state.error}</span>}
+        {!state.error && state.saved && <span className="settings-saved">Saved</span>}
+        {changed && <button className="btn" onClick={() => pick(current)} disabled={state.saving}>Cancel</button>}
+        <button className="btn-primary-solid" onClick={save} disabled={!changed || state.saving}>{state.saving ? 'Saving…' : 'Save changes'}</button>
+      </div>
     </section>
   );
 }
@@ -344,6 +357,14 @@ function FormButtons({ onCancel, onSave, saving, label = 'Save' }) {
 // ---------------------------------------------------------------------------
 
 export default function AdminOverlay({ onClose, onChanged, onDisplayChange }) {
+  // Which section is open; remembered in this browser
+  const [tab, setTab] = useState(() => {
+    try { return localStorage.getItem('agilemetrix-admin-tab') || 'users'; } catch { return 'users'; }
+  });
+  const chooseTab = (id) => {
+    setTab(id);
+    try { localStorage.setItem('agilemetrix-admin-tab', id); } catch { /* storage unavailable */ }
+  };
   const [data, setData] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [editing, setEditing] = useState(null); // { kind, item }
@@ -420,19 +441,30 @@ export default function AdminOverlay({ onClose, onChanged, onDisplayChange }) {
             <button className="icon-btn" onClick={onClose} title="Back to dashboard (Esc)" aria-label="Close settings"><ClearIcon /></button>
           </div>
         </div>
+        <nav className="admin-tabs" role="tablist" aria-label="Settings sections">
+          {[
+            ['general', 'General', <ClockIcon key="i" />, null],
+            ['users', 'Users', <UsersIcon key="i" />, data?.users.length],
+            ['roles', 'Roles', <ShieldIcon key="i" />, data?.roles.length],
+            ['projects', 'Projects', <BoxIcon key="i" />, data?.projects.length],
+          ].map(([id, label, icon, count]) => (
+            <button key={id} role="tab" aria-selected={tab === id} className={`admin-tab${tab === id ? ' active' : ''}`} onClick={() => chooseTab(id)}>
+              {icon}{label}{count !== undefined && count !== null && <span className="admin-tab-count">{count}</span>}
+            </button>
+          ))}
+        </nav>
       </header>
       <div className="admin-scroll">
       <main className="admin-main">
-
-
         {loadError && <div className="card error">Could not load admin data: {loadError}</div>}
         {!view && !loadError && <div className="card empty">Loading…</div>}
 
         {view && (
-          <div className="admin-grid">
-            <DateTimeCard onSaved={onDisplayChange} />
+          <div className="admin-section">
+            {tab === 'general' && <DateTimeCard onSaved={onDisplayChange} />}
 
-            <AdminCard icon={<UsersIcon />} tone="purple" title="Users & Role Assignment" subtitle="Add users and assign roles across projects."
+            {tab === 'users' && (
+            <AdminCard icon={<UsersIcon />} tone="purple" title="Users" subtitle="People who can sign in, their role and the projects they can see."
               addLabel="Add User" onAdd={() => openEdit('users')} count={view.users.length} wide>
               <table className="admin-table">
                 <thead><tr><th>Name</th><th>Email</th><th>Sign-in</th><th>Role</th><th>Projects</th><th>Status</th><th className="col-actions">Actions</th></tr></thead>
@@ -452,8 +484,10 @@ export default function AdminOverlay({ onClose, onChanged, onDisplayChange }) {
                 </tbody>
               </table>
             </AdminCard>
+            )}
 
-            <AdminCard icon={<ShieldIcon />} tone="green" title="Role Configuration" subtitle="Create and configure roles with appropriate permissions."
+            {tab === 'roles' && (
+            <AdminCard icon={<ShieldIcon />} tone="green" title="Roles" subtitle="What each role is allowed to do."
               addLabel="Add Role" onAdd={() => openEdit('roles')}>
               <table className="admin-table">
                 <thead><tr><th>Role Name</th><th>Description</th><th>Key Permissions</th><th className="num">Users</th><th className="col-actions">Actions</th></tr></thead>
@@ -471,8 +505,10 @@ export default function AdminOverlay({ onClose, onChanged, onDisplayChange }) {
                 </tbody>
               </table>
             </AdminCard>
+            )}
 
-            <AdminCard icon={<BoxIcon />} tone="orange" title="Project Configuration" subtitle="Add and manage projects. Assign teams and their Jira boards."
+            {tab === 'projects' && (
+            <AdminCard icon={<BoxIcon />} tone="orange" title="Projects" subtitle="Jira projects tracked in AgileMetrix, and the board behind each team."
               addLabel="Add Project" onAdd={() => openEdit('projects')}>
               <table className="admin-table">
                 <thead><tr><th>Project Name</th><th>Key</th><th>Teams (Jira board)</th><th className="num">Members</th><th>Status</th><th className="col-actions">Actions</th></tr></thead>
@@ -491,6 +527,7 @@ export default function AdminOverlay({ onClose, onChanged, onDisplayChange }) {
                 </tbody>
               </table>
             </AdminCard>
+            )}
           </div>
         )}
       </main>

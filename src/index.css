@@ -680,9 +680,32 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
   .scope-people li { grid-template-columns: 120px minmax(40px, 1fr) 110px; }
 }
 
-/* Workspace Settings: date and time format */
-.datetime-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px; align-items: end; }
-.datetime-preview { display: flex; flex-direction: column; gap: 4px; padding: 10px 14px; border: 1px dashed var(--border-strong); border-radius: 10px; }
-.datetime-preview strong { font-size: 15px; font-variant-numeric: tabular-nums; }
-.datetime-card .form-error { margin-top: 10px; }
-@media (max-width: 760px) { .datetime-body { grid-template-columns: 1fr; } }
+/* Workspace Settings: tabs and settings list */
+.admin-tabs { display: flex; gap: 4px; max-width: 1440px; margin: 0 auto; padding: 0 32px; overflow-x: auto; }
+.admin-tab { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.admin-tab svg { width: 16px; height: 16px; }
+.admin-tab:hover { color: var(--text); }
+.admin-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.admin-tab-count { font-size: 11px; font-weight: 600; padding: 0 7px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.admin-tab.active .admin-tab-count { background: var(--primary-soft); color: var(--primary); }
+.admin-header .admin-top { padding-bottom: 6px; }
+.admin-section { display: flex; flex-direction: column; gap: 20px; }
+.admin-section .admin-table-wrap { max-height: none; }
+.settings-card { max-width: 760px; padding: 0; }
+.settings-card-head { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
+.settings-card-head h2 { font-size: 16px; font-weight: 700; }
+.settings-card-head p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.pref-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.pref-row-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pref-row-label { font-size: 14px; font-weight: 600; }
+.pref-row-hint { font-size: 12px; color: var(--muted); }
+.pref-row select { width: 220px; flex-shrink: 0; padding: 8px 32px 8px 12px; font-size: 13px; border: 1px solid var(--border); border-radius: 8px; background-color: var(--surface); color: var(--text); }
+.pref-preview { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.settings-card-foot { display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 14px 20px; }
+.settings-saved { margin-right: auto; font-size: 13px; font-weight: 600; color: var(--success); }
+.settings-card-foot .form-error { margin: 0 auto 0 0; }
+@media (max-width: 640px) {
+  .admin-tabs { padding: 0 16px; }
+  .pref-row { flex-direction: column; align-items: stretch; gap: 10px; }
+  .pref-row select { width: 100%; }
+}
