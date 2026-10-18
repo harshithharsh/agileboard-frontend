@@ -1,10 +1,9 @@
-// Product footer, shared by the dashboard and Workspace Settings
-// Version from package.json and the build time, both set at build time:
-// 'AgileMetrix-1.0 - Last Updated On 18/10/2026 5:30:47 PM'
+// Product footer, shared by the dashboard and Workspace Settings.
+// Version comes from package.json and "Last updated" is when this build was made (both set at build time).
 const VERSION = __APP_VERSION__.replace(/\.0$/, '');
 const UPDATED = new Date(__BUILD_TIME__).toLocaleString('en-GB', {
-  day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true,
-}).replace(',', '').replace(/\b(am|pm)\b/, (m) => m.toUpperCase());
+  day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
+}).replace(/\b(am|pm)\b/, (m) => m.toUpperCase());
 
 export default function Footer() {
   return (
@@ -13,11 +12,13 @@ export default function Footer() {
         <img src="/logo-icon.svg" alt="" className="footer-icon logo-light" />
         <img src="/logo-icon-dark.svg" alt="" className="footer-icon logo-dark" />
         <span className="brand-wordmark footer-wordmark"><span className="brand-agile">Agile</span><span className="brand-metrix">Metrix</span></span>
+        <span className="footer-copy">© {new Date().getFullYear()} AgileMetrix. All rights reserved.</span>
       </div>
-      <div className="footer-meta">
-        <span>© {new Date().getFullYear()} AgileMetrix · Powered by <strong className="powered-by">Quadpact</strong></span>
-        <span className="app-version">AgileMetrix-{VERSION} - Last Updated On {UPDATED}</span>
-      </div>
+      <ul className="footer-meta">
+        <li>Version {VERSION}</li>
+        <li title={new Date(__BUILD_TIME__).toLocaleString('en-GB')}>Last updated {UPDATED}</li>
+        <li>Powered by{"\u00A0"}<strong className="powered-by">Quadpact</strong></li>
+      </ul>
     </footer>
   );
 }
