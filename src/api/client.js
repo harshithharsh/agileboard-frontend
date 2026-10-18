@@ -34,6 +34,10 @@ export const api = {
   },
 
   // Admin: kind = 'users' | 'roles' | 'projects'
+  sprints: {
+    // outcome: 'met' | 'partly_met' | 'not_met' | null (clear)
+    saveGoalOutcome: (sprintId, outcome, note) => send('PUT', `/sprints/${sprintId}/goal-outcome`, { outcome, note }),
+  },
   me: {
     preferences: () => request('/me/preferences'),
     savePreferences: (body) => send('PUT', '/me/preferences', body),

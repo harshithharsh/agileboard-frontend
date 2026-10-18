@@ -90,3 +90,9 @@ export const CalendarIcon = () => (
 export const TagIcon = () => (
   <svg {...base} width={14} height={14}><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z" /><circle cx="7.5" cy="7.5" r="1.5" /></svg>
 );
+export const CheckCircleIcon = () => (
+  <svg {...base}><circle cx="12" cy="12" r="9" /><path d="m8.5 12 2.5 2.5 4.5-5" /></svg>
+);
+export const XCircleIcon = () => (
+  <svg {...base}><circle cx="12" cy="12" r="9" /><path d="m9 9 6 6" /><path d="m15 9-6 6" /></svg>
+);

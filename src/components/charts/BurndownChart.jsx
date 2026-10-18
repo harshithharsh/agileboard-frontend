@@ -4,8 +4,8 @@ import { axisProps, gridProps, tooltipProps, legendProps } from './common.jsx';
 
 // Sprint dates are 'YYYY-MM-DD'; format without timezone shifts
 const parse = (iso) => new Date(`${iso}T00:00:00`);
-const tickDate = (iso) => parse(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-const fullDate = (iso) => parse(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+const tickDate = (iso) => parse(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }).replace('Sept', 'Sep');
+const fullDate = (iso) => parse(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).replace('Sept', 'Sep');
 
 export default function BurndownChart({ data }) {
   return (

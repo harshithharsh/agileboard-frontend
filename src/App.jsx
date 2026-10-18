@@ -159,7 +159,7 @@ export default function App({ user, onSignOut }) {
             onChange={setDraft} onReset={() => setDraft(DEFAULT_LAYOUT)} onCancel={cancelCustomize} onSave={saveLayout} />
         )}
 
-        {data && <WidgetGrid layout={editing ? draft : layout} widgets={buildWidgets(data)} editing={editing} onChange={setDraft} />}
+        {data && <WidgetGrid layout={editing ? draft : layout} widgets={buildWidgets(data, { canSync, reload: load })} editing={editing} onChange={setDraft} />}
       </main>
       <Footer />
       {adminOpen && canAdmin && (
@@ -181,7 +181,7 @@ export default function App({ user, onSignOut }) {
 }
 
 // The content of each dashboard widget (ids and default order in lib/layout.js)
-function buildWidgets(data) {
+function buildWidgets(data, { canSync, reload }) {
   // File name for chart downloads: agilemetrix-<team>-<chart>-<sprint>
   const file = (chart) => `agilemetrix-${slug(data.context.team.name)}-${chart}-${slug(data.context.sprint.name)}`;
   const n = data.delivery.length;
@@ -193,7 +193,7 @@ function buildWidgets(data) {
         <SummaryCards summary={data.summary} velocityBand={data.velocityBand} jiraBaseUrl={data.context.jiraBaseUrl} sprintName={data.context.sprint.name} />
       </Section>
     ),
-    'sprint-goal': <SprintGoal sprint={data.context.sprint} />,
+    'sprint-goal': <SprintGoal sprint={data.context.sprint} goal={data.sprintGoal} jiraBaseUrl={data.context.jiraBaseUrl} canEdit={canSync} onChanged={reload} />,
     committed: (
       <Card title="Committed vs. Completed Story Points" badge="Story Points"
         exportAs={{ file: file('committed-vs-completed'), rows: data.delivery, columns: [['sprint', 'Sprint'], ['committed', 'Committed SP'], ['completed', 'Completed SP']] }}>

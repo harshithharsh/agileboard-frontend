@@ -623,3 +623,24 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 @media (max-width: 640px) {
   .footer-copy { margin-left: 0; padding-left: 0; border-left: 0; width: 100%; }
 }
+
+/* Sprint goal outcome */
+.sg-unrecorded { color: var(--muted); border-style: dashed; }
+.sg-items { display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid var(--border); }
+.sg-items-title { font-size: 12px; font-weight: 600; color: var(--muted); }
+.sg-items ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 6px 24px; }
+.sg-items li { display: flex; align-items: baseline; gap: 6px; font-size: 13px; color: var(--muted); }
+.sg-items li svg { flex-shrink: 0; align-self: center; color: var(--danger); }
+.sg-items li.done svg { color: var(--success); }
+.sg-items li.done { color: var(--text); }
+.sg-items .issue-key { white-space: nowrap; }
+.sg-foot { display: flex; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); padding-top: 12px; border-top: 1px solid var(--border); }
+.goal-suggestion { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+.goal-suggestion strong { color: var(--text); }
+.goal-choice { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.goal-option { padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.goal-option:hover { border-color: var(--border-strong); }
+.goal-option.selected.goal-met { border-color: var(--success); background: var(--success-soft); color: var(--success); }
+.goal-option.selected.goal-partly_met { border-color: var(--warning); background: var(--warning-soft); color: var(--warning-text); }
+.goal-option.selected.goal-not_met { border-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
+.modal-foot .goal-clear { margin-right: auto; color: var(--danger); }
