@@ -679,3 +679,10 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
   .scope-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .scope-people li { grid-template-columns: 120px minmax(40px, 1fr) 110px; }
 }
+
+/* Workspace Settings: date and time format */
+.datetime-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px; align-items: end; }
+.datetime-preview { display: flex; flex-direction: column; gap: 4px; padding: 10px 14px; border: 1px dashed var(--border-strong); border-radius: 10px; }
+.datetime-preview strong { font-size: 15px; font-variant-numeric: tabular-nums; }
+.datetime-card .form-error { margin-top: 10px; }
+@media (max-width: 760px) { .datetime-body { grid-template-columns: 1fr; } }

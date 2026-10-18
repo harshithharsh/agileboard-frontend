@@ -3,15 +3,12 @@ import { STATUS_LABEL } from '../lib/format.js';
 import { useState } from 'react';
 import { TargetIcon, CalendarIcon, TagIcon, CheckCircleIcon, XCircleIcon, EditIcon } from './Icons.jsx';
 import IssueKey from './IssueKey.jsx';
+import { formatDate, formatDateRange } from '../lib/datetime.js';
 import GoalOutcomeDialog, { OUTCOME_LABEL } from './GoalOutcomeDialog.jsx';
 
-// Sprint dates are 'YYYY-MM-DD'; format without timezone shifts
-const date = (iso, withYear) => (iso
-  ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...(withYear && { year: 'numeric' }) }).replace('Sept', 'Sep')
-  : '');
 
 const OUTCOME_STATUS = { met: 'on_track', partly_met: 'attention', not_met: 'at_risk' };
-const dayTime = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }).replace('Sept', 'Sep');
+const dayTime = (iso) => formatDate(iso, { year: false });
 
 // The sprint goal as written in Jira (one objective per line), whether it was met, and the goal-tagged issues.
 // canEdit: may record the outcome (Edit permission); onChanged: reload after saving.
@@ -31,7 +28,7 @@ export default function SprintGoal({ sprint, goal, jiraBaseUrl, canEdit, onChang
           </div>
         </div>
         <div className="sg-meta">
-          <span className="sg-chip"><CalendarIcon /> {date(sprint.startDate)} – {date(sprint.endDate, true)}</span>
+          <span className="sg-chip"><CalendarIcon /> {formatDateRange(sprint.startDate, sprint.endDate, { year: true })}</span>
           {sprint.release && <span className="sg-chip"><TagIcon /> {sprint.release}</span>}
           {active && <StatusPill status="in_progress" label={STATUS_LABEL.in_progress} />}
           {!active && goal?.outcome && <StatusPill status={OUTCOME_STATUS[goal.outcome.value]} label={`Goal ${OUTCOME_LABEL[goal.outcome.value].toLowerCase()}`} />}

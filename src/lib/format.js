@@ -7,10 +7,8 @@ export const formatValue = (value, unit) => {
   return String(value);
 };
 
-export const formatDateTime = (iso) =>
-  new Date(iso)
-    .toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    .replace('Sept', 'Sep');
+// Dates and times follow the workspace format (see lib/datetime.js)
+export { formatDateTime } from './datetime.js';
 
 // Colours shared by charts (kept in sync with CSS tokens in index.css)
 export const COLORS = {

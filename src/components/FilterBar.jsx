@@ -1,17 +1,8 @@
 import { FilterIcon, ClearIcon } from './Icons.jsx';
 import { teamsFor, sprintsFor, quartersFor } from '../lib/filters.js';
+import { formatDateRange } from '../lib/datetime.js';
 
 
-const shortDate = (d) =>
-  new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }).replace('Sept', 'Sep');
-// '7 Oct' + '20 Oct' -> '7–20 Oct'; across months -> '29 Sep – 6 Oct'
-const formatRange = (start, end) => {
-  const [d1, m1] = shortDate(start).split(' ');
-  const [d2, m2] = shortDate(end).split(' ');
-  return m1 === m2 ? `${d1}–${d2} ${m2}` : `${d1} ${m1} – ${d2} ${m2}`;
-};
-
-// Options may carry a `group` (consecutive options with the same group share an <optgroup>)
 function Select({ label, value, onChange, options, placeholder }) {
   const groups = [];
   for (const o of options) {
@@ -42,7 +33,7 @@ export default function FilterBar({ options, filters, onChange, onClear, isDefau
     .sort((a, b) => (b.status === 'active') - (a.status === 'active'))
     .map((s) => ({
       value: s.id,
-      label: `${s.name} · ${formatRange(s.start_date, s.end_date)}`,
+      label: `${s.name} · ${formatDateRange(s.start_date, s.end_date)}`,
       group: s.status === 'active' ? 'Current sprint' : 'Completed sprints',
     }));
 

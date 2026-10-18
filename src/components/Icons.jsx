@@ -96,3 +96,6 @@ export const CheckCircleIcon = () => (
 export const XCircleIcon = () => (
   <svg {...base}><circle cx="12" cy="12" r="9" /><path d="m9 9 6 6" /><path d="m15 9-6 6" /></svg>
 );
+export const ClockIcon = () => (
+  <svg {...base} width={18} height={18}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+);

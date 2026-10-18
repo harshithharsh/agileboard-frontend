@@ -31,7 +31,7 @@ const keys = (list) => (list || []).map((d) => d.key).join(' ');
 
 const EMPTY_FILTERS = { projectId: null, teamId: null, quarter: null, releaseId: null, sprintId: null };
 
-export default function App({ user, onSignOut }) {
+export default function App({ user, onSignOut, onDisplayChange }) {
   const perms = user?.permissions ?? [];
   const canAdmin = perms.includes('admin');
   const canSync = canAdmin || perms.includes('edit');
@@ -164,6 +164,7 @@ export default function App({ user, onSignOut }) {
       <Footer />
       {adminOpen && canAdmin && (
         <AdminOverlay
+          onDisplayChange={onDisplayChange}
           onChanged={() => setAdminChanged(true)}
           onClose={() => {
             setAdminOpen(false);

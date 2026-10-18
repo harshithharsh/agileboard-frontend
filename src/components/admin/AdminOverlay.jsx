@@ -3,9 +3,10 @@ import { api } from '../../api/client.js';
 import Modal, { Field } from './Modal.jsx';
 import Footer from '../Footer.jsx';
 import { formatDateTime } from '../../lib/format.js';
+import { DATE_FORMATS, TIME_FORMATS, formatDate, formatTime, getDisplaySettings } from '../../lib/datetime.js';
 import { getThemeChoice, setThemeChoice } from '../../lib/theme.js';
 import {
-  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SunIcon, MoonIcon, MonitorIcon,
+  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SunIcon, MoonIcon, MonitorIcon, ClockIcon,
 } from '../Icons.jsx';
 
 const PERMISSION_LABELS = { view: 'View', create: 'Create', edit: 'Edit', delete: 'Delete', admin: 'Admin' };
@@ -71,6 +72,55 @@ function ThemeSwitch() {
         </button>
       ))}
     </div>
+  );
+}
+
+// Workspace-wide date and time format, with a live preview
+function DateTimeCard({ onSaved }) {
+  const current = getDisplaySettings();
+  const [f, setF] = useState(current);
+  const [state, setState] = useState({ saving: false, error: null, saved: false });
+  const changed = f.dateFormat !== current.dateFormat || f.timeFormat !== current.timeFormat;
+  const now = new Date();
+  const save = async () => {
+    setState({ saving: true, error: null, saved: false });
+    try {
+      const saved = await api.admin.saveSettings(f);
+      onSaved?.(saved);
+      setState({ saving: false, error: null, saved: true });
+    } catch (e) {
+      setState({ saving: false, error: e.message, saved: false });
+    }
+  };
+  return (
+    <section className="admin-card admin-card-wide datetime-card">
+      <div className="admin-card-head">
+        <span className="admin-card-icon tone-blue"><ClockIcon /></span>
+        <div className="admin-card-titles">
+          <h2>Date and Time</h2>
+          <p>How dates and times appear across AgileMetrix, for everyone.</p>
+        </div>
+        <button className="btn-primary-solid" onClick={save} disabled={!changed || state.saving}>{state.saving ? 'Saving…' : 'Save'}</button>
+      </div>
+      <div className="datetime-body">
+        <Field label="Date format">
+          <select value={f.dateFormat} onChange={(e) => { setF((s) => ({ ...s, dateFormat: e.target.value })); setState((s) => ({ ...s, saved: false })); }}>
+            {DATE_FORMATS.map((o) => <option key={o.value} value={o.value}>{o.label}  ({o.value})</option>)}
+          </select>
+        </Field>
+        <Field label="Time format">
+          <select value={f.timeFormat} onChange={(e) => { setF((s) => ({ ...s, timeFormat: e.target.value })); setState((s) => ({ ...s, saved: false })); }}>
+            {TIME_FORMATS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </Field>
+        <div className="datetime-preview">
+          <span className="field-label">Preview</span>
+          <strong>{formatDate(now, { format: f.dateFormat })}, {formatTime(now, { format: f.timeFormat })}</strong>
+          <span className="muted small">{state.saved ? 'Saved. Everyone sees this format now.' : changed ? 'Not saved yet' : 'Current format'}</span>
+        </div>
+      </div>
+      {state.error && <p className="form-error">{state.error}</p>}
+    </section>
   );
 }
 
@@ -293,7 +343,7 @@ function FormButtons({ onCancel, onSave, saving, label = 'Save' }) {
 // Overlay
 // ---------------------------------------------------------------------------
 
-export default function AdminOverlay({ onClose, onChanged }) {
+export default function AdminOverlay({ onClose, onChanged, onDisplayChange }) {
   const [data, setData] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [editing, setEditing] = useState(null); // { kind, item }
@@ -380,6 +430,7 @@ export default function AdminOverlay({ onClose, onChanged }) {
 
         {view && (
           <div className="admin-grid">
+            <DateTimeCard onSaved={onDisplayChange} />
 
             <AdminCard icon={<UsersIcon />} tone="purple" title="Users & Role Assignment" subtitle="Add users and assign roles across projects."
               addLabel="Add User" onAdd={() => openEdit('users')} count={view.users.length} wide>

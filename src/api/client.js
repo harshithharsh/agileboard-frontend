@@ -38,12 +38,15 @@ export const api = {
     // outcome: 'met' | 'partly_met' | 'not_met' | null (clear)
     saveGoalOutcome: (sprintId, outcome, note) => send('PUT', `/sprints/${sprintId}/goal-outcome`, { outcome, note }),
   },
+  // Workspace date and time format (everyone reads; admins change it in Workspace Settings)
+  settings: () => request('/settings'),
   me: {
     preferences: () => request('/me/preferences'),
     savePreferences: (body) => send('PUT', '/me/preferences', body),
   },
   admin: {
     load: () => request('/admin'),
+    saveSettings: (body) => send('PUT', '/admin/settings', body),
     create: (kind, body) => send('POST', `/admin/${kind}`, body),
     update: (kind, id, body) => send('PUT', `/admin/${kind}/${id}`, body),
     remove: (kind, id) => send('DELETE', `/admin/${kind}/${id}`),

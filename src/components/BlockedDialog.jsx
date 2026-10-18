@@ -1,7 +1,8 @@
 import Modal from './admin/Modal.jsx';
 import IssueKey from './IssueKey.jsx';
+import { formatDate } from '../lib/datetime.js';
 
-const when = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }).replace('Sept', 'Sep') : '—');
+const when = (iso) => formatDate(iso, { year: false });
 const STAGE_HINT = {
   Developer: 'In development, code review or sent back after a failed test',
   QA: 'Delivered to QA or under test',

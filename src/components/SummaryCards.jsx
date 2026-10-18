@@ -1,5 +1,6 @@
 import { TrendUp, TrendDown } from './Icons.jsx';
 import { formatValue } from '../lib/format.js';
+import { formatDateRange } from '../lib/datetime.js';
 import { useState } from 'react';
 import IssueKey from './IssueKey.jsx';
 import AddedIssuesDialog from './AddedIssuesDialog.jsx';
@@ -43,7 +44,7 @@ export default function SummaryCards({ summary, velocityBand, jiraBaseUrl, sprin
             </div>
             <div className="bar"><div className={barClass} style={{ width: `${width}%` }} /></div>
             <div className="metric-foot">
-              <span>{card.footLeft ?? (card.key !== 'velocity' ? `Target ${card.target}` : velocityBand ? `Target ${velocityBand.low}–${velocityBand.high} SP` : 'No history yet')}</span>
+              <span>{card.range ? formatDateRange(card.range.start, card.range.end) : card.footLeft ?? (card.key !== 'velocity' ? `Target ${card.target}` : velocityBand ? `Target ${velocityBand.low}–${velocityBand.high} SP` : 'No history yet')}</span>
               <span>{card.footRight ?? `Prior ${formatValue(card.prior, card.unit)}`}</span>
             </div>
             {card.addedIssues?.length > 0 && (

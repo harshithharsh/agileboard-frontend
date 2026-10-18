@@ -1,11 +1,11 @@
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { COLORS } from '../../lib/format.js';
+import { formatDate } from '../../lib/datetime.js';
 import { axisProps, gridProps, tooltipProps, legendProps } from './common.jsx';
 
-// Sprint dates are 'YYYY-MM-DD'; format without timezone shifts
-const parse = (iso) => new Date(`${iso}T00:00:00`);
-const tickDate = (iso) => parse(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }).replace('Sept', 'Sep');
-const fullDate = (iso) => parse(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).replace('Sept', 'Sep');
+// Axis and tooltip dates in the workspace date format
+const tickDate = (iso) => formatDate(iso, { year: false });
+const fullDate = (iso) => formatDate(iso, { year: false, weekday: true });
 
 export default function BurndownChart({ data }) {
   return (

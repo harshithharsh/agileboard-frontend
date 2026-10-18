@@ -2,10 +2,11 @@ import Modal from './admin/Modal.jsx';
 import IssueKey from './IssueKey.jsx';
 import { DownloadIcon } from './Icons.jsx';
 import { downloadCsv, slug } from '../lib/download.js';
+import { formatDate, formatTime } from '../lib/datetime.js';
 
 const TYPE = { story: 'Story', task: 'Task', bug: 'Bug', spike: 'Spike' };
-const dateOf = (iso) => new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).replace('Sept', 'Sep');
-const timeOf = (iso) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+const dateOf = (iso) => formatDate(iso, { year: false, weekday: true });
+const timeOf = (iso) => formatTime(iso);
 // Status pill colour: done, being worked on, or not started
 const statusTone = (i) => (i.done ? 'done' : /progress|review|qa|test|deliver|develop/i.test(i.status ?? '') ? 'active' : 'todo');
 
