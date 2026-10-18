@@ -3,7 +3,6 @@ import { api } from '../../api/client.js';
 import Modal, { Field } from './Modal.jsx';
 import Footer from '../Footer.jsx';
 import { formatDateTime } from '../../lib/format.js';
-import { initials, avatarColor } from '../../lib/avatar.js';
 import { getThemeChoice, setThemeChoice } from '../../lib/theme.js';
 import {
   ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SunIcon, MoonIcon, MonitorIcon,
@@ -19,6 +18,9 @@ function StatusBadge({ status }) {
   return <span className={`status ${status === 'active' ? 'status-on_track' : 'status-at_risk'}`}>{status === 'active' ? 'Active' : 'Inactive'}</span>;
 }
 
+const initials = (name = '') => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
+const AVATAR_COLORS = ['#1E3A8A', '#0f766e', '#7c3aed', '#b45309', '#be123c', '#0369a1'];
+const avatarColor = (name = '') => AVATAR_COLORS[[...name].reduce((n, c) => n + c.charCodeAt(0), 0) % AVATAR_COLORS.length];
 
 function RowActions({ onEdit, onDelete }) {
   return (

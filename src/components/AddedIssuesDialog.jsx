@@ -2,7 +2,6 @@ import Modal from './admin/Modal.jsx';
 import IssueKey from './IssueKey.jsx';
 import { DownloadIcon } from './Icons.jsx';
 import { downloadCsv, slug } from '../lib/download.js';
-import { initials, avatarColor } from '../lib/avatar.js';
 
 const TYPE = { story: 'Story', task: 'Task', bug: 'Bug', spike: 'Spike' };
 const dateOf = (iso) => new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).replace('Sept', 'Sep');
@@ -45,31 +44,15 @@ export default function AddedIssuesDialog({ card, sprintName, jiraBaseUrl, onClo
       </div>
 
       <div className="scope-people">
-        <div className="scope-people-head">
-          <span className="scope-section-title">Added By</span>
-          <span className="muted small">{people.length} {people.length === 1 ? 'person' : 'people'} · {issues.length} issues · {card.addedPoints} SP</span>
-        </div>
-        <div className="scope-people-row scope-people-labels" aria-hidden="true">
-          <span>Person</span><span>Share of Added Issues</span><span className="right">Issues</span><span className="right">SP</span>
-        </div>
+        <div className="scope-section-title">Added By</div>
         <ul>
-          {people.map((p) => {
-            const share = Math.round((p.issues / issues.length) * 100);
-            return (
-              <li key={p.name} className="scope-people-row">
-                <span className="scope-person">
-                  <span className="avatar avatar-sm" style={{ background: avatarColor(p.name) }} aria-hidden="true">{initials(p.name)}</span>
-                  <span className="scope-person-name" title={p.name}>{p.name}</span>
-                </span>
-                <span className="scope-share">
-                  <span className="scope-bar"><i style={{ width: `${(p.issues / most) * 100}%` }} /></span>
-                  <span className="scope-pct">{share}%</span>
-                </span>
-                <span className="right tabular">{p.issues}</span>
-                <span className="right tabular">{p.points}</span>
-              </li>
-            );
-          })}
+          {people.map((p) => (
+            <li key={p.name}>
+              <span className="scope-person">{p.name}</span>
+              <span className="scope-bar"><i style={{ width: `${(p.issues / most) * 100}%` }} /></span>
+              <span className="scope-count">{p.issues} {p.issues === 1 ? 'issue' : 'issues'} · {p.points} SP</span>
+            </li>
+          ))}
         </ul>
       </div>
 
