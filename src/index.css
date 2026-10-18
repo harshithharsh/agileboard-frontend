@@ -150,7 +150,7 @@ button, select { font: inherit; color: inherit; }
 .btn:disabled { opacity: 0.5; cursor: default; }
 
 /* ---------- layout ---------- */
-main { max-width: 1440px; margin: 0 auto; padding: 24px 32px 48px; display: flex; flex-direction: column; gap: 28px; transition: opacity .2s; }
+main { max-width: 1440px; margin: 0 auto; padding: 24px 32px 32px; display: flex; flex-direction: column; gap: 28px; transition: opacity .2s; }
 main.is-loading { opacity: 0.6; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
 .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
@@ -329,13 +329,13 @@ a.issue-key:hover { text-decoration: underline; }
 .compliance-label { display: flex; justify-content: space-between; font-size: 13px; }
 
 .footer {
-  max-width: 1440px; margin: 0 auto; padding: 20px 32px 32px;
-  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
-  font-size: 12px; color: var(--muted); border-top: 1px solid var(--border);
+  max-width: 1440px; margin: 0 auto; padding: 10px 32px 12px;
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px 12px;
+  font-size: 11px; color: var(--muted); border-top: 1px solid var(--border);
 }
 .footer-brand { display: flex; align-items: center; gap: 8px; }
-.footer-icon { height: 22px; width: auto; display: block; }
-.footer-wordmark { font-size: 15px; }
+.footer-icon { height: 16px; width: auto; display: block; }
+.footer-wordmark { font-size: 12px; }
 .footer-meta { display: flex; flex-wrap: wrap; gap: 6px 20px; justify-content: flex-end; }
 .powered-by { color: var(--text); font-weight: 600; }
 
@@ -619,7 +619,7 @@ a.issue-key:hover { text-decoration: underline; }
 .footer-copy { margin-left: 8px; padding-left: 12px; border-left: 1px solid var(--border); }
 ul.footer-meta { list-style: none; margin: 0; padding: 0; gap: 6px 0; align-items: center; }
 ul.footer-meta li { display: inline-flex; align-items: center; font-variant-numeric: tabular-nums; }
-ul.footer-meta li + li::before { content: ''; width: 1px; height: 12px; margin: 0 12px; background: var(--border-strong); }
+ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 0 10px; background: var(--border-strong); }
 @media (max-width: 640px) {
   .footer-copy { margin-left: 0; padding-left: 0; border-left: 0; width: 100%; }
 }
