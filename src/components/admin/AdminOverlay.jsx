@@ -151,7 +151,7 @@ const TIME_ZONES = (() => {
   try { return Intl.supportedValuesOf('timeZone'); } catch { return ['Asia/Kolkata', 'UTC', 'Europe/London', 'America/New_York', 'Asia/Singapore', 'Asia/Dubai']; }
 })();
 
-// Nightly Jira sync and who gets an email about it
+// Scheduled Jira sync and who gets an email about it
 function AutomationCard() {
   const [saved, setSaved] = useState(null); // what the server has
   const [f, setF] = useState(null); // what is being edited
@@ -164,7 +164,7 @@ function AutomationCard() {
   useEffect(() => {
     api.admin.automation().then(fromServer).catch((e) => setState((s) => ({ ...s, error: e.message })));
   }, []);
-  if (!f) return <section className="admin-card settings-card"><div className="settings-card-head"><h2>Nightly Jira sync</h2><p>{state.error ?? 'Loading…'}</p></div></section>;
+  if (!f) return <section className="admin-card settings-card"><div className="settings-card-head"><h2>Scheduled Jira sync</h2><p>{state.error ?? 'Loading…'}</p></div></section>;
 
   const recipients = f.recipients.split(/[,;\s]+/).map((r) => r.trim()).filter(Boolean);
   const body = { schedule: { enabled: f.enabled, time: f.time, timeZone: f.timeZone }, notifications: { onSuccess: f.onSuccess, onFailure: f.onFailure, recipients } };
@@ -195,7 +195,7 @@ function AutomationCard() {
   return (
     <section className="admin-card settings-card">
       <div className="settings-card-head">
-        <h2>Nightly Jira sync</h2>
+        <h2>Scheduled Jira sync</h2>
         <p>Pull the latest data from Jira automatically every day, and email people about it.</p>
       </div>
 
@@ -221,7 +221,7 @@ function AutomationCard() {
       {last && (
         <div className="pref-row">
           <div className="pref-row-text">
-            <span className="pref-row-label">Last nightly sync</span>
+            <span className="pref-row-label">Last scheduled sync</span>
             <span className="pref-row-hint">{last.lastMessage}{last.lastEmailed ? ' · email sent' : last.lastEmailError ? ` · email failed: ${last.lastEmailError}` : ''}</span>
           </div>
           <span className={`status ${last.lastStatus === 'success' ? 'status-on_track' : 'status-at_risk'}`}>
@@ -233,15 +233,15 @@ function AutomationCard() {
       <div className="settings-subhead">Email</div>
       <div className="pref-row">
         <div className="pref-row-text">
-          <span className="pref-row-label">Email when the nightly sync succeeds</span>
+          <span className="pref-row-label">Email when the scheduled sync succeeds</span>
         </div>
-        <Switch checked={f.onSuccess} onChange={(v) => set({ onSuccess: v })} label="Email when the nightly sync succeeds" />
+        <Switch checked={f.onSuccess} onChange={(v) => set({ onSuccess: v })} label="Email when the scheduled sync succeeds" />
       </div>
       <div className="pref-row">
         <div className="pref-row-text">
           <span className="pref-row-label">Email when it fails</span>
         </div>
-        <Switch checked={f.onFailure} onChange={(v) => set({ onFailure: v })} label="Email when the nightly sync fails" />
+        <Switch checked={f.onFailure} onChange={(v) => set({ onFailure: v })} label="Email when the scheduled sync fails" />
       </div>
       <div className="pref-row">
         <div className="pref-row-text">
