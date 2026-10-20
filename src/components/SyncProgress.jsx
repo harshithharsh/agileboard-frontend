@@ -49,10 +49,7 @@ export default function SyncProgress({ progress, done, onClose }) {
           role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={phase === 'syncing' ? percent : undefined}>
           <i style={phase === 'syncing' ? { width: `${percent}%` } : undefined} />
         </div>
-        <div className="sync-line">
-          <span>{step}</span>
-          <span className="sync-hint">You can keep working; the dashboard reloads when it's done.</span>
-        </div>
+        <span>{step}</span>
       </div>
     </div>
   );
