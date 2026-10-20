@@ -137,6 +137,140 @@ function DateTimeCard({ onSaved }) {
   );
 }
 
+// On/off switch for a settings row
+function Switch({ checked, onChange, label }) {
+  return (
+    <button type="button" role="switch" aria-checked={checked} aria-label={label}
+      className={`switch${checked ? ' on' : ''}`} onClick={() => onChange(!checked)}>
+      <i />
+    </button>
+  );
+}
+
+const TIME_ZONES = (() => {
+  try { return Intl.supportedValuesOf('timeZone'); } catch { return ['Asia/Kolkata', 'UTC', 'Europe/London', 'America/New_York', 'Asia/Singapore', 'Asia/Dubai']; }
+})();
+
+// Nightly Jira sync and who gets an email about it
+function AutomationCard() {
+  const [saved, setSaved] = useState(null); // what the server has
+  const [f, setF] = useState(null); // what is being edited
+  const [state, setState] = useState({ saving: false, error: null, message: null });
+
+  const fromServer = (a) => {
+    setSaved(a);
+    setF({ ...a.schedule, onSuccess: a.notifications.onSuccess, onFailure: a.notifications.onFailure, recipients: a.notifications.recipients.join(', ') });
+  };
+  useEffect(() => {
+    api.admin.automation().then(fromServer).catch((e) => setState((s) => ({ ...s, error: e.message })));
+  }, []);
+  if (!f) return <section className="admin-card settings-card"><div className="settings-card-head"><h2>Nightly Jira sync</h2><p>{state.error ?? 'Loading…'}</p></div></section>;
+
+  const recipients = f.recipients.split(/[,;\s]+/).map((r) => r.trim()).filter(Boolean);
+  const body = { schedule: { enabled: f.enabled, time: f.time, timeZone: f.timeZone }, notifications: { onSuccess: f.onSuccess, onFailure: f.onFailure, recipients } };
+  const current = { schedule: saved.schedule, notifications: saved.notifications };
+  const changed = JSON.stringify(body) !== JSON.stringify(current);
+  const set = (patch) => { setF((s) => ({ ...s, ...patch })); setState((s) => ({ ...s, error: null, message: null })); };
+
+  const save = async () => {
+    setState({ saving: true, error: null, message: null });
+    try {
+      fromServer(await api.admin.saveAutomation(body));
+      setState({ saving: false, error: null, message: 'Saved' });
+    } catch (e) {
+      setState({ saving: false, error: e.message, message: null });
+    }
+  };
+  const test = async () => {
+    setState({ saving: true, error: null, message: null });
+    try {
+      const r = await api.admin.testEmail();
+      setState({ saving: false, error: null, message: `Test email sent to ${r.sent} recipient${r.sent === 1 ? '' : 's'}` });
+    } catch (e) {
+      setState({ saving: false, error: e.message, message: null });
+    }
+  };
+  const last = saved.lastRun;
+
+  return (
+    <section className="admin-card settings-card">
+      <div className="settings-card-head">
+        <h2>Nightly Jira sync</h2>
+        <p>Pull the latest data from Jira automatically every day, and email people about it.</p>
+      </div>
+
+      <div className="pref-row">
+        <div className="pref-row-text">
+          <span className="pref-row-label">Run a sync every day</span>
+          <span className="pref-row-hint">{saved.schedule.enabled && saved.nextRun ? `Next run: ${formatDateTime(saved.nextRun)}` : 'Off: data updates only when someone clicks Refresh.'}</span>
+        </div>
+        <Switch checked={f.enabled} onChange={(v) => set({ enabled: v })} label="Run a sync every day" />
+      </div>
+      <div className={`pref-row${f.enabled ? '' : ' pref-disabled'}`}>
+        <div className="pref-row-text">
+          <span className="pref-row-label">Time</span>
+          <span className="pref-row-hint">When the daily sync starts.</span>
+        </div>
+        <div className="pref-inline">
+          <input type="time" value={f.time} onChange={(e) => set({ time: e.target.value })} disabled={!f.enabled} aria-label="Sync time" />
+          <select value={f.timeZone} onChange={(e) => set({ timeZone: e.target.value })} disabled={!f.enabled} aria-label="Time zone">
+            {(TIME_ZONES.includes(f.timeZone) ? TIME_ZONES : [f.timeZone, ...TIME_ZONES]).map((z) => <option key={z} value={z}>{z.replace(/_/g, ' ')}</option>)}
+          </select>
+        </div>
+      </div>
+      {last && (
+        <div className="pref-row">
+          <div className="pref-row-text">
+            <span className="pref-row-label">Last nightly sync</span>
+            <span className="pref-row-hint">{last.lastMessage}{last.lastEmailed ? ' · email sent' : last.lastEmailError ? ` · email failed: ${last.lastEmailError}` : ''}</span>
+          </div>
+          <span className={`status ${last.lastStatus === 'success' ? 'status-on_track' : 'status-at_risk'}`}>
+            <i />{last.lastStatus === 'success' ? 'Succeeded' : 'Failed'} · {formatDateTime(last.lastFinishedAt)}
+          </span>
+        </div>
+      )}
+
+      <div className="settings-subhead">Email</div>
+      <div className="pref-row">
+        <div className="pref-row-text">
+          <span className="pref-row-label">Email when the nightly sync succeeds</span>
+        </div>
+        <Switch checked={f.onSuccess} onChange={(v) => set({ onSuccess: v })} label="Email when the nightly sync succeeds" />
+      </div>
+      <div className="pref-row">
+        <div className="pref-row-text">
+          <span className="pref-row-label">Email when it fails</span>
+        </div>
+        <Switch checked={f.onFailure} onChange={(v) => set({ onFailure: v })} label="Email when the nightly sync fails" />
+      </div>
+      <div className="pref-row">
+        <div className="pref-row-text">
+          <span className="pref-row-label">Recipients</span>
+          <span className="pref-row-hint">Separate several addresses with commas.</span>
+        </div>
+        <input className="pref-wide" type="text" value={f.recipients} onChange={(e) => set({ recipients: e.target.value })}
+          placeholder="name@company.com" aria-label="Email recipients" />
+      </div>
+      <div className="pref-row">
+        <div className="pref-row-text">
+          <span className="pref-row-label">Email server</span>
+          <span className="pref-row-hint">{saved.email.configured ? `Sending through ${saved.email.host} as ${saved.email.from}.` : 'Not set up: add the SMTP settings to the backend .env, then restart it.'}</span>
+        </div>
+        <span className={`status ${saved.email.configured ? 'status-on_track' : 'status-attention'}`}><i />{saved.email.configured ? 'Ready' : 'Not set up'}</span>
+      </div>
+
+      <div className="settings-card-foot">
+        {state.error && <span className="form-error">{state.error}</span>}
+        {!state.error && state.message && <span className="settings-saved">{state.message}</span>}
+        <button className="btn" onClick={test} disabled={state.saving || changed || !saved.email.configured || !saved.notifications.recipients.length}
+          title={changed ? 'Save your changes first' : !saved.email.configured ? 'Email is not set up on the server' : 'Send a test email to the recipients'}>Send test email</button>
+        {changed && <button className="btn" onClick={() => fromServer(saved)} disabled={state.saving}>Cancel</button>}
+        <button className="btn-primary-solid" onClick={save} disabled={!changed || state.saving}>{state.saving ? 'Saving…' : 'Save changes'}</button>
+      </div>
+    </section>
+  );
+}
+
 const Empty = ({ cols, text }) => (
   <tr><td colSpan={cols} className="admin-empty">{text}</td></tr>
 );
@@ -462,6 +596,7 @@ export default function AdminOverlay({ onClose, onChanged, onDisplayChange }) {
         {view && (
           <div className="admin-section">
             {tab === 'general' && <DateTimeCard onSaved={onDisplayChange} />}
+            {tab === 'general' && <AutomationCard />}
 
             {tab === 'users' && (
             <AdminCard icon={<UsersIcon />} tone="purple" title="Users" subtitle="People who can sign in, their role and the projects they can see."

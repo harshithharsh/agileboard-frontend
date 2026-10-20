@@ -47,6 +47,9 @@ export const api = {
   admin: {
     load: () => request('/admin'),
     saveSettings: (body) => send('PUT', '/admin/settings', body),
+    automation: () => request('/admin/automation'),
+    saveAutomation: (body) => send('PUT', '/admin/automation', body),
+    testEmail: () => send('POST', '/admin/automation/test-email'),
     create: (kind, body) => send('POST', `/admin/${kind}`, body),
     update: (kind, id, body) => send('PUT', `/admin/${kind}/${id}`, body),
     remove: (kind, id) => send('DELETE', `/admin/${kind}/${id}`),
