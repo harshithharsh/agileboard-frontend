@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api/client.js';
 import { exportDashboardCsv } from './lib/exportCsv.js';
 import { STATUS_LABEL } from './lib/format.js';
@@ -21,6 +21,7 @@ import CycleTimeChart from './components/charts/CycleTimeChart.jsx';
 import AdminOverlay from './components/admin/AdminOverlay.jsx';
 import IssueTypesTable from './components/IssueTypesTable.jsx';
 import WidgetGrid from './components/WidgetGrid.jsx';
+import SyncProgress from './components/SyncProgress.jsx';
 import SprintGoal from './components/SprintGoal.jsx';
 import { LayoutIcon, PlusIcon, ResetIcon } from './components/Icons.jsx';
 import { DEFAULT_LAYOUT, normalizeLayout, sameLayout, updateWidget, widgetTitle } from './lib/layout.js';
@@ -104,21 +105,36 @@ export default function App({ user, onSignOut, onDisplayChange }) {
 
   useEffect(load, [load]);
 
-  // Refresh = pull the latest sprints and issues from Jira, then reload the view
-  const refresh = async () => {
+  // Jira sync. Only one runs at a time on the server: Refresh starts it (or joins one already running,
+  // e.g. started by a colleague), then we follow its progress every 2 s until it ends.
+  const [syncProgress, setSyncProgress] = useState(null); // { phase, sprintsDone, sprintsTotal, current, percent, startedAt }
+  const [syncDone, setSyncDone] = useState(null); // { sprints, seconds } briefly after a successful sync
+  const following = useRef(false);
+
+  const follow = useCallback(async (first) => {
+    if (following.current) return;
+    following.current = true;
     setSyncing(true);
     setSyncError(null);
+    setSyncDone(null);
+    if (first?.progress) setSyncProgress(first.progress);
+    const deadline = Date.now() + 30 * 60 * 1000;
+    let last = first?.progress ?? null;
     try {
-      await api.syncFromJira();
-      // The sync runs on the server; check every 3 s until it has finished (up to 15 minutes)
-      const deadline = Date.now() + 15 * 60 * 1000;
       for (;;) {
-        await new Promise((r) => setTimeout(r, 3000));
+        await new Promise((r) => setTimeout(r, 2000));
         const status = await api.syncStatus();
         if (!status.running) {
-          if (status.latest?.status === 'failed') setSyncError(status.latest.message || 'The sync failed');
+          if (status.latest?.status === 'failed') {
+            setSyncError(status.latest.message || 'The sync failed');
+          } else if (status.latest?.status === 'success') {
+            const started = new Date(status.latest.started_at), finished = new Date(status.latest.finished_at);
+            setSyncDone({ sprints: last?.sprintsTotal ?? null, seconds: Math.round((finished - started) / 1000) });
+          }
           break;
         }
+        last = status.progress ?? last;
+        setSyncProgress(status.progress);
         if (Date.now() > deadline) {
           setSyncError('The sync is taking unusually long. It continues on the server; refresh the page later');
           break;
@@ -127,10 +143,34 @@ export default function App({ user, onSignOut, onDisplayChange }) {
     } catch (e) {
       setSyncError(e.message);
     } finally {
+      following.current = false;
       setSyncing(false);
+      setSyncProgress(null);
     }
     await loadFilters();
     load();
+  }, [loadFilters, load]);
+
+  // Opening the dashboard while a sync is already running: show its progress too
+  useEffect(() => {
+    api.syncStatus().then((status) => { if (status.running) follow(status); }).catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Hide the "completed" message after a few seconds
+  useEffect(() => {
+    if (!syncDone) return undefined;
+    const t = setTimeout(() => setSyncDone(null), 8000);
+    return () => clearTimeout(t);
+  }, [syncDone]);
+
+  const refresh = async () => {
+    if (following.current) return; // already following a sync: never send a second request
+    try {
+      const started = await api.syncFromJira();
+      follow(started);
+    } catch (e) {
+      setSyncError(e.message);
+    }
   };
 
   const updateFilters = (patch) => setFilters((f) => resolveFilters({ ...f, ...patch }, options));
@@ -143,6 +183,8 @@ export default function App({ user, onSignOut, onDisplayChange }) {
       <Header context={data?.context} loading={loading || syncing} syncing={syncing} onRefresh={refresh} onExport={() => data && exportDashboardCsv(data)} onOpenAdmin={canAdmin ? () => setAdminOpen(true) : null} onCustomize={data && !editing ? startCustomize : null} customizing={editing} canSync={canSync} user={user} onSignOut={onSignOut} />
       <main className={loading ? 'is-loading' : ''}>
         {options && <FilterBar options={options} filters={filters} onChange={updateFilters} onClear={clearFilters} isDefault={isDefault} />}
+        {(syncProgress || (syncing && !syncError)) && <SyncProgress progress={syncProgress} />}
+        {syncDone && !syncing && <SyncProgress done={syncDone} onClose={() => setSyncDone(null)} />}
         {syncError && <div className="card warning">Could not sync from Jira: {syncError}. Showing the last synced data.</div>}
         {error && (
           <div className={`card ${/no sprints/i.test(error) ? 'empty' : 'error'}`}>
