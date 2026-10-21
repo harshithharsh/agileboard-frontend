@@ -987,3 +987,22 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 .integration-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
 .integration-grid .settings-card { max-width: none; }
 @media (max-width: 1100px) { .integration-grid { grid-template-columns: 1fr; } .integration-grid .settings-card { max-width: 760px; } }
+
+/* Settings → Integrations → Redmine import */
+.settings-card-wide { max-width: none; }
+.settings-card-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.settings-card .table-scroll { overflow-x: auto; }
+.settings-card .admin-table th:first-child, .settings-card .admin-table td:first-child { padding-left: 20px; }
+.settings-card .admin-table th:last-child, .settings-card .admin-table td:last-child { padding-right: 20px; }
+.settings-card .admin-table .cell-sub { display: block; }
+.links-table select, .people-table select { font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); min-width: 220px; max-width: 100%; }
+.links-table .form-error { display: block; margin: 4px 0 0; }
+.check-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; }
+.match-cell { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.row-muted td { opacity: .6; }
+.empty-cell { text-align: center; padding: 20px !important; }
+.card-error { margin: 12px 20px 0; }
+.form-note-warn { background: var(--warning-soft); }
+.status-paused { color: var(--muted); background: var(--surface-2); }
+.integration-sync + .table-scroll, .integration-sync + .form-error + .table-scroll { margin-top: 14px; }
+@media (max-width: 760px) { .settings-card-head-row { flex-direction: column; } }

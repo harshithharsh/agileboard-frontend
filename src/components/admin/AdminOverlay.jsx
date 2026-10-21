@@ -3,7 +3,7 @@ import { api } from '../../api/client.js';
 import Modal, { Field } from './Modal.jsx';
 import Footer from '../Footer.jsx';
 import SyncProgress from '../SyncProgress.jsx';
-import { RedmineSettings } from '../../resources/pages/Integration.jsx';
+import RedmineImport from './RedmineImport.jsx';
 import { formatDateTime } from '../../lib/format.js';
 import { DATE_FORMATS, TIME_FORMATS, formatDate, formatTime, getDisplaySettings } from '../../lib/datetime.js';
 import { getThemeChoice, setThemeChoice } from '../../lib/theme.js';
@@ -419,7 +419,7 @@ function JiraIntegration({ info, onSynced }) {
   );
 }
 
-function RedmineIntegration({ info, user }) {
+function RedmineIntegration({ info, users, onChanged }) {
   return (
     <>
       <ConnectionCard name="redmine" title="Redmine connection" info={info}
@@ -432,13 +432,12 @@ function RedmineIntegration({ info, user }) {
             <Row label="API key"><Status ok={info.keySet}>{info.keySet ? 'Set' : 'Not set'}</Status></Row>
           </>
         )} />
-      <div className="settings-subhead-plain">Import setup <span className="rm-pill warn">Demo</span></div>
-      <RedmineSettings user={user} />
+      <RedmineImport configured={info.configured} users={users} onChanged={onChanged} />
     </>
   );
 }
 
-function IntegrationsTab({ user, sub, setSub, onChanged }) {
+function IntegrationsTab({ users, sub, setSub, onChanged }) {
   const [info, setInfo] = useState(null);
   const [error, setError] = useState(null);
   const loadInfo = useCallback(() => api.admin.integrations().then(setInfo).catch((e) => setError(e.message)), []);
@@ -454,7 +453,7 @@ function IntegrationsTab({ user, sub, setSub, onChanged }) {
       {error && <div className="card error">Could not load integrations: {error}</div>}
       {!info && !error && <div className="card empty">Loading…</div>}
       {info && sub === 'jira' && <JiraIntegration info={info.jira} onSynced={onSynced} />}
-      {info && sub === 'redmine' && <RedmineIntegration info={info.redmine} user={user} />}
+      {info && sub === 'redmine' && <RedmineIntegration info={info.redmine} users={users} onChanged={onChanged} />}
       {sub === 'email' && <EmailCard />}
     </>
   );
@@ -879,7 +878,7 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
         {view && (
           <div className="admin-section">
             {tab === 'general' && <DateTimeCard onSaved={onDisplayChange} />}
-            {tab === 'integrations' && <IntegrationsTab user={user} sub={integration} setSub={chooseIntegration} onChanged={onChanged} />}
+            {tab === 'integrations' && <IntegrationsTab users={data.users} sub={integration} setSub={chooseIntegration} onChanged={onChanged} />}
 
             {tab === 'users' && (
             <AdminCard icon={<UsersIcon />} tone="purple" title="Users" subtitle="People who can sign in, their role and the projects they can see."
