@@ -150,6 +150,8 @@ main.is-loading { opacity: 0.6; }
 .btn-mini svg { width: 12px; height: 12px; }
 .btn-mini:hover:not(:disabled) { color: var(--primary); border-color: var(--primary); }
 .btn-mini:disabled { opacity: 0.5; cursor: default; }
+.btn-mini-primary { background: var(--btn-primary); border-color: var(--btn-primary); color: #fff; font-weight: 600; }
+.btn-mini-primary:hover:not(:disabled) { background: var(--btn-primary-hover); border-color: var(--btn-primary-hover); color: #fff; }
 .badge { font-size: 12px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
 .badge:has(.status) { background: none; border: none; padding: 0; }
 .muted { color: var(--muted); }

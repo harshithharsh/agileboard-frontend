@@ -34,7 +34,7 @@ export default function SprintGoal({ sprint, goal, jiraBaseUrl, canEdit, onChang
           {!active && goal?.outcome && <StatusPill status={OUTCOME_STATUS[goal.outcome.value]} label={`Goal ${OUTCOME_LABEL[goal.outcome.value].toLowerCase()}`} />}
           {!active && !goal?.outcome && <span className="sg-chip sg-unrecorded">Outcome not recorded</span>}
           {!active && canEdit && goal && (
-            <button className="btn-mini" onClick={() => setRecording(true)}>
+            <button className={`btn-mini${goal.outcome ? '' : ' btn-mini-primary'}`} onClick={() => setRecording(true)}>
               <EditIcon /> {goal.outcome ? 'Change' : 'Record outcome'}
             </button>
           )}
