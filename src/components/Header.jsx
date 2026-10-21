@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { RefreshIcon, DownloadIcon, ChartIcon, SettingsIcon, JiraMark, ChevronDownIcon, SignOutIcon, LayoutIcon } from './Icons.jsx';
+import { RefreshIcon, DownloadIcon, SettingsIcon, JiraMark, ChevronDownIcon, SignOutIcon, LayoutIcon, MenuIcon } from './Icons.jsx';
 import { formatDateTime } from '../lib/format.js';
 
 // Jira connection state, from the last sync runs
@@ -87,56 +87,62 @@ function UserMenu({ user, onSignOut }) {
   );
 }
 
-export default function Header({ context, onRefresh, onExport, onOpenAdmin, loading, syncing, canSync = true, user, onSignOut, onCustomize, customizing }) {
-  const [jiraOpen, setJiraOpen] = useState(false);
-  const status = jiraStatus(context?.sync, syncing);
-  const lastSync = context?.sync?.lastSuccessAt;
-
+// Top bar of every page: page title on the left (with the menu button on small screens);
+// the page's own buttons, Settings and the account menu on the right. The brand lives in the sidebar.
+export default function Header({ title, icon, onMenu, actions, onOpenAdmin, user, onSignOut }) {
   return (
     <header className="header">
       <div className="header-brand">
-        <a className="brand" href="/" aria-label="AgileMetrix home">
-          <img className="brand-icon logo-light" src="/logo-icon.svg" alt="" />
-          <img className="brand-icon logo-dark" src="/logo-icon-dark.svg" alt="" />
-          <span className="brand-wordmark"><span className="brand-agile">Agile</span><span className="brand-metrix">Metrix</span></span>
-        </a>
-        <span className="brand-divider" aria-hidden="true" />
-        <h1 className="page-title"><ChartIcon /> Sprint Analytics</h1>
+        {onMenu && (
+          <button className="icon-btn header-menu" onClick={onMenu} aria-label="Open navigation"><MenuIcon /></button>
+        )}
+        <h1 className="page-title">{icon}{title}</h1>
       </div>
-
       <div className="header-actions">
-        <div className="settings-wrap">
-          <button
-            className={`jira-status jira-${status.key}`}
-            onClick={() => setJiraOpen((o) => !o)}
-            aria-expanded={jiraOpen}
-            title={lastSync ? `Last synced from Jira: ${formatDateTime(lastSync)}. Click for details.` : 'Not synced from Jira yet'}
-          >
-            <JiraMark />
-            <span className="jira-label">{status.label}</span>
-            <i className="jira-dot" />
-          </button>
-          {jiraOpen && <SettingsPanel context={context} onClose={() => setJiraOpen(false)} />}
-        </div>
-        <span className="actions-divider" aria-hidden="true" />
-        <button className="icon-btn" onClick={onRefresh} disabled={loading || !canSync}
-          title={canSync ? 'Refresh: pull the latest data from Jira' : 'Your role can’t refresh from Jira (needs Edit permission)'} aria-label="Refresh">
-          <span className={syncing ? 'spin' : ''}><RefreshIcon /></span>
-        </button>
-        <button className={`icon-btn${customizing ? ' is-active' : ''}`} onClick={onCustomize ?? undefined} disabled={!onCustomize}
-          title={customizing ? 'Customizing the dashboard' : 'Customize: rearrange, resize or hide widgets'} aria-label="Customize dashboard" aria-pressed={!!customizing}>
-          <LayoutIcon />
-        </button>
-        <button className="icon-btn" onClick={onExport} disabled={!context} title="Export the dashboard as CSV" aria-label="Export">
-          <DownloadIcon />
-        </button>
+        {actions}
         {onOpenAdmin && (
-          <button className="icon-btn" onClick={onOpenAdmin} title="Settings: appearance, users, roles and projects" aria-label="Settings">
+          <button className="icon-btn" onClick={onOpenAdmin} title="Workspace Settings" aria-label="Settings">
             <SettingsIcon />
           </button>
         )}
         {user && <UserMenu user={user} onSignOut={onSignOut} />}
       </div>
     </header>
+  );
+}
+
+// Sprint Analytics buttons: Jira status, Refresh, Customize, Export
+export function SprintActions({ context, onRefresh, onExport, loading, syncing, canSync = true, onCustomize, customizing }) {
+  const [jiraOpen, setJiraOpen] = useState(false);
+  const status = jiraStatus(context?.sync, syncing);
+  const lastSync = context?.sync?.lastSuccessAt;
+  return (
+    <>
+      <div className="settings-wrap">
+        <button
+          className={`jira-status jira-${status.key}`}
+          onClick={() => setJiraOpen((o) => !o)}
+          aria-expanded={jiraOpen}
+          title={lastSync ? `Last synced from Jira: ${formatDateTime(lastSync)}. Click for details.` : 'Not synced from Jira yet'}
+        >
+          <JiraMark />
+          <span className="jira-label">{status.label}</span>
+          <i className="jira-dot" />
+        </button>
+        {jiraOpen && <SettingsPanel context={context} onClose={() => setJiraOpen(false)} />}
+      </div>
+      <span className="actions-divider" aria-hidden="true" />
+      <button className="icon-btn" onClick={onRefresh} disabled={loading || !canSync}
+        title={canSync ? 'Refresh: pull the latest data from Jira' : 'Your role can’t refresh from Jira (needs Edit permission)'} aria-label="Refresh">
+        <span className={syncing ? 'spin' : ''}><RefreshIcon /></span>
+      </button>
+      <button className={`icon-btn${customizing ? ' is-active' : ''}`} onClick={onCustomize ?? undefined} disabled={!onCustomize}
+        title={customizing ? 'Customizing the dashboard' : 'Customize: rearrange, resize or hide widgets'} aria-label="Customize dashboard" aria-pressed={!!customizing}>
+        <LayoutIcon />
+      </button>
+      <button className="icon-btn" onClick={onExport} disabled={!context} title="Export the dashboard as CSV" aria-label="Export">
+        <DownloadIcon />
+      </button>
+    </>
   );
 }

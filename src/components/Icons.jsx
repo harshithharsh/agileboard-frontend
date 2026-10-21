@@ -99,3 +99,33 @@ export const XCircleIcon = () => (
 export const ClockIcon = () => (
   <svg {...base} width={18} height={18}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
 );
+export const MenuIcon = () => (
+  <svg {...base} width={18} height={18}><path d="M4 6h16" /><path d="M4 12h16" /><path d="M4 18h16" /></svg>
+);
+export const HomeIcon = () => (
+  <svg {...base} width={18} height={18}><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V20h14V9.5" /><path d="M10 20v-6h4v6" /></svg>
+);
+export const SlidersIcon = () => (
+  <svg {...base} width={18} height={18}><path d="M4 6h10" /><path d="M18 6h2" /><circle cx="16" cy="6" r="2" /><path d="M4 12h4" /><path d="M12 12h8" /><circle cx="10" cy="12" r="2" /><path d="M4 18h12" /><path d="M20 18h0" /><circle cx="18" cy="18" r="2" /></svg>
+);
+export const TimerIcon = () => (
+  <svg {...base} width={18} height={18}><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2" /><path d="M9 2h6" /></svg>
+);
+export const FileTextIcon = () => (
+  <svg {...base} width={18} height={18}><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6" /><path d="M8 13h8" /><path d="M8 17h5" /></svg>
+);
+export const PlugIcon = () => (
+  <svg {...base} width={18} height={18}><path d="M9 2v6" /><path d="M15 2v6" /><path d="M6 8h12v4a6 6 0 0 1-12 0z" /><path d="M12 18v4" /></svg>
+);
+export const PanelLeftIcon = () => (
+  <svg {...base} width={18} height={18}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /></svg>
+);
+export const TeamIcon = () => (
+  <svg {...base} width={18} height={18}><circle cx="9" cy="8" r="3" /><path d="M3 20a6 6 0 0 1 12 0" /><circle cx="17" cy="9" r="2.5" /><path d="M15.5 14.5A5 5 0 0 1 21 20" /></svg>
+);
+export const InfoIcon = () => (
+  <svg {...base} width={14} height={14}><circle cx="12" cy="12" r="9" /><path d="M12 11v5" /><path d="M12 8h.01" /></svg>
+);
+export const AlertIcon = () => (
+  <svg {...base} width={16} height={16}><path d="M12 3 2 20h20z" /><path d="M12 10v4" /><path d="M12 17h.01" /></svg>
+);

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from './api/client.js';
 import { exportDashboardCsv } from './lib/exportCsv.js';
 import { STATUS_LABEL } from './lib/format.js';
-import Header from './components/Header.jsx';
+import Header, { SprintActions } from './components/Header.jsx';
 import FilterBar from './components/FilterBar.jsx';
 import { Section, Card, StatusPill } from './components/Section.jsx';
 import SummaryCards from './components/SummaryCards.jsx';
@@ -18,12 +18,11 @@ import BurndownChart from './components/charts/BurndownChart.jsx';
 import BusinessValueChart from './components/charts/BusinessValueChart.jsx';
 import DefectRateChart from './components/charts/DefectRateChart.jsx';
 import CycleTimeChart from './components/charts/CycleTimeChart.jsx';
-import AdminOverlay from './components/admin/AdminOverlay.jsx';
 import IssueTypesTable from './components/IssueTypesTable.jsx';
 import WidgetGrid from './components/WidgetGrid.jsx';
 import SyncProgress from './components/SyncProgress.jsx';
 import SprintGoal from './components/SprintGoal.jsx';
-import { LayoutIcon, PlusIcon, ResetIcon } from './components/Icons.jsx';
+import { LayoutIcon, PlusIcon, ResetIcon, ChartIcon } from './components/Icons.jsx';
 import { DEFAULT_LAYOUT, normalizeLayout, sameLayout, updateWidget, widgetTitle } from './lib/layout.js';
 import { resolveFilters, quarterLabel } from './lib/filters.js';
 import { slug } from './lib/download.js';
@@ -32,7 +31,7 @@ const keys = (list) => (list || []).map((d) => d.key).join(' ');
 
 const EMPTY_FILTERS = { projectId: null, teamId: null, quarter: null, releaseId: null, sprintId: null };
 
-export default function App({ user, onSignOut, onDisplayChange }) {
+export default function App({ user, onSignOut, onMenu, onOpenAdmin, adminVersion }) {
   const perms = user?.permissions ?? [];
   const canAdmin = perms.includes('admin');
   const canSync = canAdmin || perms.includes('edit');
@@ -41,8 +40,6 @@ export default function App({ user, onSignOut, onDisplayChange }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [adminOpen, setAdminOpen] = useState(false);
-  const [adminChanged, setAdminChanged] = useState(false);
   const [syncError, setSyncError] = useState(null);
   const [error, setError] = useState(null);
 
@@ -104,6 +101,14 @@ export default function App({ user, onSignOut, onDisplayChange }) {
   }, [filters]);
 
   useEffect(load, [load]);
+
+  // Workspace Settings changed projects or teams: refresh the filter options and the dashboard
+  const firstAdminVersion = useRef(adminVersion);
+  useEffect(() => {
+    if (adminVersion === firstAdminVersion.current) return;
+    loadFilters();
+    load();
+  }, [adminVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Jira sync. Only one runs at a time on the server: Refresh starts it (or joins one already running,
   // e.g. started by a colleague), then we follow its progress every 2 s until it ends.
@@ -180,7 +185,8 @@ export default function App({ user, onSignOut, onDisplayChange }) {
 
   return (
     <div className="app">
-      <Header context={data?.context} loading={loading || syncing} syncing={syncing} onRefresh={refresh} onExport={() => data && exportDashboardCsv(data)} onOpenAdmin={canAdmin ? () => setAdminOpen(true) : null} onCustomize={data && !editing ? startCustomize : null} customizing={editing} canSync={canSync} user={user} onSignOut={onSignOut} />
+      <Header title="Sprint Analytics" icon={<ChartIcon />} onMenu={onMenu} onOpenAdmin={onOpenAdmin} user={user} onSignOut={onSignOut}
+        actions={<SprintActions context={data?.context} loading={loading || syncing} syncing={syncing} onRefresh={refresh} onExport={() => data && exportDashboardCsv(data)} onCustomize={data && !editing ? startCustomize : null} customizing={editing} canSync={canSync} />} />
       <main className={loading ? 'is-loading' : ''}>
         {options && <FilterBar options={options} filters={filters} onChange={updateFilters} onClear={clearFilters} isDefault={isDefault} />}
         {(syncProgress || (syncing && !syncError)) && <SyncProgress progress={syncProgress} />}
@@ -204,21 +210,6 @@ export default function App({ user, onSignOut, onDisplayChange }) {
         {data && <WidgetGrid layout={editing ? draft : layout} widgets={buildWidgets(data, { canSync, reload: load })} editing={editing} onChange={setDraft} />}
       </main>
       <Footer />
-      {adminOpen && canAdmin && (
-        <AdminOverlay
-          onDisplayChange={onDisplayChange}
-          onChanged={() => setAdminChanged(true)}
-          onClose={() => {
-            setAdminOpen(false);
-            // Projects/teams may have changed: refresh the filter options and the dashboard
-            if (adminChanged) {
-              setAdminChanged(false);
-              loadFilters();
-              load();
-            }
-          }}
-        />
-      )}
     </div>
   );
 }

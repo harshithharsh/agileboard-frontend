@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from './api/client.js';
-import App from './App.jsx';
+import Shell from './Shell.jsx';
 import Login from './components/auth/Login.jsx';
 import { DEFAULT_DISPLAY, setDisplaySettings } from './lib/datetime.js';
 
@@ -58,5 +58,5 @@ export default function Root() {
   if (user === undefined) return <div className="login-page"><p className="muted">Loading…</p></div>;
   if (!user) return <Login onSignedIn={(u) => { setNotice(null); setUser(u); }} notice={notice} />;
   if (!display) return <div className="login-page"><p className="muted">Loading…</p></div>;
-  return <App user={user} onSignOut={signOut} display={display} onDisplayChange={changeDisplay} />;
+  return <Shell user={user} onSignOut={signOut} display={display} onDisplayChange={changeDisplay} />;
 }
