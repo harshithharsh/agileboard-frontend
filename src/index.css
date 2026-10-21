@@ -452,10 +452,10 @@ a.issue-key:hover { text-decoration: underline; }
 .field { display: flex; flex-direction: column; gap: 5px; }
 .field-label { font-size: 12px; font-weight: 600; color: var(--text); }
 .field-hint { font-size: 11px; color: var(--muted); }
-.field input, .field select, .team-row input, .team-row select {
+.field input, .field select, .team-row input, .team-row select, .members-add select {
   font: inherit; font-size: 13px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); width: 100%;
 }
-.field input:focus, .field select:focus, .team-row input:focus, .team-row select:focus { outline: 2px solid var(--primary-soft); border-color: var(--primary); }
+.field input:focus, .field select:focus, .team-row input:focus, .team-row select:focus, .members-add select:focus { outline: 2px solid var(--primary-soft); border-color: var(--primary); }
 .field input:disabled { background: var(--surface-2); color: var(--muted); }
 .check-group { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 4px 0; }
 .check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
@@ -986,8 +986,10 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 .team-chip:hover, .team-chip:focus-visible { border-color: var(--primary); color: var(--primary); }
 .members-table { margin-bottom: 12px; }
 .members-table .cell-sub { display: block; }
-.members-add { display: flex; gap: 8px; }
-.members-add select { flex: 1; min-width: 0; }
+.members-table .col-actions { width: 88px; text-align: center; }
+.members-add { display: flex; gap: 8px; align-items: stretch; }
+.members-add select { flex: 1; min-width: 0; width: auto; }
+.members-add .btn { padding-left: 16px; padding-right: 16px; }
 .members-removed { margin-top: 12px; font-size: 13px; }
 .members-removed summary { cursor: pointer; color: var(--muted); font-weight: 600; }
 .members-removed ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
