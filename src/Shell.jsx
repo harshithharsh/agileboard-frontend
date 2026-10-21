@@ -17,6 +17,14 @@ export default function Shell({ user, onSignOut, onDisplayChange }) {
 
   const page = { user, onSignOut };
 
+  const closeAdmin = () => {
+    setAdminOpen(false);
+    if (adminChanged) {
+      setAdminChanged(false);
+      setAdminVersion((v) => v + 1);
+    }
+  };
+
   useEffect(() => {
     const onOpen = (e) => { setAdminTab(e.detail ?? null); setAdminOpen(true); };
     window.addEventListener('agilemetrix:open-settings', onOpen);
@@ -25,7 +33,9 @@ export default function Shell({ user, onSignOut, onDisplayChange }) {
 
   return (
     <div className="shell">
-      <Sidebar route={route} canAdmin={canAdmin} onOpenAdmin={canAdmin ? () => { setAdminTab(null); setAdminOpen(true); } : null} />
+      <Sidebar route={route} canAdmin={canAdmin} settingsOpen={adminOpen && canAdmin}
+        onOpenAdmin={canAdmin ? () => { setAdminTab(null); setAdminOpen(true); } : null}
+        onNavigate={adminOpen ? closeAdmin : undefined} />
       <div className="shell-main">
         {route.module === 'resources'
           ? <ResourceManagement {...page} page={route.page} />
@@ -37,13 +47,7 @@ export default function Shell({ user, onSignOut, onDisplayChange }) {
           initialTab={adminTab}
           onDisplayChange={onDisplayChange}
           onChanged={() => setAdminChanged(true)}
-          onClose={() => {
-            setAdminOpen(false);
-            if (adminChanged) {
-              setAdminChanged(false);
-              setAdminVersion((v) => v + 1);
-            }
-          }}
+          onClose={closeAdmin}
         />
       )}
     </div>

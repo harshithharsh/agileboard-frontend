@@ -741,9 +741,11 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 @media (max-width: 640px) { .pref-row input.pref-wide, .pref-inline select { width: 100%; } .pref-inline { flex-direction: column; } }
 
 /* ---------- App shell: icon sidebar + page ---------- */
-.shell { display: flex; min-height: 100vh; }
+.shell { --side-w: 64px; display: flex; min-height: 100vh; }
+/* Workspace Settings opens beside the sidebar, not over it */
+.shell .admin-overlay { left: var(--side-w); }
 .shell-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.sidebar { position: sticky; top: 0; height: 100vh; width: 64px; flex-shrink: 0; box-sizing: border-box; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 0; z-index: 30; }
+.sidebar { position: sticky; top: 0; height: 100vh; width: var(--side-w); flex-shrink: 0; box-sizing: border-box; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 0; z-index: 30; }
 .side-logo { position: relative; display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 8px; }
 .side-logo img { height: 32px; width: auto; }
 .side-items { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -755,7 +757,7 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 .side-tip { display: none; position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); z-index: 60; padding: 6px 10px; border-radius: 8px; background: var(--tip-bg); color: var(--tip-text); font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none; box-shadow: var(--shadow-pop); }
 .side-item:hover .side-tip, .side-item:focus-visible .side-tip, .side-logo:hover .side-tip, .side-logo:focus-visible .side-tip { display: block; }
 .header-menu { display: none; }
-@media (max-width: 640px) { .sidebar { width: 52px; } .side-item { width: 38px; height: 38px; } }
+@media (max-width: 640px) { .shell { --side-w: 52px; } .sidebar { width: 52px; } .side-item { width: 38px; height: 38px; } }
 
 /* ---------- Resource Management ---------- */
 .rm-main { width: 100%; max-width: 1440px; margin: 0 auto; padding: 24px 32px 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; }
