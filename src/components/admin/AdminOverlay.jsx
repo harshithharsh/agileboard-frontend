@@ -8,7 +8,7 @@ import { formatDateTime } from '../../lib/format.js';
 import { DATE_FORMATS, TIME_FORMATS, formatDate, formatTime, getDisplaySettings } from '../../lib/datetime.js';
 import { getThemeChoice, setThemeChoice } from '../../lib/theme.js';
 import {
-  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SunIcon, MoonIcon, MonitorIcon, ClockIcon, PlugIcon, JiraMark,
+  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SunIcon, MoonIcon, MonitorIcon, ClockIcon, PlugIcon, JiraMark, MailIcon,
 } from '../Icons.jsx';
 
 const PERMISSION_LABELS = { view: 'View', create: 'Create', edit: 'Edit', delete: 'Delete', admin: 'Admin' };
@@ -154,57 +154,63 @@ const TIME_ZONES = (() => {
 })();
 
 // Scheduled Jira sync and who gets an email about it
-function AutomationCard() {
-  const [saved, setSaved] = useState(null); // what the server has
-  const [f, setF] = useState(null); // what is being edited
+// Scheduled sync and its emails are saved together on the server; each card edits its own part
+function useAutomation() {
+  const [saved, setSaved] = useState(null);
+  const [error, setError] = useState(null);
+  useEffect(() => { api.admin.automation().then(setSaved).catch((e) => setError(e.message)); }, []);
+  const save = async (patch) => setSaved(await api.admin.saveAutomation({ schedule: saved.schedule, notifications: saved.notifications, ...patch }));
+  return { saved, error, save };
+}
+
+function CardFoot({ state, changed, onCancel, onSave, children }) {
+  return (
+    <div className="settings-card-foot">
+      {state.error && <span className="form-error">{state.error}</span>}
+      {!state.error && state.message && <span className="settings-saved">{state.message}</span>}
+      {children}
+      {changed && <button className="btn" onClick={onCancel} disabled={state.saving}>Cancel</button>}
+      <button className="btn-primary-solid" onClick={onSave} disabled={!changed || state.saving}>{state.saving ? 'Saving…' : 'Save changes'}</button>
+    </div>
+  );
+}
+
+const useSaveState = () => {
   const [state, setState] = useState({ saving: false, error: null, message: null });
-
-  const fromServer = (a) => {
-    setSaved(a);
-    setF({ ...a.schedule, onSuccess: a.notifications.onSuccess, onFailure: a.notifications.onFailure, recipients: a.notifications.recipients.join(', ') });
-  };
-  useEffect(() => {
-    api.admin.automation().then(fromServer).catch((e) => setState((s) => ({ ...s, error: e.message })));
-  }, []);
-  if (!f) return <section className="admin-card settings-card"><div className="settings-card-head"><h2>Scheduled Jira sync</h2><p>{state.error ?? 'Loading…'}</p></div></section>;
-
-  const recipients = f.recipients.split(/[,;\s]+/).map((r) => r.trim()).filter(Boolean);
-  const body = { schedule: { enabled: f.enabled, time: f.time, timeZone: f.timeZone }, notifications: { onSuccess: f.onSuccess, onFailure: f.onFailure, recipients } };
-  const current = { schedule: saved.schedule, notifications: saved.notifications };
-  const changed = JSON.stringify(body) !== JSON.stringify(current);
-  const set = (patch) => { setF((s) => ({ ...s, ...patch })); setState((s) => ({ ...s, error: null, message: null })); };
-
-  const save = async () => {
+  const run = async (fn, message = 'Saved') => {
     setState({ saving: true, error: null, message: null });
     try {
-      fromServer(await api.admin.saveAutomation(body));
-      setState({ saving: false, error: null, message: 'Saved' });
+      const m = await fn();
+      setState({ saving: false, error: null, message: typeof m === 'string' ? m : message });
     } catch (e) {
       setState({ saving: false, error: e.message, message: null });
     }
   };
-  const test = async () => {
-    setState({ saving: true, error: null, message: null });
-    try {
-      const r = await api.admin.testEmail();
-      setState({ saving: false, error: null, message: `Test email sent to ${r.sent} recipient${r.sent === 1 ? '' : 's'}` });
-    } catch (e) {
-      setState({ saving: false, error: e.message, message: null });
-    }
-  };
+  return [state, run, () => setState({ saving: false, error: null, message: null })];
+};
+
+function ScheduleCard() {
+  const { saved, error, save } = useAutomation();
+  const [f, setF] = useState(null);
+  const [state, run, clear] = useSaveState();
+  useEffect(() => { if (saved) setF({ ...saved.schedule }); }, [saved]);
+  if (!f) return <section className="admin-card settings-card"><div className="settings-card-head"><h2>Scheduled Jira sync</h2><p>{error ?? 'Loading…'}</p></div></section>;
+
+  const schedule = { enabled: f.enabled, time: f.time, timeZone: f.timeZone };
+  const changed = JSON.stringify(schedule) !== JSON.stringify(saved.schedule);
+  const set = (patch) => { setF((s) => ({ ...s, ...patch })); clear(); };
   const last = saved.lastRun;
 
   return (
     <section className="admin-card settings-card">
       <div className="settings-card-head">
         <h2>Scheduled Jira sync</h2>
-        <p>Pull the latest data from Jira automatically every day, and email people about it.</p>
+        <p>Pull the latest data from Jira automatically every day. Emails about it are set in the Email tab.</p>
       </div>
-
       <div className="pref-row">
         <div className="pref-row-text">
           <span className="pref-row-label">Run a sync every day</span>
-          <span className="pref-row-hint">{saved.schedule.enabled && saved.nextRun ? `Next run: ${formatDateTime(saved.nextRun)}` : 'Off: data updates only when someone clicks Refresh.'}</span>
+          <span className="pref-row-hint">{saved.schedule.enabled && saved.nextRun ? `Next run: ${formatDateTime(saved.nextRun)}` : 'Off: data updates only when an administrator clicks Sync now.'}</span>
         </div>
         <Switch checked={f.enabled} onChange={(v) => set({ enabled: v })} label="Run a sync every day" />
       </div>
@@ -231,8 +237,49 @@ function AutomationCard() {
           </span>
         </div>
       )}
+      <CardFoot state={state} changed={changed} onCancel={() => setF({ ...saved.schedule })} onSave={() => run(() => save({ schedule }))} />
+    </section>
+  );
+}
 
-      <div className="settings-subhead">Email</div>
+function EmailCard() {
+  const { saved, error, save } = useAutomation();
+  const [f, setF] = useState(null);
+  const [state, run, clear] = useSaveState();
+  const fromSaved = (a) => setF({ onSuccess: a.notifications.onSuccess, onFailure: a.notifications.onFailure, recipients: a.notifications.recipients.join(', ') });
+  useEffect(() => { if (saved) fromSaved(saved); }, [saved]);
+  if (!f) return <section className="admin-card settings-card"><div className="settings-card-head"><h2>Email</h2><p>{error ?? 'Loading…'}</p></div></section>;
+
+  const recipients = f.recipients.split(/[,;\s]+/).map((r) => r.trim()).filter(Boolean);
+  const notifications = { onSuccess: f.onSuccess, onFailure: f.onFailure, recipients };
+  const changed = JSON.stringify(notifications) !== JSON.stringify(saved.notifications);
+  const set = (patch) => { setF((s) => ({ ...s, ...patch })); clear(); };
+  const test = () => run(async () => {
+    const r = await api.admin.testEmail();
+    return `Test email sent to ${r.sent} recipient${r.sent === 1 ? '' : 's'}`;
+  });
+
+  return (
+    <section className="admin-card settings-card">
+      <div className="settings-card-head">
+        <h2>Email</h2>
+        <p>Who is emailed about the scheduled Jira sync, and the server that sends it.</p>
+      </div>
+      <div className="pref-row">
+        <div className="pref-row-text">
+          <span className="pref-row-label">Email server</span>
+          <span className="pref-row-hint">{saved.email.configured ? `Sending through ${saved.email.host} as ${saved.email.from}.` : 'Not set up: add the SMTP settings to the backend .env, then restart it.'}</span>
+        </div>
+        <span className={`status ${saved.email.configured ? 'status-on_track' : 'status-attention'}`}><i />{saved.email.configured ? 'Ready' : 'Not set up'}</span>
+      </div>
+      <div className="pref-row">
+        <div className="pref-row-text">
+          <span className="pref-row-label">Recipients</span>
+          <span className="pref-row-hint">Separate several addresses with commas.</span>
+        </div>
+        <input className="pref-wide" type="text" value={f.recipients} onChange={(e) => set({ recipients: e.target.value })}
+          placeholder="name@company.com" aria-label="Email recipients" />
+      </div>
       <div className="pref-row">
         <div className="pref-row-text">
           <span className="pref-row-label">Email when the scheduled sync succeeds</span>
@@ -245,30 +292,10 @@ function AutomationCard() {
         </div>
         <Switch checked={f.onFailure} onChange={(v) => set({ onFailure: v })} label="Email when the scheduled sync fails" />
       </div>
-      <div className="pref-row">
-        <div className="pref-row-text">
-          <span className="pref-row-label">Recipients</span>
-          <span className="pref-row-hint">Separate several addresses with commas.</span>
-        </div>
-        <input className="pref-wide" type="text" value={f.recipients} onChange={(e) => set({ recipients: e.target.value })}
-          placeholder="name@company.com" aria-label="Email recipients" />
-      </div>
-      <div className="pref-row">
-        <div className="pref-row-text">
-          <span className="pref-row-label">Email server</span>
-          <span className="pref-row-hint">{saved.email.configured ? `Sending through ${saved.email.host} as ${saved.email.from}.` : 'Not set up: add the SMTP settings to the backend .env, then restart it.'}</span>
-        </div>
-        <span className={`status ${saved.email.configured ? 'status-on_track' : 'status-attention'}`}><i />{saved.email.configured ? 'Ready' : 'Not set up'}</span>
-      </div>
-
-      <div className="settings-card-foot">
-        {state.error && <span className="form-error">{state.error}</span>}
-        {!state.error && state.message && <span className="settings-saved">{state.message}</span>}
+      <CardFoot state={state} changed={changed} onCancel={() => fromSaved(saved)} onSave={() => run(() => save({ notifications }))}>
         <button className="btn" onClick={test} disabled={state.saving || changed || !saved.email.configured || !saved.notifications.recipients.length}
           title={changed ? 'Save your changes first' : !saved.email.configured ? 'Email is not set up on the server' : 'Send a test email to the recipients'}>Send test email</button>
-        {changed && <button className="btn" onClick={() => fromServer(saved)} disabled={state.saving}>Cancel</button>}
-        <button className="btn-primary-solid" onClick={save} disabled={!changed || state.saving}>{state.saving ? 'Saving…' : 'Save changes'}</button>
-      </div>
+      </CardFoot>
     </section>
   );
 }
@@ -387,7 +414,7 @@ function JiraIntegration({ info, onSynced }) {
             </Row>
           </>
         )} />
-      <AutomationCard />
+      <ScheduleCard />
     </div>
   );
 }
@@ -420,7 +447,7 @@ function IntegrationsTab({ user, sub, setSub, onChanged }) {
   return (
     <>
       <div className="segmented integration-switch" role="tablist" aria-label="Integration">
-        {[['jira', 'Jira', <JiraMark key="i" />], ['redmine', 'Redmine', <PlugIcon key="i" />]].map(([id, label, icon]) => (
+        {[['jira', 'Jira', <JiraMark key="i" />], ['redmine', 'Redmine', <PlugIcon key="i" />], ['email', 'Email', <MailIcon key="i" />]].map(([id, label, icon]) => (
           <button key={id} role="tab" aria-selected={sub === id} className={`segment${sub === id ? ' active' : ''}`} onClick={() => setSub(id)}>{icon}{label}</button>
         ))}
       </div>
@@ -428,6 +455,7 @@ function IntegrationsTab({ user, sub, setSub, onChanged }) {
       {!info && !error && <div className="card empty">Loading…</div>}
       {info && sub === 'jira' && <JiraIntegration info={info.jira} onSynced={onSynced} />}
       {info && sub === 'redmine' && <RedmineIntegration info={info.redmine} user={user} />}
+      {sub === 'email' && <EmailCard />}
     </>
   );
 }

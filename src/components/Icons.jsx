@@ -129,3 +129,6 @@ export const InfoIcon = () => (
 export const AlertIcon = () => (
   <svg {...base} width={16} height={16}><path d="M12 3 2 20h20z" /><path d="M12 10v4" /><path d="M12 17h.01" /></svg>
 );
+export const MailIcon = () => (
+  <svg {...base}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>
+);
