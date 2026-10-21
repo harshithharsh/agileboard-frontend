@@ -111,7 +111,7 @@ export default function Header({ title, icon, onMenu, actions, onOpenAdmin, user
   );
 }
 
-// Sprint Analytics buttons: Jira status, Refresh, Customize, Export
+// Agile Metrics buttons: Jira status, Refresh, Customize, Export
 export function SprintActions({ context, onRefresh, onExport, loading, syncing, canSync = true, onCustomize, customizing }) {
   const [jiraOpen, setJiraOpen] = useState(false);
   const status = jiraStatus(context?.sync, syncing);

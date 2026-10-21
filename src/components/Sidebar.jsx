@@ -28,7 +28,7 @@ export default function Sidebar({ route, canAdmin, onOpenAdmin, settingsOpen = f
       </a>
 
       <div className="side-items">
-        {link(hrefFor('sprint'), 'Sprint Analytics', <ChartIcon />, route.module === 'sprint')}
+        {link(hrefFor('sprint'), 'Agile Metrics', <ChartIcon />, route.module === 'sprint')}
         <span className="side-divider" aria-hidden="true" />
         {RESOURCE_ITEMS.filter((i) => !i.admin || canAdmin).map((i) =>
           link(hrefFor('resources', i.page), `Resource Management · ${i.label}`, i.icon, route.module === 'resources' && route.page === i.page))}

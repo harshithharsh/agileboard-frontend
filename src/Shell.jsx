@@ -5,7 +5,7 @@ import AdminOverlay from './components/admin/AdminOverlay.jsx';
 import ResourceManagement from './resources/ResourceManagement.jsx';
 import { useRoute } from './lib/route.js';
 
-// Signed-in layout: the icon sidebar, then the current module (Sprint Analytics or Resource Management).
+// Signed-in layout: the icon sidebar, then the current module (Agile Metrics or Resource Management).
 // Owns Settings, opened from the sidebar on every page.
 export default function Shell({ user, onSignOut, onDisplayChange }) {
   const route = useRoute();

@@ -185,7 +185,7 @@ export default function App({ user, onSignOut, onMenu, onOpenAdmin, adminVersion
 
   return (
     <div className="app">
-      <Header title="Sprint Analytics" icon={<ChartIcon />} onMenu={onMenu} onOpenAdmin={onOpenAdmin} user={user} onSignOut={onSignOut}
+      <Header title="Agile Metrics" icon={<ChartIcon />} onMenu={onMenu} onOpenAdmin={onOpenAdmin} user={user} onSignOut={onSignOut}
         actions={<SprintActions context={data?.context} loading={loading || syncing} syncing={syncing} onRefresh={refresh} onExport={() => data && exportDashboardCsv(data)} onCustomize={data && !editing ? startCustomize : null} customizing={editing} canSync={canSync} />} />
       <main className={loading ? 'is-loading' : ''}>
         {options && <FilterBar options={options} filters={filters} onChange={updateFilters} onClear={clearFilters} isDefault={isDefault} />}

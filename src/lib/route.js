@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 // Pages are addressed by the URL hash, so they can be bookmarked and Back works:
-//   #/                          Sprint Analytics
+//   #/                          Agile Metrics
 //   #/resources/<page>          Resource Management (overview, allocation, effort, teams, reports)
 export const RESOURCE_PAGES = ['overview', 'allocation', 'effort', 'teams', 'reports'];
 
