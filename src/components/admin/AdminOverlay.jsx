@@ -491,6 +491,101 @@ function FormButtons({ onCancel, onSave, saving, label = 'Save' }) {
 // Overlay
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Team members: fetched from Jira (assignees on the board), with manual additions and removals
+// ---------------------------------------------------------------------------
+
+function TeamMembersDialog({ team, project, users, onClose, onChanged }) {
+  const [info, setInfo] = useState(null);
+  const [busy, setBusy] = useState(null); // 'fetch' | userId | 'add'
+  const [error, setError] = useState(null);
+  const [note, setNote] = useState(null);
+  const [adding, setAdding] = useState('');
+
+  useEffect(() => { api.admin.teamMembers(team.id).then(setInfo).catch((e) => setError(e.message)); }, [team.id]);
+
+  const run = async (key, fn, after) => {
+    setBusy(key);
+    setError(null);
+    setNote(null);
+    try {
+      const r = await fn();
+      setInfo((s) => ({ ...s, members: r.members }));
+      after?.(r);
+      onChanged();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(null);
+    }
+  };
+  const fetchFromJira = () => run('fetch', () => api.admin.fetchTeamMembers(team.id), (r) =>
+    setNote(r.added ? `Found ${r.found} people on the board; added ${r.added} new.` : `Found ${r.found} people on the board; everyone is already listed.`));
+
+  const members = info?.members.filter((m) => !m.excluded) ?? [];
+  const removed = info?.members.filter((m) => m.excluded) ?? [];
+  const listed = new Set(members.map((m) => m.id));
+  const candidates = users.filter((u) => !listed.has(u.id) && u.status === 'active');
+
+  return (
+    <Modal title={`${team.name} · team members`} width={640} onClose={onClose}
+      footer={<button className="btn" onClick={onClose}>Done</button>}>
+      <div className="members-head">
+        <p className="muted small">
+          {project.name} · Jira board #{team.jiraBoardId ?? '—'}. Fetching adds everyone assigned to an issue on the board
+          updated in the last {info?.windowDays ?? 90} days. The nightly sync adds new assignees too; people you remove stay removed.
+        </p>
+        <button className="btn-primary-solid" onClick={fetchFromJira} disabled={!!busy || !team.jiraBoardId}>
+          {busy === 'fetch' ? 'Fetching from Jira…' : 'Fetch from Jira'}
+        </button>
+      </div>
+      {error && <p className="form-error">{error}</p>}
+      {note && <p className="form-note" role="status">{note}</p>}
+      {!info && !error && <p className="muted">Loading…</p>}
+      {info && (
+        <>
+          <table className="admin-table members-table">
+            <thead><tr><th>Name</th><th>Source</th><th className="num">Issues</th><th className="col-actions" aria-label="Actions" /></tr></thead>
+            <tbody>
+              {members.map((m) => (
+                <tr key={m.id}>
+                  <td>
+                    <span className="person"><span className="avatar" style={{ background: avatarColor(m.name) }}>{initials(m.name)}</span>
+                      <span><b>{m.name}</b>{m.email && <span className="cell-sub">{m.email}</span>}</span></span>
+                  </td>
+                  <td><span className={`tag${m.source === 'jira' ? ' tag-jira' : ''}`}>{m.source === 'jira' ? 'From Jira' : 'Added here'}</span></td>
+                  <td className="num">{m.issues}</td>
+                  <td><button className="action-btn action-danger" onClick={() => run(m.id, () => api.admin.removeTeamMember(team.id, m.id))} disabled={!!busy}
+                    title="Remove from team" aria-label={`Remove ${m.name}`}><TrashIcon /></button></td>
+                </tr>
+              ))}
+              {!members.length && <Empty cols={4} text="No members yet. Fetch them from Jira." />}
+            </tbody>
+          </table>
+          <div className="members-add">
+            <select value={adding} onChange={(e) => setAdding(e.target.value)} aria-label="Person to add">
+              <option value="">Add a person…</option>
+              {candidates.map((u) => <option key={u.id} value={u.id}>{u.name}{u.email ? ` · ${u.email}` : ''}</option>)}
+            </select>
+            <button className="btn" disabled={!adding || !!busy} onClick={() => run('add', () => api.admin.addTeamMember(team.id, adding), () => setAdding(''))}>Add</button>
+          </div>
+          {removed.length > 0 && (
+            <details className="members-removed">
+              <summary>Removed ({removed.length}): not added back by Jira</summary>
+              <ul>
+                {removed.map((m) => (
+                  <li key={m.id}><span>{m.name}</span>
+                    <button className="btn-link" onClick={() => run(m.id, () => api.admin.addTeamMember(team.id, m.id))} disabled={!!busy}>Restore</button></li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </>
+      )}
+    </Modal>
+  );
+}
+
 export default function AdminOverlay({ user, initialTab, onClose, onChanged, onDisplayChange }) {
   // Which section is open; remembered in this browser unless a page asked for a tab
   const [tab, setTab] = useState(() => {
@@ -505,6 +600,7 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
   const [loadError, setLoadError] = useState(null);
   const [editing, setEditing] = useState(null); // { kind, item }
   const [deleting, setDeleting] = useState(null); // { kind, item, label }
+  const [membersOf, setMembersOf] = useState(null); // { team, project }
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState(null);
   const [toast, setToast] = useState(null);
@@ -515,13 +611,13 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
   // Lock page scroll while open; Escape closes (unless a dialog is open)
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    const onKey = (e) => e.key === 'Escape' && !editing && !deleting && onClose();
+    const onKey = (e) => e.key === 'Escape' && !editing && !deleting && !membersOf && onClose();
     document.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = '';
       document.removeEventListener('keydown', onKey);
     };
-  }, [onClose, editing, deleting]);
+  }, [onClose, editing, deleting, membersOf]);
 
   const flash = (message) => {
     setToast(message);
@@ -650,13 +746,23 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
             <AdminCard icon={<BoxIcon />} tone="orange" title="Projects" subtitle="Jira projects tracked in AgileMetrix, and the board behind each team."
               addLabel="Add Project" onAdd={() => openEdit('projects')}>
               <table className="admin-table">
-                <thead><tr><th>Project Name</th><th>Key</th><th>Teams (Jira board)</th><th className="num">Members</th><th>Status</th><th className="col-actions">Actions</th></tr></thead>
+                <thead><tr><th>Project Name</th><th>Key</th><th>Teams · members</th><th className="num">Members</th><th>Status</th><th className="col-actions">Actions</th></tr></thead>
                 <tbody>
                   {view.projects.map((p) => (
                     <tr key={p.id}>
                       <td><b>{p.name}</b>{p.description && <div className="cell-sub">{p.description}</div>}</td>
                       <td className="mono">{p.key}</td>
-                      <td>{p.teams.map((t) => `${t.name}${t.jiraBoardId ? ` (#${t.jiraBoardId})` : ''}`).join(', ') || <span className="muted">No teams</span>}</td>
+                      <td>
+                        <div className="team-chips">
+                          {p.teams.map((t) => (
+                            <button key={t.id} type="button" className="team-chip" onClick={() => setMembersOf({ team: t, project: p })}
+                              title={`Board #${t.jiraBoardId ?? '—'}: view and fetch members from Jira`}>
+                              {t.name}<span>{t.members}</span>
+                            </button>
+                          ))}
+                          {!p.teams.length && <span className="muted">No teams</span>}
+                        </div>
+                      </td>
                       <td className="num">{p.members}</td>
                       <td><StatusBadge status={p.status} /></td>
                       <td><RowActions onEdit={() => openEdit('projects', p)} onDelete={() => openDelete('projects', p, p.name)} /></td>
@@ -676,6 +782,11 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
       {editing?.kind === 'users' && <UserForm item={editing.item} roles={data.roles} projects={data.projects} onSave={save} onCancel={() => setEditing(null)} saving={saving} error={formError} />}
       {editing?.kind === 'roles' && <RoleForm item={editing.item} permissions={data.permissions} onSave={save} onCancel={() => setEditing(null)} saving={saving} error={formError} />}
       {editing?.kind === 'projects' && <ProjectForm item={editing.item} onSave={save} onCancel={() => setEditing(null)} saving={saving} error={formError} />}
+
+      {membersOf && (
+        <TeamMembersDialog team={membersOf.team} project={membersOf.project} users={data.users}
+          onClose={() => setMembersOf(null)} onChanged={() => { load(); onChanged?.(); }} />
+      )}
 
       {deleting && (
         <Modal title="Confirm delete" width={420} onClose={() => setDeleting(null)}
