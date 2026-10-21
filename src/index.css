@@ -330,7 +330,7 @@ a.issue-key:hover { text-decoration: underline; }
 .compliance-label { display: flex; justify-content: space-between; font-size: 13px; }
 
 .footer {
-  max-width: 1440px; margin: 0 auto; padding: 10px 32px 12px;
+  width: 100%; max-width: 1440px; margin: auto auto 0; padding: 10px 32px 12px;
   display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px 12px;
   font-size: 11px; color: var(--muted); border-top: 1px solid var(--border);
 }
@@ -376,7 +376,6 @@ a.issue-key:hover { text-decoration: underline; }
 }
 @keyframes admin-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .admin-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
-.admin-scroll .footer { margin-top: auto; width: 100%; }
 .admin-main { flex: 1 0 auto; padding: 24px 32px 40px; width: 100%; max-width: 1440px; margin: 0 auto; }
 .admin-header { flex-shrink: 0; background: var(--surface); border-bottom: 1px solid var(--border); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04); }
 .admin-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; max-width: 1440px; margin: 0 auto; padding: 16px 32px; }
@@ -746,6 +745,9 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 /* Settings opens beside the sidebar, not over it */
 .shell .admin-overlay { left: var(--side-w); }
 .shell-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+/* Same footer on every page: full content width, at the bottom of short pages */
+.shell-main > .app { flex: 1; display: flex; flex-direction: column; }
+.shell-main > .app > main { width: 100%; }
 .sidebar { position: sticky; top: 0; height: 100vh; width: var(--side-w); flex-shrink: 0; box-sizing: border-box; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 0; z-index: 30; }
 .side-logo { position: relative; display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 8px; }
 .side-logo img { height: 32px; width: auto; }
