@@ -639,7 +639,7 @@ function TeamMembersDialog({ team, users, onClose, onChanged }) {
       {info && (
         <>
           <table className="admin-table members-table">
-            <thead><tr><th>Name</th><th className="col-actions" aria-label="Actions" /></tr></thead>
+            <thead><tr><th>Name</th><th className="col-actions">Actions</th></tr></thead>
             <tbody>
               {members.map((m) => (
                 <tr key={m.id}>
