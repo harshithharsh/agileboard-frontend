@@ -632,7 +632,7 @@ function TeamMembersDialog({ team, users, onClose, onChanged }) {
   const candidates = users.filter((u) => !listed.has(u.id) && u.status === 'active');
 
   return (
-    <Modal title={`${team.name} · team members`} width={640} onClose={onClose}
+    <Modal title={`${team.name} · Team members`} width={640} onClose={onClose}
       footer={<button className="btn" onClick={onClose}>Done</button>}>
       {error && <p className="form-error">{error}</p>}
       {!info && !error && <p className="muted">Loading…</p>}
