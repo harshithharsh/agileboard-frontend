@@ -1004,3 +1004,21 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 .status-paused { color: var(--muted); background: var(--surface-2); }
 .integration-sync + .table-scroll, .integration-sync + .form-error + .table-scroll { margin-top: 14px; }
 @media (max-width: 760px) { .settings-card-head-row { flex-direction: column; } }
+
+/* Settings → General → Holidays */
+.year-switch { display: inline-flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.year-switch b { min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
+.holiday-add { display: flex; gap: 8px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.holiday-add input { font: inherit; font-size: 13px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); }
+.holiday-add input[type=text] { flex: 1; min-width: 0; }
+.holiday-add input:focus { outline: 2px solid var(--primary-soft); border-color: var(--primary); }
+.holiday-note { margin: 12px 20px 0; }
+.holiday-list { list-style: none; margin: 0; padding: 0; }
+.holiday-list li { display: flex; align-items: center; gap: 16px; padding: 10px 20px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.holiday-list li.is-weekend { color: var(--muted); }
+.holiday-date { display: flex; flex-direction: column; width: 72px; flex-shrink: 0; }
+.holiday-date span { font-size: 11px; color: var(--muted); }
+.holiday-name { flex: 1; display: flex; align-items: center; gap: 8px; }
+.holiday-empty { padding: 16px 20px; }
+.holiday-foot { justify-content: flex-start; }
+@media (max-width: 640px) { .holiday-add { flex-wrap: wrap; } }

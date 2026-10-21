@@ -4,6 +4,7 @@ import Modal, { Field } from './Modal.jsx';
 import Footer from '../Footer.jsx';
 import SyncProgress from '../SyncProgress.jsx';
 import RedmineImport from './RedmineImport.jsx';
+import HolidaysCard from './HolidaysCard.jsx';
 import { formatDateTime } from '../../lib/format.js';
 import { DATE_FORMATS, TIME_FORMATS, formatDate, formatTime, getDisplaySettings } from '../../lib/datetime.js';
 import { getThemeChoice, setThemeChoice } from '../../lib/theme.js';
@@ -878,6 +879,7 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
         {view && (
           <div className="admin-section">
             {tab === 'general' && <DateTimeCard onSaved={onDisplayChange} />}
+            {tab === 'general' && <HolidaysCard onChanged={onChanged} />}
             {tab === 'integrations' && <IntegrationsTab users={data.users} sub={integration} setSub={chooseIntegration} onChanged={onChanged} />}
 
             {tab === 'users' && (

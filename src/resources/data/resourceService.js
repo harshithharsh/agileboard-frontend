@@ -9,6 +9,7 @@ import { indexEntries } from '../model/calc.js';
 
 let store = null;
 let loading = null;
+let seenVersion; // Settings changes counter last seen (see syncVersion)
 const listeners = new Set();
 
 async function fetchData() {
@@ -24,6 +25,11 @@ const reload = () => fetchData();
 export const resourceService = {
   load: () => (store ? Promise.resolve(store) : (loading ??= fetchData().finally(() => { loading = null; }))),
   reload,
+  // Called with the Settings changes counter: data loaded before a change is fetched again
+  syncVersion(version) {
+    if (seenVersion !== undefined && version !== seenVersion && store) reload().catch(() => {});
+    seenVersion = version;
+  },
 
   // Employment FTE, weekly hours, team and Redmine person of one person
   async saveResource(resource) {

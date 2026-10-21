@@ -38,7 +38,7 @@ export default function Shell({ user, onSignOut, onDisplayChange }) {
         onNavigate={adminOpen ? closeAdmin : undefined} />
       <div className="shell-main">
         {route.module === 'resources'
-          ? <ResourceManagement {...page} page={route.page} />
+          ? <ResourceManagement {...page} page={route.page} adminVersion={adminVersion} />
           : <App {...page} adminVersion={adminVersion} />}
       </div>
       {adminOpen && canAdmin && (

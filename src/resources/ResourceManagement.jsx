@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
 import { TeamIcon } from '../components/Icons.jsx';
-import { useResourceData } from './data/resourceService.js';
+import { useResourceData, resourceService } from './data/resourceService.js';
 import { openSettings } from '../lib/route.js';
 import { periodRange } from './model/period.js';
 import Overview from './pages/Overview.jsx';
@@ -20,8 +20,10 @@ const PAGES = {
 };
 
 // Resource Management module: shared data, filters and permissions for its pages
-export default function ResourceManagement({ page, user, onSignOut, onMenu, onOpenAdmin }) {
+export default function ResourceManagement({ page, user, onSignOut, onMenu, onOpenAdmin, adminVersion }) {
   const { data, error } = useResourceData();
+  // Settings changed something (holidays, Redmine import or matches, teams): load the data again
+  useEffect(() => { resourceService.syncVersion(adminVersion); }, [adminVersion]);
   const perms = user?.permissions ?? [];
   const access = {
     canEdit: perms.includes('edit') || perms.includes('admin'), // FTE, allocations, team for reports
