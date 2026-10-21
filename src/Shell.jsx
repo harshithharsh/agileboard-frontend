@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import App from './App.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import AdminOverlay from './components/admin/AdminOverlay.jsx';
@@ -10,15 +10,22 @@ import { useRoute } from './lib/route.js';
 export default function Shell({ user, onSignOut, onDisplayChange }) {
   const route = useRoute();
   const [adminOpen, setAdminOpen] = useState(false);
+  const [adminTab, setAdminTab] = useState(null); // tab to open on, when a page links into Settings
   const [adminChanged, setAdminChanged] = useState(false);
   const [adminVersion, setAdminVersion] = useState(0); // bumps after Settings changed projects or teams
   const canAdmin = (user?.permissions ?? []).includes('admin');
 
   const page = { user, onSignOut };
 
+  useEffect(() => {
+    const onOpen = (e) => { setAdminTab(e.detail ?? null); setAdminOpen(true); };
+    window.addEventListener('agilemetrix:open-settings', onOpen);
+    return () => window.removeEventListener('agilemetrix:open-settings', onOpen);
+  }, []);
+
   return (
     <div className="shell">
-      <Sidebar route={route} canAdmin={canAdmin} onOpenAdmin={canAdmin ? () => setAdminOpen(true) : null} />
+      <Sidebar route={route} canAdmin={canAdmin} onOpenAdmin={canAdmin ? () => { setAdminTab(null); setAdminOpen(true); } : null} />
       <div className="shell-main">
         {route.module === 'resources'
           ? <ResourceManagement {...page} page={route.page} />
@@ -26,6 +33,8 @@ export default function Shell({ user, onSignOut, onDisplayChange }) {
       </div>
       {adminOpen && canAdmin && (
         <AdminOverlay
+          user={user}
+          initialTab={adminTab}
           onDisplayChange={onDisplayChange}
           onChanged={() => setAdminChanged(true)}
           onClose={() => {

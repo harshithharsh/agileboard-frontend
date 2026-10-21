@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { resourceService } from '../data/resourceService.js';
+import { resourceService, useResourceData } from '../data/resourceService.js';
+import { periodRange } from '../model/period.js';
 import { PageHead, fmtHours } from '../components/ui.jsx';
 import { unmappedUsers } from '../model/select.js';
 import { configIssues } from '../model/calc.js';
@@ -20,8 +21,17 @@ function connectionState(data) {
   return { tone: 'ok', label: 'Connected', detail: `Last sync ${formatDateTime(last.startedAt)}` };
 }
 
+// Workspace Settings → Redmine: loads the resource data itself; mapping uses this quarter's hours
+export function RedmineSettings({ user }) {
+  const { data, error } = useResourceData();
+  const period = useMemo(() => (data ? periodRange('this-quarter', data.rules, data.today) : null), [data]);
+  if (error) return <div className="card error">Could not load Redmine settings: {error}</div>;
+  if (!data) return <div className="card empty">Loading…</div>;
+  return <div className="rm admin-redmine"><Integration data={data} period={period} access={{ canEdit: true, canAdmin: true, by: user?.name ?? 'Unknown' }} embedded /></div>;
+}
+
 // Redmine integration: a five-step setup, then mapping, rules and sync history
-export default function Integration({ data, period, access }) {
+export default function Integration({ data, period, access, embedded = false }) {
   const [step, setStep] = useState(0);
   const state = connectionState(data);
   const unmapped = unmappedUsers(data, period);
@@ -29,7 +39,7 @@ export default function Integration({ data, period, access }) {
 
   return (
     <>
-      <PageHead title="Redmine integration" sub="Connect your own Redmine, choose what to import, map it to AgileMetrix and set how capacity is calculated." />
+      {!embedded && <PageHead title="Redmine integration" sub="Connect your own Redmine, choose what to import, map it to AgileMetrix and set how capacity is calculated." />}
 
       <section className="card rm-conn">
         <span className="rm-conn-logo" aria-hidden="true">R</span>

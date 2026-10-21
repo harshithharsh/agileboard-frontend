@@ -4,7 +4,7 @@ import { Filters, PageHead, Kpi, fmtHours, fmtFte, fmtPct, fmtSigned } from '../
 import { selectRows, totals, unmappedUsers } from '../model/select.js';
 import { DEFINITIONS, resourceRow, isWorkingDay, round, EPSILON } from '../model/calc.js';
 import { buckets, workingDayCount } from '../model/period.js';
-import { hrefFor } from '../../lib/route.js';
+import { hrefFor, openSettings } from '../../lib/route.js';
 import { formatDateTime } from '../../lib/datetime.js';
 import { COLORS } from '../../lib/format.js';
 import { axisProps, gridProps, tooltipProps, legendProps } from '../../components/charts/common.jsx';
@@ -13,7 +13,7 @@ import { AlertIcon } from '../../components/Icons.jsx';
 const BAND_COLOR = { ok: 'var(--success)', under: 'var(--warning)', over: 'var(--danger)', none: 'var(--border-strong)' };
 
 // Management view: key figures, what needs attention, and where capacity goes
-export default function Overview({ data, filters, setFilters, period }) {
+export default function Overview({ data, filters, setFilters, period, access }) {
   const rows = useMemo(() => selectRows(data, period, filters), [data, period, filters]);
   const mapped = rows.filter((r) => r.resource.redmineUserId);
   const sum = totals(rows);
@@ -47,9 +47,9 @@ export default function Overview({ data, filters, setFilters, period }) {
   const noFte = rows.filter((r) => r.issues.includes('missing-fte'));
   const aboveplan = mapped.filter((r) => r.planned > 0 && r.actual > r.planned * 1.1);
   const alerts = [
-    lastRun && lastRun.status !== 'success' && { tone: 'bad', title: lastRun.status === 'failed' ? 'Last Redmine sync failed' : 'Last Redmine sync was partial', text: lastRun.message, link: ['integration', 'View sync history'] },
+    lastRun && lastRun.status !== 'success' && { tone: 'bad', title: lastRun.status === 'failed' ? 'Last Redmine sync failed' : 'Last Redmine sync was partial', text: lastRun.message, link: ['settings:redmine', 'View sync history'] },
     over.length && { tone: 'bad', title: `${over.length} ${over.length === 1 ? 'person is' : 'people are'} over-allocated`, text: `Project allocations add up to more than their employment FTE: ${over.map((r) => r.resource.name).join(', ')}.`, link: ['allocation', 'Review allocations'] },
-    unmapped.length && { tone: 'warn', title: `${unmapped.length} Redmine ${unmapped.length === 1 ? 'user is' : 'users are'} not mapped`, text: `${fmtHours(round(unmapped.reduce((n, u) => n + u.hours, 0)))} logged in this period isn’t counted for anyone.`, link: ['integration', 'Map users'] },
+    unmapped.length && { tone: 'warn', title: `${unmapped.length} Redmine ${unmapped.length === 1 ? 'user is' : 'users are'} not mapped`, text: `${fmtHours(round(unmapped.reduce((n, u) => n + u.hours, 0)))} logged in this period isn’t counted for anyone.`, link: ['settings:redmine', 'Map users'] },
     noFte.length && { tone: 'warn', title: `${noFte.length} ${noFte.length === 1 ? 'person has' : 'people have'} no FTE`, text: `${noFte.map((r) => `${r.resource.name} logged ${fmtHours(r.actual)}`).join(', ')}, but without capacity utilization can’t be shown.`, link: ['allocation', 'Set FTE'] },
     aboveplan.length && { tone: 'info', title: `Actual above plan for ${aboveplan.length} ${aboveplan.length === 1 ? 'person' : 'people'}`, text: 'More than 10% over their planned hours in this period.', link: ['effort', 'Open Effort Tracker'] },
   ].filter(Boolean);
@@ -98,7 +98,9 @@ export default function Overview({ data, filters, setFilters, period }) {
                 <div>
                   <b>{a.title}</b>
                   {a.text && <p>{a.text}</p>}
-                  <a href={hrefFor('resources', a.link[0])}>{a.link[1]}</a>
+                  {a.link[0] !== 'settings:redmine' ? <a href={hrefFor('resources', a.link[0])}>{a.link[1]}</a>
+                    : access.canAdmin ? <button type="button" className="link-btn" onClick={() => openSettings('redmine')}>{a.link[1]} in Settings</button>
+                      : <span className="muted small">Ask an administrator to check Redmine settings</span>}
                 </div>
               </li>
             ))}

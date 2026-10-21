@@ -9,7 +9,6 @@ import Allocation from './pages/Allocation.jsx';
 import EffortTracker from './pages/EffortTracker.jsx';
 import Teams from './pages/Teams.jsx';
 import Reports from './pages/Reports.jsx';
-import Integration from './pages/Integration.jsx';
 
 const PAGES = {
   overview: ['Overview', Overview],
@@ -17,7 +16,6 @@ const PAGES = {
   effort: ['Effort Tracker', EffortTracker],
   teams: ['Teams', Teams],
   reports: ['Reports', Reports],
-  integration: ['Integration Settings', Integration],
 };
 
 // Resource Management module: shared data, filters and permissions for its pages
@@ -26,7 +24,7 @@ export default function ResourceManagement({ page, user, onSignOut, onMenu, onOp
   const perms = user?.permissions ?? [];
   const access = {
     canEdit: perms.includes('edit') || perms.includes('admin'), // FTE, allocations, teams
-    canAdmin: perms.includes('admin'), // integration settings and capacity rules
+    canAdmin: perms.includes('admin'), // opens Redmine settings from alerts and mapping links
     by: user?.name ?? 'Unknown',
   };
   // Period, team and project stay the same while moving between pages
@@ -49,12 +47,7 @@ export default function ResourceManagement({ page, user, onSignOut, onMenu, onOp
       <main className="rm-main">
         {error && <div className="card error">Could not load resource data: {error}</div>}
         {!data && !error && <div className="card empty">Loading resource data…</div>}
-        {data && page === 'integration' && !access.canAdmin && (
-          <div className="card rm-empty"><b>Only administrators can change the integration</b><span>Ask an administrator if Redmine data looks wrong or out of date.</span></div>
-        )}
-        {data && (page !== 'integration' || access.canAdmin) && (
-          <Page data={data} filters={filters} setFilters={setFilters} period={period} access={access} />
-        )}
+        {data && <Page data={data} filters={filters} setFilters={setFilters} period={period} access={access} />}
       </main>
       <Footer />
     </>

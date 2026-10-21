@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../api/client.js';
 import Modal, { Field } from './Modal.jsx';
 import Footer from '../Footer.jsx';
+import { RedmineSettings } from '../../resources/pages/Integration.jsx';
 import { formatDateTime } from '../../lib/format.js';
 import { DATE_FORMATS, TIME_FORMATS, formatDate, formatTime, getDisplaySettings } from '../../lib/datetime.js';
 import { getThemeChoice, setThemeChoice } from '../../lib/theme.js';
 import {
-  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SunIcon, MoonIcon, MonitorIcon, ClockIcon,
+  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SunIcon, MoonIcon, MonitorIcon, ClockIcon, PlugIcon,
 } from '../Icons.jsx';
 
 const PERMISSION_LABELS = { view: 'View', create: 'Create', edit: 'Edit', delete: 'Delete', admin: 'Admin' };
@@ -490,9 +491,10 @@ function FormButtons({ onCancel, onSave, saving, label = 'Save' }) {
 // Overlay
 // ---------------------------------------------------------------------------
 
-export default function AdminOverlay({ onClose, onChanged, onDisplayChange }) {
-  // Which section is open; remembered in this browser
+export default function AdminOverlay({ user, initialTab, onClose, onChanged, onDisplayChange }) {
+  // Which section is open; remembered in this browser unless a page asked for a tab
   const [tab, setTab] = useState(() => {
+    if (initialTab) return initialTab;
     try { return localStorage.getItem('agilemetrix-admin-tab') || 'users'; } catch { return 'users'; }
   });
   const chooseTab = (id) => {
@@ -581,6 +583,7 @@ export default function AdminOverlay({ onClose, onChanged, onDisplayChange }) {
             ['users', 'Users', <UsersIcon key="i" />, data?.users.length],
             ['roles', 'Roles', <ShieldIcon key="i" />, data?.roles.length],
             ['projects', 'Projects', <BoxIcon key="i" />, data?.projects.length],
+            ['redmine', 'Redmine', <PlugIcon key="i" />, null],
           ].map(([id, label, icon, count]) => (
             <button key={id} role="tab" aria-selected={tab === id} className={`admin-tab${tab === id ? ' active' : ''}`} onClick={() => chooseTab(id)}>
               {icon}{label}{count !== undefined && count !== null && <span className="admin-tab-count">{count}</span>}
@@ -597,6 +600,7 @@ export default function AdminOverlay({ onClose, onChanged, onDisplayChange }) {
           <div className="admin-section">
             {tab === 'general' && <DateTimeCard onSaved={onDisplayChange} />}
             {tab === 'general' && <AutomationCard />}
+            {tab === 'redmine' && <RedmineSettings user={user} />}
 
             {tab === 'users' && (
             <AdminCard icon={<UsersIcon />} tone="purple" title="Users" subtitle="People who can sign in, their role and the projects they can see."

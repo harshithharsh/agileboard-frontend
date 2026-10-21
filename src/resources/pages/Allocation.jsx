@@ -3,7 +3,7 @@ import { Filters, PageHead, InfoTip, UtilBar, IssuePills, Person, Empty, fmtHour
 import { selectRows, totals, teamName, projectName, redmineLogin } from '../model/select.js';
 import { DEFINITIONS, inEffect, weeklyHours, round, EPSILON } from '../model/calc.js';
 import { downloadCsv } from '../../lib/download.js';
-import { hrefFor } from '../../lib/route.js';
+import { openSettings } from '../../lib/route.js';
 import AllocationDrawer from '../components/AllocationDrawer.jsx';
 import { AddResourceDialog, BulkDialog } from '../components/ResourceDialogs.jsx';
 
@@ -100,7 +100,7 @@ export default function Allocation({ data, filters, setFilters, period, access }
                   <tr key={r.id} className={selected.has(r.id) ? 'selected' : ''}>
                     {access.canEdit && <td className="rm-check"><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} aria-label={`Select ${r.name}`} /></td>}
                     <td><Person resource={r} sub={r.email} /></td>
-                    <td>{login ? <span className="mono small">{login}</span> : access.canAdmin ? <a href={hrefFor('resources', 'integration')} className="small strong">Map user</a> : <span className="muted small">Not mapped</span>}</td>
+                    <td>{login ? <span className="mono small">{login}</span> : access.canAdmin ? <button type="button" className="link-btn small strong" onClick={() => openSettings('redmine')}>Map user</button> : <span className="muted small">Not mapped</span>}</td>
                     <td>{teamName(data, r.teamId) ?? <span className="muted">—</span>}</td>
                     <td>
                       {allocs.length
