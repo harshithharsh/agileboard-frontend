@@ -568,10 +568,10 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
   const view = data;
 
   return (
-    <div className="admin-overlay" role="dialog" aria-modal="true" aria-label="Workspace settings">
+    <div className="admin-overlay" role="dialog" aria-modal="true" aria-label="Settings">
       <header className="admin-header">
         <div className="admin-top">
-          <h1>Workspace Settings</h1>
+          <h1>Settings</h1>
           <div className="admin-top-actions">
             <ThemeSwitch />
             <button className="icon-btn" onClick={onClose} title="Back to dashboard (Esc)" aria-label="Close settings"><ClearIcon /></button>

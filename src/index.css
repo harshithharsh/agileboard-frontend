@@ -680,7 +680,7 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
   .scope-people li { grid-template-columns: 120px minmax(40px, 1fr) 110px; }
 }
 
-/* Workspace Settings: tabs and settings list */
+/* Settings: tabs and settings list */
 .admin-tabs { display: flex; gap: 4px; max-width: 1440px; margin: 0 auto; padding: 0 32px; overflow-x: auto; }
 .admin-tab { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .admin-tab svg { width: 16px; height: 16px; }
@@ -742,7 +742,7 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 
 /* ---------- App shell: icon sidebar + page ---------- */
 .shell { --side-w: 64px; display: flex; min-height: 100vh; }
-/* Workspace Settings opens beside the sidebar, not over it */
+/* Settings opens beside the sidebar, not over it */
 .shell .admin-overlay { left: var(--side-w); }
 .shell-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .sidebar { position: sticky; top: 0; height: 100vh; width: var(--side-w); flex-shrink: 0; box-sizing: border-box; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 0; z-index: 30; }

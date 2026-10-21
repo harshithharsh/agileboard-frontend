@@ -1,6 +1,6 @@
 import { formatDateTime } from '../lib/datetime.js';
 
-// Product footer, shared by the dashboard and Workspace Settings.
+// Product footer, shared by the dashboard and Settings.
 // Version comes from package.json and "Last updated" is when this build was made (both set at build time).
 const VERSION = __APP_VERSION__.replace(/\.0$/, '');
 

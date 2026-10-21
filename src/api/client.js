@@ -38,7 +38,7 @@ export const api = {
     // outcome: 'met' | 'partly_met' | 'not_met' | null (clear)
     saveGoalOutcome: (sprintId, outcome, note) => send('PUT', `/sprints/${sprintId}/goal-outcome`, { outcome, note }),
   },
-  // Workspace date and time format (everyone reads; admins change it in Workspace Settings)
+  // Workspace date and time format (everyone reads; admins change it in Settings)
   settings: () => request('/settings'),
   me: {
     preferences: () => request('/me/preferences'),

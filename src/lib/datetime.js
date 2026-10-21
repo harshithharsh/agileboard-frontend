@@ -1,5 +1,5 @@
 // Every date and time on screen is formatted here, in the workspace's chosen format
-// (Workspace Settings → Date and Time). Root loads the setting once after sign-in.
+// (Settings → Date and Time). Root loads the setting once after sign-in.
 
 export const DATE_FORMATS = [
   { value: 'DD MMM YYYY', label: '18 Oct 2026' },

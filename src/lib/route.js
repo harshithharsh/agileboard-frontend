@@ -23,5 +23,5 @@ export function useRoute() {
   return route;
 }
 
-// Opens Workspace Settings on a tab (e.g. 'redmine') from anywhere; Shell listens
+// Opens Settings on a tab (e.g. 'redmine') from anywhere; Shell listens
 export const openSettings = (tab) => window.dispatchEvent(new CustomEvent('agilemetrix:open-settings', { detail: tab }));

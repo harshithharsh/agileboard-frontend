@@ -21,7 +21,7 @@ function connectionState(data) {
   return { tone: 'ok', label: 'Connected', detail: `Last sync ${formatDateTime(last.startedAt)}` };
 }
 
-// Workspace Settings → Redmine: loads the resource data itself; mapping uses this quarter's hours
+// Settings → Redmine: loads the resource data itself; mapping uses this quarter's hours
 export function RedmineSettings({ user }) {
   const { data, error } = useResourceData();
   const period = useMemo(() => (data ? periodRange('this-quarter', data.rules, data.today) : null), [data]);

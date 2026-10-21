@@ -101,7 +101,7 @@ export default function Header({ title, icon, onMenu, actions, onOpenAdmin, user
       <div className="header-actions">
         {actions}
         {onOpenAdmin && (
-          <button className="icon-btn" onClick={onOpenAdmin} title="Workspace Settings" aria-label="Settings">
+          <button className="icon-btn" onClick={onOpenAdmin} title="Settings" aria-label="Settings">
             <SettingsIcon />
           </button>
         )}

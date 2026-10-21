@@ -102,7 +102,7 @@ export default function App({ user, onSignOut, onMenu, onOpenAdmin, adminVersion
 
   useEffect(load, [load]);
 
-  // Workspace Settings changed projects or teams: refresh the filter options and the dashboard
+  // Settings changed projects or teams: refresh the filter options and the dashboard
   const firstAdminVersion = useRef(adminVersion);
   useEffect(() => {
     if (adminVersion === firstAdminVersion.current) return;

@@ -11,8 +11,8 @@ const RESOURCE_ITEMS = [
 ];
 
 // Icon rail on the left: the logo, one icon per page (its name shows on hover and to screen readers),
-// and Workspace Settings at the bottom for administrators.
-// While Workspace Settings is open it shows beside the sidebar: Settings is the active item, and a link closes it
+// and Settings at the bottom for administrators.
+// While Settings is open it shows beside the sidebar: Settings is the active item, and a link closes it
 export default function Sidebar({ route, canAdmin, onOpenAdmin, settingsOpen = false, onNavigate }) {
   const link = (href, label, icon, active) => (
     <a key={href} href={href} onClick={onNavigate} className={`side-item${active && !settingsOpen ? ' active' : ''}`} aria-label={label} aria-current={active && !settingsOpen ? 'page' : undefined}>
@@ -35,8 +35,8 @@ export default function Sidebar({ route, canAdmin, onOpenAdmin, settingsOpen = f
       </div>
 
       {onOpenAdmin && (
-        <button className={`side-item side-bottom${settingsOpen ? ' active' : ''}`} onClick={onOpenAdmin} aria-label="Workspace Settings" aria-pressed={settingsOpen}>
-          <SettingsIcon /><span className="side-tip" role="tooltip">Workspace Settings</span>
+        <button className={`side-item side-bottom${settingsOpen ? ' active' : ''}`} onClick={onOpenAdmin} aria-label="Settings" aria-pressed={settingsOpen}>
+          <SettingsIcon /><span className="side-tip" role="tooltip">Settings</span>
         </button>
       )}
     </nav>
