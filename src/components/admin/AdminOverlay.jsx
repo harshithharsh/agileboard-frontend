@@ -639,7 +639,7 @@ function TeamMembersDialog({ team, users, onClose, onChanged }) {
       {info && (
         <>
           <table className="admin-table members-table">
-            <thead><tr><th>Name</th><th>Source</th><th className="num">Issues</th><th className="col-actions" aria-label="Actions" /></tr></thead>
+            <thead><tr><th>Name</th><th className="col-actions" aria-label="Actions" /></tr></thead>
             <tbody>
               {members.map((m) => (
                 <tr key={m.id}>
@@ -647,13 +647,11 @@ function TeamMembersDialog({ team, users, onClose, onChanged }) {
                     <span className="person"><span className="avatar" style={{ background: avatarColor(m.name) }}>{initials(m.name)}</span>
                       <span><b>{m.name}</b>{m.email && <span className="cell-sub">{m.email}</span>}</span></span>
                   </td>
-                  <td><span className={`tag${m.source === 'jira' ? ' tag-jira' : ''}`}>{m.source === 'jira' ? 'From Jira' : 'Added here'}</span></td>
-                  <td className="num">{m.issues}</td>
                   <td><button className="action-btn action-danger" onClick={() => run(m.id, () => api.admin.removeTeamMember(team.id, m.id))} disabled={!!busy}
                     title="Remove from team" aria-label={`Remove ${m.name}`}><TrashIcon /></button></td>
                 </tr>
               ))}
-              {!members.length && <Empty cols={4} text="No members yet." />}
+              {!members.length && <Empty cols={2} text="No members yet." />}
             </tbody>
           </table>
           <div className="members-add">
