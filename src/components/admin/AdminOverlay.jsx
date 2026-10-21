@@ -647,7 +647,7 @@ function TeamMembersDialog({ team, users, onClose, onChanged }) {
                     <span className="person"><span className="avatar" style={{ background: avatarColor(m.name) }}>{initials(m.name)}</span>
                       <span><b>{m.name}</b>{m.email && <span className="cell-sub">{m.email}</span>}</span></span>
                   </td>
-                  <td><button className="action-btn action-danger" onClick={() => run(m.id, () => api.admin.removeTeamMember(team.id, m.id))} disabled={!!busy}
+                  <td className="col-actions"><button className="action-btn action-danger" onClick={() => run(m.id, () => api.admin.removeTeamMember(team.id, m.id))} disabled={!!busy}
                     title="Remove from team" aria-label={`Remove ${m.name}`}><TrashIcon /></button></td>
                 </tr>
               ))}
