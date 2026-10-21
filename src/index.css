@@ -984,9 +984,6 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 .team-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
 .team-chip span { min-width: 20px; padding: 1px 6px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: 11px; text-align: center; }
 .team-chip:hover, .team-chip:focus-visible { border-color: var(--primary); color: var(--primary); }
-.members-head { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
-.members-head p { margin: 0; line-height: 1.5; }
-.members-head .btn-primary-solid { flex-shrink: 0; }
 .members-table { margin-bottom: 12px; }
 .members-table .cell-sub { display: block; }
 .members-add { display: flex; gap: 8px; }
@@ -996,7 +993,6 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 .members-removed ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .members-removed li { display: flex; justify-content: space-between; gap: 12px; }
 .form-note { margin: 0 0 12px; padding: 8px 12px; border-radius: 8px; background: var(--success-soft, var(--surface-2)); color: var(--text); font-size: 13px; }
-@media (max-width: 640px) { .members-head { flex-direction: column; } }
 
 /* Settings → Integrations */
 .integration-switch { align-self: flex-start; }

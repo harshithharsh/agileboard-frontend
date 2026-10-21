@@ -600,14 +600,13 @@ function FormButtons({ onCancel, onSave, saving, label = 'Save' }) {
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// Team members: fetched from Jira (assignees on the board), with manual additions and removals
+// Team members: from the Jira sync (assignees on the board), with manual additions and removals
 // ---------------------------------------------------------------------------
 
-function TeamMembersDialog({ team, project, users, onClose, onChanged }) {
+function TeamMembersDialog({ team, users, onClose, onChanged }) {
   const [info, setInfo] = useState(null);
-  const [busy, setBusy] = useState(null); // 'fetch' | userId | 'add'
+  const [busy, setBusy] = useState(null); // userId | 'add'
   const [error, setError] = useState(null);
-  const [note, setNote] = useState(null);
   const [adding, setAdding] = useState('');
 
   useEffect(() => { api.admin.teamMembers(team.id).then(setInfo).catch((e) => setError(e.message)); }, [team.id]);
@@ -615,7 +614,6 @@ function TeamMembersDialog({ team, project, users, onClose, onChanged }) {
   const run = async (key, fn, after) => {
     setBusy(key);
     setError(null);
-    setNote(null);
     try {
       const r = await fn();
       setInfo((s) => ({ ...s, members: r.members }));
@@ -627,8 +625,6 @@ function TeamMembersDialog({ team, project, users, onClose, onChanged }) {
       setBusy(null);
     }
   };
-  const fetchFromJira = () => run('fetch', () => api.admin.fetchTeamMembers(team.id), (r) =>
-    setNote(r.added ? `Found ${r.found} people on the board; added ${r.added} new.` : `Found ${r.found} people on the board; everyone is already listed.`));
 
   const members = info?.members.filter((m) => !m.excluded) ?? [];
   const removed = info?.members.filter((m) => m.excluded) ?? [];
@@ -638,17 +634,7 @@ function TeamMembersDialog({ team, project, users, onClose, onChanged }) {
   return (
     <Modal title={`${team.name} · team members`} width={640} onClose={onClose}
       footer={<button className="btn" onClick={onClose}>Done</button>}>
-      <div className="members-head">
-        <p className="muted small">
-          {project.name} · Jira board #{team.jiraBoardId ?? '—'}. Fetching adds everyone assigned to an issue on the board
-          updated in the last {info?.windowDays ?? 90} days. The nightly sync adds new assignees too; people you remove stay removed.
-        </p>
-        <button className="btn-primary-solid" onClick={fetchFromJira} disabled={!!busy || !team.jiraBoardId}>
-          {busy === 'fetch' ? 'Fetching from Jira…' : 'Fetch from Jira'}
-        </button>
-      </div>
       {error && <p className="form-error">{error}</p>}
-      {note && <p className="form-note" role="status">{note}</p>}
       {!info && !error && <p className="muted">Loading…</p>}
       {info && (
         <>
@@ -667,7 +653,7 @@ function TeamMembersDialog({ team, project, users, onClose, onChanged }) {
                     title="Remove from team" aria-label={`Remove ${m.name}`}><TrashIcon /></button></td>
                 </tr>
               ))}
-              {!members.length && <Empty cols={4} text="No members yet. Fetch them from Jira." />}
+              {!members.length && <Empty cols={4} text="No members yet." />}
             </tbody>
           </table>
           <div className="members-add">
@@ -903,7 +889,7 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
       {editing?.kind === 'projects' && <ProjectForm item={editing.item} onSave={save} onCancel={() => setEditing(null)} saving={saving} error={formError} />}
 
       {membersOf && (
-        <TeamMembersDialog team={membersOf.team} project={membersOf.project} users={data.users}
+        <TeamMembersDialog team={membersOf.team} users={data.users}
           onClose={() => setMembersOf(null)} onChanged={() => { load(); onChanged?.(); }} />
       )}
 

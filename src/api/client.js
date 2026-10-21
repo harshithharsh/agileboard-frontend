@@ -57,7 +57,6 @@ export const api = {
     integrations: () => request('/admin/integrations'),
     testIntegration: (name) => send('POST', `/admin/integrations/${name}/test`),
     teamMembers: (teamId) => request(`/admin/teams/${teamId}/members`),
-    fetchTeamMembers: (teamId) => send('POST', `/admin/teams/${teamId}/members/fetch`),
     addTeamMember: (teamId, userId) => send('POST', `/admin/teams/${teamId}/members`, { userId }),
     removeTeamMember: (teamId, userId) => send('DELETE', `/admin/teams/${teamId}/members/${userId}`),
     jiraBoards: (key) => request(`/admin/jira/projects/${encodeURIComponent(key)}/boards`),
