@@ -7,7 +7,7 @@ import { formatDateTime } from '../../lib/format.js';
 import { DATE_FORMATS, TIME_FORMATS, formatDate, formatTime, getDisplaySettings } from '../../lib/datetime.js';
 import { getThemeChoice, setThemeChoice } from '../../lib/theme.js';
 import {
-  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SunIcon, MoonIcon, MonitorIcon, ClockIcon, PlugIcon,
+  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SunIcon, MoonIcon, MonitorIcon, ClockIcon, PlugIcon, JiraMark,
 } from '../Icons.jsx';
 
 const PERMISSION_LABELS = { view: 'View', create: 'Create', edit: 'Edit', delete: 'Delete', admin: 'Admin' };
@@ -269,6 +269,114 @@ function AutomationCard() {
         <button className="btn-primary-solid" onClick={save} disabled={!changed || state.saving}>{state.saving ? 'Saving…' : 'Save changes'}</button>
       </div>
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Integrations: Jira and Redmine, each with its connection (set in the backend .env) and its settings
+// ---------------------------------------------------------------------------
+
+function Row({ label, hint, children }) {
+  return (
+    <div className="pref-row">
+      <div className="pref-row-text">
+        <span className="pref-row-label">{label}</span>
+        {hint && <span className="pref-row-hint">{hint}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+const Status = ({ ok, children }) => <span className={`status ${ok ? 'status-on_track' : 'status-attention'}`}><i />{children}</span>;
+
+// Status row + "Test connection" for one integration
+function ConnectionCard({ name, title, intro, info, envHint, rows, describe }) {
+  const [test, setTest] = useState(null); // { running } | result
+  const run = async () => {
+    setTest({ running: true });
+    try { setTest(await api.admin.testIntegration(name)); } catch (e) { setTest({ ok: false, error: e.message }); }
+  };
+  return (
+    <section className="admin-card settings-card">
+      <div className="settings-card-head"><h2>{title}</h2><p>{intro}</p></div>
+      <Row label="Connection" hint={info.configured ? 'Set in the backend .env. Secrets stay on the server and are never shown here.' : envHint}>
+        <Status ok={info.configured}>{info.configured ? 'Configured' : 'Not set up'}</Status>
+      </Row>
+      {rows}
+      {test && !test.running && (
+        <Row label="Test result" hint={test.ok ? describe(test) : test.error}>
+          <Status ok={test.ok}>{test.ok ? 'Connected' : 'Failed'}</Status>
+        </Row>
+      )}
+      <div className="settings-card-foot">
+        <button className="btn" onClick={run} disabled={!info.configured || test?.running}>{test?.running ? 'Testing…' : 'Test connection'}</button>
+      </div>
+    </section>
+  );
+}
+
+function JiraIntegration({ info }) {
+  const last = info.lastSync;
+  return (
+    <>
+      <ConnectionCard name="jira" title="Jira connection" info={info}
+        intro="Sprints, issues and team members come from Jira Cloud."
+        envHint="Set JIRA_BASE_URL, JIRA_EMAIL and JIRA_API_TOKEN in the backend .env, then restart it."
+        describe={(t) => `Signed in as ${t.account}${t.timeZone ? ` (${t.timeZone})` : ''}; the token can see ${t.projects} project${t.projects === 1 ? '' : 's'}.`}
+        rows={(
+          <>
+            <Row label="Site"><span className="pref-value mono">{info.baseUrl ?? '—'}</span></Row>
+            <Row label="Account" hint="Jira user the API token belongs to."><span className="pref-value">{info.email ?? '—'}</span></Row>
+            <Row label="API token"><Status ok={info.tokenSet}>{info.tokenSet ? 'Set' : 'Not set'}</Status></Row>
+            <Row label="What is synced" hint={`Sprints that started since ${formatDate(info.syncSince)}, and at least the last ${info.closedSprints} closed sprints of each team's board.`}>
+              <span className="pref-value">{info.projects} projects · {info.teams} teams · {info.sprints} sprints</span>
+            </Row>
+            <Row label="Last sync" hint={last?.message ?? (info.running ? 'A sync is running now.' : 'No sync has run yet.')}>
+              {last && <Status ok={last.status === 'success'}>{{ success: 'Succeeded', failed: 'Failed', running: 'Running' }[last.status] ?? last.status} · {formatDateTime(last.finished_at ?? last.started_at)}</Status>}
+            </Row>
+          </>
+        )} />
+      <AutomationCard />
+    </>
+  );
+}
+
+function RedmineIntegration({ info, user }) {
+  return (
+    <>
+      <ConnectionCard name="redmine" title="Redmine connection" info={info}
+        intro="Time entries for Resource Management come from Redmine."
+        envHint="Set REDMINE_URL and REDMINE_API_KEY in the backend .env, then restart it."
+        describe={(t) => `Signed in as ${t.account} (${t.login}); the key can read ${t.projects ?? '?'} project${t.projects === 1 ? '' : 's'}${t.canListUsers ? ' and list all users.' : '. It can’t list all users (needs a Redmine admin account), so people are taken from time entries.'}`}
+        rows={(
+          <>
+            <Row label="Site"><span className="pref-value mono">{info.baseUrl ?? '—'}</span></Row>
+            <Row label="API key"><Status ok={info.keySet}>{info.keySet ? 'Set' : 'Not set'}</Status></Row>
+          </>
+        )} />
+      <div className="settings-subhead-plain">Import setup <span className="rm-pill warn">Demo</span></div>
+      <RedmineSettings user={user} />
+    </>
+  );
+}
+
+function IntegrationsTab({ user, sub, setSub }) {
+  const [info, setInfo] = useState(null);
+  const [error, setError] = useState(null);
+  useEffect(() => { api.admin.integrations().then(setInfo).catch((e) => setError(e.message)); }, []);
+  return (
+    <>
+      <div className="segmented integration-switch" role="tablist" aria-label="Integration">
+        {[['jira', 'Jira', <JiraMark key="i" />], ['redmine', 'Redmine', <PlugIcon key="i" />]].map(([id, label, icon]) => (
+          <button key={id} role="tab" aria-selected={sub === id} className={`segment${sub === id ? ' active' : ''}`} onClick={() => setSub(id)}>{icon}{label}</button>
+        ))}
+      </div>
+      {error && <div className="card error">Could not load integrations: {error}</div>}
+      {!info && !error && <div className="card empty">Loading…</div>}
+      {info && sub === 'jira' && <JiraIntegration info={info.jira} />}
+      {info && sub === 'redmine' && <RedmineIntegration info={info.redmine} user={user} />}
+    </>
   );
 }
 
@@ -588,10 +696,22 @@ function TeamMembersDialog({ team, project, users, onClose, onChanged }) {
 
 export default function AdminOverlay({ user, initialTab, onClose, onChanged, onDisplayChange }) {
   // Which section is open; remembered in this browser unless a page asked for a tab
+  // Links ask for 'redmine' or 'jira': that is the Integrations tab
   const [tab, setTab] = useState(() => {
-    if (initialTab) return initialTab;
-    try { return localStorage.getItem('agilemetrix-admin-tab') || 'users'; } catch { return 'users'; }
+    if (initialTab) return ['redmine', 'jira'].includes(initialTab) ? 'integrations' : initialTab;
+    try {
+      const saved = localStorage.getItem('agilemetrix-admin-tab') || 'users';
+      return saved === 'redmine' ? 'integrations' : saved;
+    } catch { return 'users'; }
   });
+  const [integration, setIntegration] = useState(() => {
+    if (['redmine', 'jira'].includes(initialTab)) return initialTab;
+    try { return localStorage.getItem('agilemetrix-admin-integration') || 'jira'; } catch { return 'jira'; }
+  });
+  const chooseIntegration = (id) => {
+    setIntegration(id);
+    try { localStorage.setItem('agilemetrix-admin-integration', id); } catch { /* storage unavailable */ }
+  };
   const chooseTab = (id) => {
     setTab(id);
     try { localStorage.setItem('agilemetrix-admin-tab', id); } catch { /* storage unavailable */ }
@@ -679,7 +799,7 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
             ['users', 'Users', <UsersIcon key="i" />, data?.users.length],
             ['roles', 'Roles', <ShieldIcon key="i" />, data?.roles.length],
             ['projects', 'Projects', <BoxIcon key="i" />, data?.projects.length],
-            ['redmine', 'Redmine', <PlugIcon key="i" />, null],
+            ['integrations', 'Integrations', <PlugIcon key="i" />, null],
           ].map(([id, label, icon, count]) => (
             <button key={id} role="tab" aria-selected={tab === id} className={`admin-tab${tab === id ? ' active' : ''}`} onClick={() => chooseTab(id)}>
               {icon}{label}{count !== undefined && count !== null && <span className="admin-tab-count">{count}</span>}
@@ -695,8 +815,7 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
         {view && (
           <div className="admin-section">
             {tab === 'general' && <DateTimeCard onSaved={onDisplayChange} />}
-            {tab === 'general' && <AutomationCard />}
-            {tab === 'redmine' && <RedmineSettings user={user} />}
+            {tab === 'integrations' && <IntegrationsTab user={user} sub={integration} setSub={chooseIntegration} />}
 
             {tab === 'users' && (
             <AdminCard icon={<UsersIcon />} tone="purple" title="Users" subtitle="People who can sign in, their role and the projects they can see."

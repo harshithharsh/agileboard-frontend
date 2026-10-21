@@ -997,3 +997,9 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 .members-removed li { display: flex; justify-content: space-between; gap: 12px; }
 .form-note { margin: 0 0 12px; padding: 8px 12px; border-radius: 8px; background: var(--success-soft, var(--surface-2)); color: var(--text); font-size: 13px; }
 @media (max-width: 640px) { .members-head { flex-direction: column; } }
+
+/* Settings → Integrations */
+.integration-switch { align-self: flex-start; }
+.pref-value { font-size: 13px; color: var(--text); text-align: right; white-space: nowrap; }
+.pref-value.mono { white-space: normal; overflow-wrap: anywhere; }
+.settings-subhead-plain { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
