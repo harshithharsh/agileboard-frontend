@@ -116,7 +116,7 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
               <label className="field"><span className="field-label">Redmine user</span>
                 <select value={f.redmineUserId} disabled={readOnly || !access.canAdmin} onChange={(e) => setF((s) => ({ ...s, redmineUserId: e.target.value }))}>
                   <option value="">Not mapped</option>
-                  {data.redmineUsers.filter((u) => !usedUsers.has(u.id)).map((u) => <option key={u.id} value={u.id}>{u.login} ({u.name})</option>)}
+                  {data.redmineUsers.filter((u) => !usedUsers.has(u.id)).map((u) => <option key={u.id} value={u.id}>{u.login ? `${u.login} (${u.name})` : u.name}</option>)}
                 </select>
               </label>
               <label className="field"><span className="field-label">Employment FTE <InfoTip text={DEFINITIONS.fte} /></span>

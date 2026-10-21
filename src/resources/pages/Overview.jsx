@@ -41,7 +41,7 @@ export default function Overview({ data, filters, setFilters, period, access }) 
   const band = (pct) => (pct == null ? 'none' : pct > data.rules.thresholds.over ? 'over' : pct < data.rules.thresholds.under ? 'under' : 'ok');
 
   // Alerts: the exceptions worth acting on, each linking to where it is fixed
-  const unmapped = unmappedUsers(data, period);
+  const unmapped = unmappedUsers(data, period, filters.projectId);
   const lastRun = data.syncRuns[0];
   const over = rows.filter((r) => r.issues.includes('overallocated'));
   const noFte = rows.filter((r) => r.issues.includes('missing-fte'));

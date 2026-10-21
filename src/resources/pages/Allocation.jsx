@@ -5,7 +5,7 @@ import { DEFINITIONS, inEffect, weeklyHours, round, EPSILON } from '../model/cal
 import { downloadCsv } from '../../lib/download.js';
 import { openSettings } from '../../lib/route.js';
 import AllocationDrawer from '../components/AllocationDrawer.jsx';
-import { AddResourceDialog, BulkDialog } from '../components/ResourceDialogs.jsx';
+import { BulkDialog } from '../components/ResourceDialogs.jsx';
 
 const STATUS_FILTERS = [
   ['all', 'All'], ['attention', 'Needs attention'], ['overallocated', 'Over-allocated'], ['missing-fte', 'FTE not set'], ['unmapped', 'Not mapped'], ['no-team', 'No team'],
@@ -17,7 +17,6 @@ export default function Allocation({ data, filters, setFilters, period, access }
   const [status, setStatus] = useState('all');
   const [selected, setSelected] = useState(new Set());
   const [editing, setEditing] = useState(null); // resource id
-  const [adding, setAdding] = useState(false);
   const [bulk, setBulk] = useState(false);
 
   const all = useMemo(() => selectRows(data, period, filters, { search }), [data, period, filters, search]);
@@ -40,7 +39,6 @@ export default function Allocation({ data, filters, setFilters, period, access }
       <PageHead title="Resource allocation"
         sub="Who works on what, and how much. Employment FTE is each person’s total capacity; project allocations split it. Hours are for the selected period.">
         <button className="btn" onClick={exportCsv}>Export CSV</button>
-        {access.canEdit && <button className="btn-primary-solid" onClick={() => setAdding(true)}>+ Add resource</button>}
       </PageHead>
 
       <Filters filters={filters} setFilters={setFilters} data={data} period={period}>
@@ -143,7 +141,6 @@ export default function Allocation({ data, filters, setFilters, period, access }
         : 'You can view allocations. Changing FTE needs the Edit permission.'}</p>
 
       {editing && <AllocationDrawer resource={data.resources.find((r) => r.id === editing)} data={data} period={period} access={access} onClose={() => setEditing(null)} />}
-      {adding && <AddResourceDialog data={data} access={access} onClose={() => setAdding(false)} onAdded={(id) => { setAdding(false); setEditing(id); }} />}
       {bulk && <BulkDialog data={data} ids={[...selected]} access={access} onClose={() => setBulk(false)} onDone={() => { setBulk(false); setSelected(new Set()); }} />}
     </>
   );

@@ -59,7 +59,7 @@ const REPORTS = [
   { id: 'quality', title: 'Data quality', text: 'Unmapped users, missing FTE, over-allocation, sync errors', build: (ctx) => ({
     columns: [['kind', 'Issue'], ['who', 'Who / what'], ['detail', 'Detail']],
     rows: [
-      ...unmappedUsers(ctx.data, ctx.period).map((u) => ({ kind: 'Redmine user not mapped', who: `${u.user.login} (${u.user.name})`, detail: `${fmtHours(u.hours)} in period not counted` })),
+      ...unmappedUsers(ctx.data, ctx.period, ctx.filters.projectId).map((u) => ({ kind: 'Redmine user not mapped', who: u.user.login ? `${u.user.login} (${u.user.name})` : u.user.name, detail: `${fmtHours(u.hours)} in period not counted` })),
       ...ctx.rows.flatMap((r) => r.issues.filter((i) => i !== 'unmapped').map((i) => ({ kind: ISSUE_LABEL[i], who: r.resource.name, detail: i === 'missing-fte' ? `${fmtHours(r.actual)} logged without capacity` : i === 'overallocated' ? `${fmtFte(r.allocatedFte)} allocated of ${fmtFte(r.resource.employmentFte)}` : '' }))),
       ...ctx.rows.filter((r) => r.issues.includes('unmapped')).map((r) => ({ kind: 'Person without Redmine user', who: r.resource.name, detail: 'Actual hours can’t be shown' })),
       ...ctx.data.syncRuns.filter((s) => s.status !== 'success').map((s) => ({ kind: s.status === 'failed' ? 'Sync failed' : 'Sync partial', who: formatDateTime(s.startedAt), detail: s.message })),
@@ -82,7 +82,7 @@ export default function Reports({ data, filters, setFilters, period }) {
     [`Period: ${period.start} to ${period.end}${period.toDate ? ' (to date)' : ''}`],
     [`Filters: ${filterText}`],
     [`Generated: ${formatDateTime(generated)}`],
-    [data.demo ? 'Demo data: fictional people and hours' : `Redmine data as of ${data.syncRuns[0] ? formatDateTime(data.syncRuns[0].startedAt) : '—'}`],
+    [`Redmine data as of ${data.syncRuns[0] ? formatDateTime(data.syncRuns[0].startedAt) : '—'}`],
     [],
     built.columns.map(([, label, kind]) => (kind === 'h' || kind === 's' ? `${label} (h)` : kind === '%' ? `${label} %` : label)),
     ...built.rows.map((r) => built.columns.map(([k]) => r[k] ?? '')),
@@ -143,7 +143,6 @@ export default function Reports({ data, filters, setFilters, period }) {
           <details className="rm-defs" open>
             <summary>Definitions used in this report</summary>
             <ul>{DEFS.map(([k, v]) => <li key={k}><b>{k}</b> = {v}</li>)}</ul>
-            {data.demo && <p className="muted small">Demo data: fictional people and hours. Excel export comes with the backend; CSV opens in Excel.</p>}
           </details>
         </article>
       </section>

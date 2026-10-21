@@ -743,8 +743,6 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 
 /* ---------- Resource Management ---------- */
 .rm-main { width: 100%; max-width: 1440px; margin: 0 auto; padding: 24px 32px 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; }
-.rm-demo { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--warning-text); background: var(--warning-soft); border: 1px solid var(--warning-border); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
-.rm-demo .btn-link { font-size: 12px; }
 .rm-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
 .rm-head h1 { margin: 0; font-size: 22px; font-weight: 700; }
 .rm-head p { margin: 4px 0 0; font-size: 13px; color: var(--muted); max-width: 820px; }

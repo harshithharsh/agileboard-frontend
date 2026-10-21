@@ -44,6 +44,10 @@ export const api = {
     preferences: () => request('/me/preferences'),
     savePreferences: (body) => send('PUT', '/me/preferences', body),
   },
+  // Resource Management (people, FTE, allocations, Redmine hours)
+  resources: () => request('/resources'),
+  saveResource: (id, body) => send('PUT', `/resources/${id}`, body),
+  saveAllocations: (id, allocations) => send('PUT', `/resources/${id}/allocations`, { allocations }),
   admin: {
     load: () => request('/admin'),
     saveSettings: (body) => send('PUT', '/admin/settings', body),
