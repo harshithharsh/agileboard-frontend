@@ -361,7 +361,7 @@ function JiraIntegration({ info, onSynced }) {
   const sync = useJiraSync(onSynced);
   useEffect(() => { if (info.running) sync.follow(null); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <>
+    <div className="integration-grid">
       <ConnectionCard name="jira" title="Jira connection" info={info}
         intro="Sprints, issues and team members come from Jira Cloud."
         envHint="Set JIRA_BASE_URL, JIRA_EMAIL and JIRA_API_TOKEN in the backend .env, then restart it."
@@ -388,7 +388,7 @@ function JiraIntegration({ info, onSynced }) {
           </>
         )} />
       <AutomationCard />
-    </>
+    </div>
   );
 }
 
