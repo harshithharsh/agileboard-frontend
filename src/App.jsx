@@ -108,10 +108,12 @@ export default function App({ user, onSignOut, onMenu, onOpenAdmin, adminVersion
     if (adminVersion === firstAdminVersion.current) return;
     loadFilters();
     load();
+    // A sync started in Settings may still be running: show its progress here
+    api.syncStatus().then((status) => { if (status.running) follow(status); }).catch(() => {});
   }, [adminVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Jira sync. Only one runs at a time on the server: Refresh starts it (or joins one already running,
-  // e.g. started by a colleague), then we follow its progress every 2 s until it ends.
+  // Jira sync runs from Settings → Integrations → Jira. If one is running when the dashboard opens,
+  // follow its progress every 2 s and reload when it ends.
   const [syncProgress, setSyncProgress] = useState(null); // { phase, sprintsDone, sprintsTotal, current, percent, startedAt }
   const [syncDone, setSyncDone] = useState(null); // { sprints, seconds } briefly after a successful sync
   const following = useRef(false);
@@ -168,16 +170,6 @@ export default function App({ user, onSignOut, onMenu, onOpenAdmin, adminVersion
     return () => clearTimeout(t);
   }, [syncDone]);
 
-  const refresh = async () => {
-    if (following.current) return; // already following a sync: never send a second request
-    try {
-      const started = await api.syncFromJira();
-      follow(started);
-    } catch (e) {
-      setSyncError(e.message);
-    }
-  };
-
   const updateFilters = (patch) => setFilters((f) => resolveFilters({ ...f, ...patch }, options));
   const defaultFilters = options ? resolveFilters(EMPTY_FILTERS, options) : EMPTY_FILTERS;
   const isDefault = Object.keys(EMPTY_FILTERS).every((k) => filters[k] === defaultFilters[k]);
@@ -186,7 +178,7 @@ export default function App({ user, onSignOut, onMenu, onOpenAdmin, adminVersion
   return (
     <div className="app">
       <Header title="Agile Metrics" icon={<ChartIcon />} onMenu={onMenu} onOpenAdmin={onOpenAdmin} user={user} onSignOut={onSignOut}
-        actions={<SprintActions context={data?.context} loading={loading || syncing} syncing={syncing} onRefresh={refresh} onExport={() => data && exportDashboardCsv(data)} onCustomize={data && !editing ? startCustomize : null} customizing={editing} canSync={canSync} />} />
+        actions={<SprintActions context={data?.context} onExport={() => data && exportDashboardCsv(data)} onCustomize={data && !editing ? startCustomize : null} customizing={editing} />} />
       <main className={loading ? 'is-loading' : ''}>
         {options && <FilterBar options={options} filters={filters} onChange={updateFilters} onClear={clearFilters} isDefault={isDefault} />}
         {(syncProgress || (syncing && !syncError)) && <SyncProgress progress={syncProgress} />}
@@ -194,11 +186,11 @@ export default function App({ user, onSignOut, onMenu, onOpenAdmin, adminVersion
         {syncError && <div className="card warning">Could not sync from Jira: {syncError}. Showing the last synced data.</div>}
         {error && (
           <div className={`card ${/no sprints/i.test(error) ? 'empty' : 'error'}`}>
-            {/no sprints/i.test(error) ? 'No sprints synced for this team yet. Click Refresh to pull them from Jira.' : `Could not load the dashboard: ${error}`}
+            {/no sprints/i.test(error) ? 'No sprints synced for this team yet. An administrator can sync from Settings → Integrations → Jira.' : `Could not load the dashboard: ${error}`}
           </div>
         )}
         {options && !options.sprints.length && !error && (
-          <div className="card empty">No sprints yet. Click <b>Refresh</b> (or run <code>npm run sync</code> in the backend) to pull sprints from Jira.</div>
+          <div className="card empty">No sprints yet. An administrator can pull them from Jira in <b>Settings → Integrations → Jira</b>.</div>
         )}
         {!data && !error && options?.sprints.length > 0 && <div className="card empty">Loading dashboard…</div>}
 

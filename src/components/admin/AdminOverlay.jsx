@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../api/client.js';
 import Modal, { Field } from './Modal.jsx';
 import Footer from '../Footer.jsx';
+import SyncProgress from '../SyncProgress.jsx';
 import { RedmineSettings } from '../../resources/pages/Integration.jsx';
 import { formatDateTime } from '../../lib/format.js';
 import { DATE_FORMATS, TIME_FORMATS, formatDate, formatTime, getDisplaySettings } from '../../lib/datetime.js';
@@ -291,7 +292,7 @@ function Row({ label, hint, children }) {
 const Status = ({ ok, children }) => <span className={`status ${ok ? 'status-on_track' : 'status-attention'}`}><i />{children}</span>;
 
 // Status row + "Test connection" for one integration
-function ConnectionCard({ name, title, intro, info, envHint, rows, describe }) {
+function ConnectionCard({ name, title, intro, info, envHint, rows, describe, extra, actions }) {
   const [test, setTest] = useState(null); // { running } | result
   const run = async () => {
     setTest({ running: true });
@@ -309,21 +310,70 @@ function ConnectionCard({ name, title, intro, info, envHint, rows, describe }) {
           <Status ok={test.ok}>{test.ok ? 'Connected' : 'Failed'}</Status>
         </Row>
       )}
+      {extra}
       <div className="settings-card-foot">
         <button className="btn" onClick={run} disabled={!info.configured || test?.running}>{test?.running ? 'Testing…' : 'Test connection'}</button>
+        {actions}
       </div>
     </section>
   );
 }
 
-function JiraIntegration({ info }) {
+// Sync now: one sync at a time on the server; follow its progress every 2 s until it ends
+function useJiraSync(onFinished) {
+  const [state, setState] = useState({ running: false, progress: null, done: null, error: null });
+  const following = useRef(false);
+  const follow = useCallback(async (first) => {
+    if (following.current) return;
+    following.current = true;
+    setState({ running: true, progress: first?.progress ?? null, done: null, error: null });
+    let last = first?.progress ?? null;
+    try {
+      for (;;) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const status = await api.syncStatus();
+        if (!status.running) {
+          const l = status.latest;
+          if (l?.status === 'failed') setState({ running: false, progress: null, done: null, error: l.message || 'The sync failed' });
+          else setState({ running: false, progress: null, error: null,
+            done: { sprints: last?.sprintsTotal ?? null, seconds: l ? Math.round((new Date(l.finished_at) - new Date(l.started_at)) / 1000) : 0 } });
+          break;
+        }
+        last = status.progress ?? last;
+        setState((s) => ({ ...s, progress: status.progress }));
+      }
+    } catch (e) {
+      setState({ running: false, progress: null, done: null, error: e.message });
+    } finally {
+      following.current = false;
+      onFinished();
+    }
+  }, [onFinished]);
+  const start = async () => {
+    if (following.current) return;
+    try { follow(await api.syncFromJira()); } catch (e) { setState((s) => ({ ...s, error: e.message })); }
+  };
+  return { ...state, start, follow, clear: () => setState((s) => ({ ...s, done: null, error: null })) };
+}
+
+function JiraIntegration({ info, onSynced }) {
   const last = info.lastSync;
+  const sync = useJiraSync(onSynced);
+  useEffect(() => { if (info.running) sync.follow(null); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <>
       <ConnectionCard name="jira" title="Jira connection" info={info}
         intro="Sprints, issues and team members come from Jira Cloud."
         envHint="Set JIRA_BASE_URL, JIRA_EMAIL and JIRA_API_TOKEN in the backend .env, then restart it."
         describe={(t) => `Signed in as ${t.account}${t.timeZone ? ` (${t.timeZone})` : ''}; the token can see ${t.projects} project${t.projects === 1 ? '' : 's'}.`}
+        actions={<button className="btn-primary-solid" onClick={sync.start} disabled={!info.configured || sync.running}>{sync.running ? 'Syncing…' : 'Sync now'}</button>}
+        extra={(sync.running || sync.done || sync.error) && (
+          <div className="integration-sync">
+            {sync.running && <SyncProgress progress={sync.progress} />}
+            {sync.done && <SyncProgress done={sync.done} onClose={sync.clear} />}
+            {sync.error && <p className="form-error">Could not sync from Jira: {sync.error}</p>}
+          </div>
+        )}
         rows={(
           <>
             <Row label="Site"><span className="pref-value mono">{info.baseUrl ?? '—'}</span></Row>
@@ -361,10 +411,12 @@ function RedmineIntegration({ info, user }) {
   );
 }
 
-function IntegrationsTab({ user, sub, setSub }) {
+function IntegrationsTab({ user, sub, setSub, onChanged }) {
   const [info, setInfo] = useState(null);
   const [error, setError] = useState(null);
-  useEffect(() => { api.admin.integrations().then(setInfo).catch((e) => setError(e.message)); }, []);
+  const loadInfo = useCallback(() => api.admin.integrations().then(setInfo).catch((e) => setError(e.message)), []);
+  useEffect(() => { loadInfo(); }, [loadInfo]);
+  const onSynced = useCallback(() => { loadInfo(); onChanged?.(); }, [loadInfo, onChanged]);
   return (
     <>
       <div className="segmented integration-switch" role="tablist" aria-label="Integration">
@@ -374,7 +426,7 @@ function IntegrationsTab({ user, sub, setSub }) {
       </div>
       {error && <div className="card error">Could not load integrations: {error}</div>}
       {!info && !error && <div className="card empty">Loading…</div>}
-      {info && sub === 'jira' && <JiraIntegration info={info.jira} />}
+      {info && sub === 'jira' && <JiraIntegration info={info.jira} onSynced={onSynced} />}
       {info && sub === 'redmine' && <RedmineIntegration info={info.redmine} user={user} />}
     </>
   );
@@ -799,7 +851,7 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
         {view && (
           <div className="admin-section">
             {tab === 'general' && <DateTimeCard onSaved={onDisplayChange} />}
-            {tab === 'integrations' && <IntegrationsTab user={user} sub={integration} setSub={chooseIntegration} />}
+            {tab === 'integrations' && <IntegrationsTab user={user} sub={integration} setSub={chooseIntegration} onChanged={onChanged} />}
 
             {tab === 'users' && (
             <AdminCard icon={<UsersIcon />} tone="purple" title="Users" subtitle="People who can sign in, their role and the projects they can see."
