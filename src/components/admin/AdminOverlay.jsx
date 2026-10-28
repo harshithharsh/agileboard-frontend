@@ -320,7 +320,7 @@ function Row({ label, hint, children }) {
 const Status = ({ ok, children }) => <span className={`status ${ok ? 'status-on_track' : 'status-attention'}`}><i />{children}</span>;
 
 // Status row + "Test connection" for one integration
-function ConnectionCard({ name, title, intro, info, envHint, rows, describe, extra, actions }) {
+function ConnectionCard({ name, title, intro, info, envHint, configuredHint, rows, describe, extra, actions }) {
   const [test, setTest] = useState(null); // { running } | result
   const run = async () => {
     setTest({ running: true });
@@ -329,7 +329,7 @@ function ConnectionCard({ name, title, intro, info, envHint, rows, describe, ext
   return (
     <section className="admin-card settings-card">
       <div className="settings-card-head"><h2>{title}</h2><p>{intro}</p></div>
-      <Row label="Connection" hint={info.configured ? 'Set in the backend .env. Secrets stay on the server and are never shown here.' : envHint}>
+      <Row label="Connection" hint={info.configured ? (configuredHint ?? 'Set in the backend .env. Secrets stay on the server and are never shown here.') : envHint}>
         <Status ok={info.configured}>{info.configured ? 'Configured' : 'Not set up'}</Status>
       </Row>
       {rows}
@@ -384,17 +384,99 @@ function useJiraSync(onFinished) {
   return { ...state, start, follow, clear: () => setState((s) => ({ ...s, done: null, error: null })) };
 }
 
-function JiraIntegration({ info, onSynced }) {
+// Edit an integration's credentials: one plain value (Jira email, Redmine URL) and one secret (token, key).
+// The server checks them with the service before saving; the current secret is never sent to the browser,
+// so an empty secret field keeps it. `before` = read-only fields shown first.
+function CredentialsDialog({ title, service, info, field, secret, envNames, before, onSave, onClear, onClose, onSaved }) {
+  const [value, setValue] = useState(field.initial ?? '');
+  const [secretValue, setSecretValue] = useState('');
+  const [state, setState] = useState({ busy: null, error: null }); // busy: 'save' | 'clear'
+  const keepsSecret = secret.set && !info.unreadable;
+  const act = (busy, fn) => async () => {
+    setState({ busy, error: null });
+    try {
+      await fn();
+      onSaved();
+      onClose();
+    } catch (e) {
+      setState({ busy: null, error: e.message });
+    }
+  };
+  const save = act('save', () => onSave(value.trim(), secretValue.trim()));
+  const clear = act('clear', onClear);
+  const canSave = value.trim() && (secretValue.trim() || keepsSecret) && !state.busy;
+  return (
+    <Modal title={title} onClose={onClose}
+      footer={(
+        <>
+          {info.source === 'app' && (
+            <button className="btn" onClick={clear} disabled={!!state.busy} title={`Forget the saved ${field.label.toLowerCase()} and ${secret.label} and use ${envNames} from the backend .env`}>
+              {state.busy === 'clear' ? 'Removing…' : 'Use .env instead'}
+            </button>
+          )}
+          <button className="btn" onClick={onClose} disabled={!!state.busy}>Cancel</button>
+          <button className="btn-primary-solid" onClick={save} disabled={!canSave}>{state.busy === 'save' ? `Checking with ${service}…` : 'Save'}</button>
+        </>
+      )}>
+      {state.error && <p className="form-error">{state.error}</p>}
+      {!info.canSave && <p className="form-error">Set SECRETS_KEY in the backend .env and restart it before saving credentials here.</p>}
+      {before}
+      <Field label={field.label} hint={field.hint}>
+        <input type={field.type} value={value} onChange={(e) => setValue(e.target.value)} placeholder={field.placeholder} autoComplete="off" autoFocus />
+      </Field>
+      <Field label={secret.label.replace(/^./, (c) => c.toUpperCase())}
+        hint={<>{keepsSecret ? `Leave empty to keep the current ${secret.label}. ` : ''}{secret.hint} It is checked with {service}, then stored encrypted on the server.</>}>
+        <input type="password" value={secretValue} onChange={(e) => setSecretValue(e.target.value)} autoComplete="new-password"
+          placeholder={keepsSecret ? '•••••••• (unchanged)' : `Paste the ${secret.label}`} />
+      </Field>
+    </Modal>
+  );
+}
+
+const JiraCredentialsDialog = ({ info, onClose, onSaved }) => (
+  <CredentialsDialog title="Edit Jira connection" service="Jira" info={info} onClose={onClose} onSaved={onSaved}
+    envNames="JIRA_EMAIL / JIRA_API_TOKEN"
+    before={<Field label="Site" hint="Set by JIRA_BASE_URL in the backend .env."><input value={info.baseUrl ?? ''} disabled /></Field>}
+    field={{ label: 'Account email', hint: 'The Jira user the API token belongs to.', type: 'email', placeholder: 'name@company.com', initial: info.email }}
+    secret={{ label: 'API token', set: info.tokenSet,
+      hint: <>Create one at <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" rel="noreferrer">id.atlassian.com</a>.</> }}
+    onSave={(email, token) => api.admin.saveJiraCredentials(email, token)}
+    onClear={() => api.admin.clearJiraCredentials()} />
+);
+
+const RedmineCredentialsDialog = ({ info, onClose, onSaved }) => (
+  <CredentialsDialog title="Edit Redmine connection" service="Redmine" info={info} onClose={onClose} onSaved={onSaved}
+    envNames="REDMINE_URL / REDMINE_API_KEY"
+    field={{ label: 'Site', hint: 'Address of your Redmine, e.g. https://redmine.company.com', type: 'url', placeholder: 'https://redmine.company.com', initial: info.baseUrl }}
+    secret={{ label: 'API key', set: info.keySet,
+      hint: 'In Redmine: My account → API access key → Show. The REST API must be enabled (Administration → Settings → API).' }}
+    onSave={(url, key) => api.admin.saveRedmineCredentials(url, key)}
+    onClear={() => api.admin.clearRedmineCredentials()} />
+);
+
+// Hint on the Connection row when the credentials were saved in Settings
+const savedHint = (info, secret) => `Saved in Settings${info.updatedBy ? ` by ${info.updatedBy}` : ''}${info.updatedAt ? ` on ${formatDateTime(info.updatedAt)}` : ''}. The ${secret} is stored encrypted and never shown here.`;
+
+function JiraIntegration({ info, onSynced, onChanged }) {
   const last = info.lastSync;
   const sync = useJiraSync(onSynced);
+  const [editing, setEditing] = useState(false);
   useEffect(() => { if (info.running) sync.follow(null); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="integration-grid">
       <ConnectionCard name="jira" title="Jira connection" info={info}
         intro="Sprints, issues and team members come from Jira Cloud."
-        envHint="Set JIRA_BASE_URL, JIRA_EMAIL and JIRA_API_TOKEN in the backend .env, then restart it."
+        envHint={info.unreadable
+          ? 'The saved API token can’t be read (SECRETS_KEY in the backend .env changed). Click Edit and enter it again.'
+          : 'Set JIRA_BASE_URL in the backend .env, then click Edit to enter the account email and API token.'}
+        configuredHint={info.source === 'app' ? savedHint(info, 'token') : undefined}
         describe={(t) => `Signed in as ${t.account}${t.timeZone ? ` (${t.timeZone})` : ''}; the token can see ${t.projects} project${t.projects === 1 ? '' : 's'}.`}
-        actions={<button className="btn-primary-solid" onClick={sync.start} disabled={!info.configured || sync.running}>{sync.running ? 'Syncing…' : 'Sync now'}</button>}
+        actions={(
+          <>
+            <button className="btn" onClick={() => setEditing(true)} disabled={sync.running}>Edit</button>
+            <button className="btn-primary-solid" onClick={sync.start} disabled={!info.configured || sync.running}>{sync.running ? 'Syncing…' : 'Sync now'}</button>
+          </>
+        )}
         extra={(sync.running || sync.done || sync.error) && (
           <div className="integration-sync">
             {sync.running && <SyncProgress progress={sync.progress} />}
@@ -406,7 +488,9 @@ function JiraIntegration({ info, onSynced }) {
           <>
             <Row label="Site"><span className="pref-value mono">{info.baseUrl ?? '—'}</span></Row>
             <Row label="Account" hint="Jira user the API token belongs to."><span className="pref-value">{info.email ?? '—'}</span></Row>
-            <Row label="API token"><Status ok={info.tokenSet}>{info.tokenSet ? 'Set' : 'Not set'}</Status></Row>
+            <Row label="API token" hint={info.source === 'app' ? 'Saved in Settings.' : info.source === 'env' ? 'From the backend .env.' : undefined}>
+              <Status ok={info.tokenSet && !info.unreadable}>{info.unreadable ? 'Unreadable' : info.tokenSet ? 'Set' : 'Not set'}</Status>
+            </Row>
             <Row label="What is synced" hint={`Sprints that started since ${formatDate(info.syncSince)}, and at least the last ${info.closedSprints} closed sprints of each team's board.`}>
               <span className="pref-value">{info.projects} projects · {info.teams} teams · {info.sprints} sprints</span>
             </Row>
@@ -416,24 +500,33 @@ function JiraIntegration({ info, onSynced }) {
           </>
         )} />
       <ScheduleCard />
+      {editing && <JiraCredentialsDialog info={info} onClose={() => setEditing(false)} onSaved={onChanged} />}
     </div>
   );
 }
 
-function RedmineIntegration({ info, users, onChanged }) {
+function RedmineIntegration({ info, users, onChanged, onSaved }) {
+  const [editing, setEditing] = useState(false);
   return (
     <>
       <ConnectionCard name="redmine" title="Redmine connection" info={info}
         intro="Time entries for Resource Management come from Redmine."
-        envHint="Set REDMINE_URL and REDMINE_API_KEY in the backend .env, then restart it."
+        envHint={info.unreadable
+          ? 'The saved API key can’t be read (SECRETS_KEY in the backend .env changed). Click Edit and enter it again.'
+          : 'Click Edit to enter the Redmine address and API key.'}
+        configuredHint={info.source === 'app' ? savedHint(info, 'API key') : undefined}
         describe={(t) => `Signed in as ${t.account} (${t.login}); the key can read ${t.projects ?? '?'} project${t.projects === 1 ? '' : 's'}${t.canListUsers ? ' and list all users.' : '. It can’t list all users (needs a Redmine admin account), so people are taken from time entries.'}`}
+        actions={<button className="btn" onClick={() => setEditing(true)}>Edit</button>}
         rows={(
           <>
             <Row label="Site"><span className="pref-value mono">{info.baseUrl ?? '—'}</span></Row>
-            <Row label="API key"><Status ok={info.keySet}>{info.keySet ? 'Set' : 'Not set'}</Status></Row>
+            <Row label="API key" hint={info.source === 'app' ? 'Saved in Settings.' : info.source === 'env' ? 'From the backend .env.' : undefined}>
+              <Status ok={info.keySet && !info.unreadable}>{info.unreadable ? 'Unreadable' : info.keySet ? 'Set' : 'Not set'}</Status>
+            </Row>
           </>
         )} />
       <RedmineImport configured={info.configured} users={users} onChanged={onChanged} />
+      {editing && <RedmineCredentialsDialog info={info} onClose={() => setEditing(false)} onSaved={onSaved} />}
     </>
   );
 }
@@ -453,8 +546,8 @@ function IntegrationsTab({ users, sub, setSub, onChanged }) {
       </div>
       {error && <div className="card error">Could not load integrations: {error}</div>}
       {!info && !error && <div className="card empty">Loading…</div>}
-      {info && sub === 'jira' && <JiraIntegration info={info.jira} onSynced={onSynced} />}
-      {info && sub === 'redmine' && <RedmineIntegration info={info.redmine} users={users} onChanged={onChanged} />}
+      {info && sub === 'jira' && <JiraIntegration info={info.jira} onSynced={onSynced} onChanged={loadInfo} />}
+      {info && sub === 'redmine' && <RedmineIntegration info={info.redmine} users={users} onChanged={onChanged} onSaved={loadInfo} />}
       {sub === 'email' && <EmailCard />}
     </>
   );

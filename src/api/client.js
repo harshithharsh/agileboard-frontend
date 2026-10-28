@@ -71,6 +71,12 @@ export const api = {
     redmineUsers: () => request('/admin/redmine/users'),
     matchRedmineUser: (id, body) => send('PUT', `/admin/redmine/users/${id}`, body),
     testIntegration: (name) => send('POST', `/admin/integrations/${name}/test`),
+    // Jira account email + API token (checked with Jira before saving); empty token keeps the current one
+    saveJiraCredentials: (email, token) => send('PUT', '/admin/integrations/jira', { email, token }),
+    clearJiraCredentials: () => send('DELETE', '/admin/integrations/jira'),
+    // Redmine URL + API key (checked with Redmine before saving); empty key keeps the current one
+    saveRedmineCredentials: (url, key) => send('PUT', '/admin/integrations/redmine', { url, key }),
+    clearRedmineCredentials: () => send('DELETE', '/admin/integrations/redmine'),
     teamMembers: (teamId) => request(`/admin/teams/${teamId}/members`),
     addTeamMember: (teamId, userId) => send('POST', `/admin/teams/${teamId}/members`, { userId }),
     removeTeamMember: (teamId, userId) => send('DELETE', `/admin/teams/${teamId}/members/${userId}`),
