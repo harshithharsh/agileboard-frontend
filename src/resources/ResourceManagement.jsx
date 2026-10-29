@@ -1,22 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect } from 'react';
 import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
 import { TeamIcon } from '../components/Icons.jsx';
 import { useResourceData, resourceService } from './data/resourceService.js';
 import { openSettings } from '../lib/route.js';
-import { periodRange } from './model/period.js';
+import { useResourceFilters, resourceAccess } from './useResourceFilters.js';
 import Overview from './pages/Overview.jsx';
-import Allocation from './pages/Allocation.jsx';
 import EffortTracker from './pages/EffortTracker.jsx';
-import Teams from './pages/Teams.jsx';
-import Reports from './pages/Reports.jsx';
 
+// Resource allocation lives in Settings (resources/AllocationSettings.jsx)
 const PAGES = {
   overview: ['Overview', Overview],
-  allocation: ['Resource Allocation', Allocation],
   effort: ['Effort Tracker', EffortTracker],
-  teams: ['Teams', Teams],
-  reports: ['Reports', Reports],
 };
 
 // Resource Management module: shared data, filters and permissions for its pages
@@ -24,24 +19,9 @@ export default function ResourceManagement({ page, user, onSignOut, onMenu, onOp
   const { data, error } = useResourceData();
   // Settings changed something (holidays, Redmine import or matches, teams): load the data again
   useEffect(() => { resourceService.syncVersion(adminVersion); }, [adminVersion]);
-  const perms = user?.permissions ?? [];
-  const access = {
-    canEdit: perms.includes('edit') || perms.includes('admin'), // FTE, allocations, team for reports
-    canAdmin: perms.includes('admin'), // opens Redmine settings from alerts and mapping links
-    by: user?.name ?? 'Unknown',
-  };
+  const access = resourceAccess(user);
   // Period, team and project stay the same while moving between pages
-  // Project starts on the first project linked to Redmine (undefined until the data is in)
-  const [filters, setFilters] = useState({ preset: 'this-quarter', customStart: null, customEnd: null, teamId: null, projectId: undefined });
-  useEffect(() => {
-    if (!data || filters.projectId !== undefined) return;
-    const linked = data.projects.filter((p) => p.redmineProjectId);
-    setFilters((f) => ({ ...f, projectId: linked[0]?.id ?? null }));
-  }, [data, filters.projectId]);
-  const period = useMemo(
-    () => (data ? periodRange(filters.preset, data.rules, data.today, { start: filters.customStart, end: filters.customEnd }) : null),
-    [data, filters.preset, filters.customStart, filters.customEnd]
-  );
+  const { filters, setFilters, period } = useResourceFilters(data);
   const [title, Page] = PAGES[page] ?? PAGES.overview;
 
   return (

@@ -31,6 +31,13 @@ export default function Shell({ user, onSignOut, onDisplayChange }) {
     return () => window.removeEventListener('agilemetrix:open-settings', onOpen);
   }, []);
 
+  // Old bookmarks of the Resource Allocation page: it is now a Settings tab
+  useEffect(() => {
+    if (!window.location.hash.startsWith('#/resources/allocation')) return;
+    window.location.replace('#/resources/overview');
+    if (canAdmin) { setAdminTab('allocation'); setAdminOpen(true); }
+  }, [route, canAdmin]);
+
   return (
     <div className="shell">
       <Sidebar route={route} canAdmin={canAdmin} settingsOpen={adminOpen && canAdmin}

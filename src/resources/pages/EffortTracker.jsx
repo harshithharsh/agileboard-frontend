@@ -1,11 +1,11 @@
 import { Fragment, useMemo, useState } from 'react';
-import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { Filters, PageHead, InfoTip, Kpi, Empty, fmtHours, fmtFte, fmtPct, fmtSigned } from '../components/ui.jsx';
-import { selectRows, totals, teamName } from '../model/select.js';
-import { DEFINITIONS, resourceRow, round } from '../model/calc.js';
+import { ResponsiveContainer, ComposedChart, Bar, Cell, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { Filters, PageHead, InfoTip, Kpi, Empty, SortTh, sortBy, fmtHours, fmtFte, fmtPct } from '../components/ui.jsx';
+import { selectRows, totals, teamName, scopeProject, scopedFte } from '../model/select.js';
+import { DEFINITIONS, resourceRow, round, LOW_UTILIZATION, utilTone } from '../model/calc.js';
 import { buckets } from '../model/period.js';
 import { downloadCsv } from '../../lib/download.js';
-import { formatDateTime } from '../../lib/datetime.js';
+import { formatDate, formatDateTime } from '../../lib/datetime.js';
 import { COLORS } from '../../lib/format.js';
 import { axisProps, gridProps, tooltipProps, legendProps } from '../../components/charts/common.jsx';
 
@@ -14,29 +14,52 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
   const [granularity, setGranularity] = useState('week');
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(new Set());
-  const [sort, setSort] = useState('variance');
+  const [sort, setSort] = useState({ key: 'utilization', dir: 1 }); // lowest utilization first
 
-  const rows = useMemo(() => {
-    const list = selectRows(data, period, filters, { search }).filter((r) => r.resource.redmineUserId || r.planned > 0);
-    const key = { variance: (r) => r.variance, name: (r) => r.resource.name, utilization: (r) => r.utilization ?? -1 }[sort];
-    return [...list].sort((a, b) => (sort === 'name' ? key(a).localeCompare(key(b)) : key(a) - key(b)));
-  }, [data, period, filters, search, sort]);
+  // Numbers are for one project, as in Resource allocation: the selected project, or the selected team's project
+  const scope = scopeProject(data, filters);
+  const scoped = useMemo(() => ({ ...filters, projectId: scope }), [filters, scope]);
+  // The whole period (e.g. the full quarter), not just up to today: planned hours, capacity and
+  // utilization are for the whole quarter; actual is what has been logged so far.
+  const range = useMemo(() => (period.toDate ? { ...period, end: period.fullEnd } : period), [period]);
+  const periods = useMemo(() => buckets(range, granularity, data.rules), [range, granularity, data.rules]);
+  // A week (or month) picked in the chart: the KPIs and table show just that week until it is cleared
+  const [focus, setFocus] = useState(null); // bucket start date
+  const picked = periods.find((b) => b.start === focus) ?? null;
+  const people = useMemo(
+    () => selectRows(data, range, scoped, { search }).filter((r) => r.resource.redmineUserId || r.planned > 0),
+    [data, range, scoped, search]
+  );
+  const fteShown = (row) => scopedFte(data, row, scope, picked?.asOf ?? period.asOf);
+  const rows = sortBy(picked ? people.map((r) => resourceRow(r.resource, data, picked, scoped)) : people, sort, {
+    name: (r) => r.resource.name,
+    team: (r) => teamName(data, r.resource.teamId),
+    fte: fteShown,
+    planned: (r) => r.planned,
+    actual: (r) => (r.resource.redmineUserId ? r.actual : null),
+    utilization: (r) => r.utilization,
+  });
   const sum = totals(rows);
-  const periods = useMemo(() => buckets(period, granularity, data.rules), [period, granularity, data.rules]);
-  // The chart: everyone in scope, per week or month
+  // The chart: everyone in scope, per week or month; no actual line for weeks that haven't started
   const trend = useMemo(() => periods.map((b) => {
-    const t = totals(rows.map((r) => resourceRow(r.resource, data, b, filters)));
-    return { label: b.label, planned: t.planned, actual: t.actual };
-  }), [periods, rows, data, filters]);
+    const t = totals(people.map((r) => resourceRow(r.resource, data, b, scoped)));
+    return { label: b.label, planned: t.planned, actual: b.start > data.today ? null : t.actual };
+  }), [periods, people, data, scoped]);
+  const pickBucket = (state) => {
+    const b = periods[Number(state?.activeTooltipIndex)];
+    if (b) setFocus((f) => (f === b.start ? null : b.start));
+  };
+  const unit = granularity === 'week' ? 'week' : 'month';
+  const pickedLabel = picked && (granularity === 'week' ? `Week of ${picked.label}` : picked.label);
   const lastSync = data.syncRuns.find((s) => s.status !== 'failed');
 
   const toggle = (id) => setOpen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const exportCsv = () => {
-    const header = ['Resource', 'Team', 'FTE', 'Planned (h)', 'Actual (h)', 'Variance (h)', 'Utilization %', ...periods.flatMap((b) => [`${b.label} planned`, `${b.label} actual`])];
+    const header = ['Resource', 'Team', 'FTE', 'Planned (h)', 'Actual (h)', 'Utilization %', ...periods.flatMap((b) => [`${b.label} planned`, `${b.label} actual`])];
     downloadCsv([header, ...rows.map((r) => {
-      const per = periods.map((b) => resourceRow(r.resource, data, b, filters));
-      return [r.resource.name, teamName(data, r.resource.teamId) ?? '', r.allocatedFte, r.planned, r.actual, r.variance, r.utilization ?? '', ...per.flatMap((p) => [p.planned, p.actual])];
-    })], `agilemetrix-effort-${period.start}-${period.end}.csv`);
+      const per = periods.map((b) => resourceRow(r.resource, data, b, scoped));
+      return [r.resource.name, teamName(data, r.resource.teamId) ?? '', fteShown(r), r.planned, r.actual, r.utilization ?? '', ...per.flatMap((p) => [p.planned, p.actual])];
+    })], `agilemetrix-effort-${(picked ?? range).start}-${(picked ?? range).end}.csv`);
   };
 
   return (
@@ -48,7 +71,7 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
       <Filters filters={filters} setFilters={setFilters} data={data} period={period}>
         <label className="rm-field">
           <span>Breakdown</span>
-          <select value={granularity} onChange={(e) => setGranularity(e.target.value)}>
+          <select value={granularity} onChange={(e) => { setGranularity(e.target.value); setFocus(null); }}>
             <option value="week">Weekly</option>
             <option value="month">Monthly</option>
           </select>
@@ -56,11 +79,16 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
         <label className="rm-field rm-search"><span>Search</span><input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name or Redmine user" /></label>
       </Filters>
 
-      <section className="rm-kpis rm-kpis-4">
+      {picked && (
+        <div className="rm-focus" role="status">
+          <span>Showing <b>{pickedLabel}</b> ({formatDate(picked.start, { year: false })} – {formatDate(picked.end)})</span>
+          <button className="btn btn-sm" onClick={() => setFocus(null)}>Show whole {period.label.replace(' · to date', '')}</button>
+        </div>
+      )}
+      <section className="rm-kpis rm-kpis-3">
         <Kpi label="Planned" value={fmtHours(sum.planned)} tip={DEFINITIONS.planned} />
         <Kpi label="Actual (Redmine)" value={fmtHours(sum.actual)} tip={DEFINITIONS.actual} />
-        <Kpi label="Variance" value={fmtSigned(sum.variance)} tone={sum.variance < 0 ? 'bad' : undefined} note={sum.planned ? `${Math.round((sum.variance / sum.planned) * 100)}% vs planned` : null} tip={DEFINITIONS.variance} />
-        <Kpi label="Utilization" value={fmtPct(sum.utilization)} note={`Target ${data.rules.thresholds.under}–${data.rules.thresholds.over}%`} tip={DEFINITIONS.utilization} />
+        <Kpi label="Utilization" value={fmtPct(sum.utilization)} tone={utilTone(sum.utilization)} note={`Green from ${LOW_UTILIZATION}%`} tip={DEFINITIONS.utilization} />
       </section>
 
       {!rows.length ? (
@@ -68,15 +96,17 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
       ) : (
         <>
           <section className="card rm-chart">
-            <div className="rm-chart-head"><h2>Planned vs. actual, {granularity === 'week' ? 'by week' : 'by month'}</h2><span className="muted small">{period.label}</span></div>
+            <div className="rm-chart-head"><h2>Planned vs. actual, {granularity === 'week' ? 'by week' : 'by month'}</h2><span className="muted small">Click a {unit} to see it in the table · {period.label.replace(' · to date', '')}</span></div>
             <ResponsiveContainer width="100%" height={240}>
-              <ComposedChart data={trend} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <ComposedChart data={trend} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} onClick={pickBucket} style={{ cursor: 'pointer' }}>
                 <CartesianGrid {...gridProps} />
                 <XAxis dataKey="label" {...axisProps} />
                 <YAxis {...axisProps} width={48} />
                 <Tooltip {...tooltipProps} formatter={(v) => fmtHours(v)} />
                 <Legend {...legendProps} />
-                <Bar dataKey="planned" name="Planned" fill={COLORS.primarySoft} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="planned" name="Planned" fill={COLORS.primarySoft} radius={[3, 3, 0, 0]}>
+                  {periods.map((b) => <Cell key={b.start} fill={b.start === focus ? COLORS.primaryMid : COLORS.primarySoft} />)}
+                </Bar>
                 <Line dataKey="actual" name="Actual" stroke={COLORS.primary} strokeWidth={2.5} dot={{ r: 3 }} />
               </ComposedChart>
             </ResponsiveContainer>
@@ -87,13 +117,12 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
               <thead>
                 <tr>
                   <th className="rm-check" aria-label="Expand" />
-                  <th><button className="rm-sort" onClick={() => setSort('name')} aria-pressed={sort === 'name'}>Resource</button></th>
-                  <th>Team</th>
-                  <th className="num">FTE</th>
-                  <th className="num">Planned <InfoTip text={DEFINITIONS.planned} /></th>
-                  <th className="num">Actual <InfoTip text={DEFINITIONS.actual} /></th>
-                  <th className="num"><button className="rm-sort" onClick={() => setSort('variance')} aria-pressed={sort === 'variance'}>Variance</button> <InfoTip text={DEFINITIONS.variance} /></th>
-                  <th className="num"><button className="rm-sort" onClick={() => setSort('utilization')} aria-pressed={sort === 'utilization'}>Utilization</button> <InfoTip text={DEFINITIONS.utilization} /></th>
+                  <SortTh label="Resource" field="name" sort={sort} setSort={setSort} />
+                  <SortTh label="Team" field="team" sort={sort} setSort={setSort} />
+                  <SortTh label="FTE" field="fte" sort={sort} setSort={setSort} className="num" />
+                  <SortTh label="Planned" field="planned" sort={sort} setSort={setSort} className="num"> <InfoTip text={DEFINITIONS.planned} /></SortTh>
+                  <SortTh label="Actual" field="actual" sort={sort} setSort={setSort} className="num"> <InfoTip text={DEFINITIONS.actual} /></SortTh>
+                  <SortTh label="Utilization" field="utilization" sort={sort} setSort={setSort} className="num"> <InfoTip text={DEFINITIONS.utilization} /></SortTh>
                   <th>Last synced</th>
                 </tr>
               </thead>
@@ -108,19 +137,18 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
                         </td>
                         <td><b>{r.resource.name}</b>{!r.resource.redmineUserId && <span className="rm-pill warn rm-inline">Not mapped</span>}</td>
                         <td>{teamName(data, r.resource.teamId) ?? <span className="muted">—</span>}</td>
-                        <td className="num">{fmtFte(r.allocatedFte)}</td>
+                        <td className="num">{fmtFte(fteShown(r))}</td>
                         <td className="num">{fmtHours(r.planned)}</td>
                         <td className="num">{r.resource.redmineUserId ? fmtHours(r.actual) : '—'}</td>
-                        <td className={`num ${r.variance < 0 ? 'bad-text' : r.variance > 0 ? 'good-text' : ''}`}>{r.resource.redmineUserId ? fmtSigned(r.variance) : '—'}</td>
-                        <td className={`num${r.band === 'over' ? ' bad-text' : r.band === 'under' ? ' warn-text' : ''}`}
+                        <td className={`num${r.band === 'low' ? ' bad-text' : r.band === 'ok' ? ' good-text' : ''}`}
                           title={r.utilization == null ? 'No capacity (FTE not set or 0), so no percentage' : undefined}>{fmtPct(r.utilization)}</td>
                         <td className="muted small">{r.resource.redmineUserId && lastSync ? formatDateTime(lastSync.startedAt) : '—'}</td>
                       </tr>
                       {isOpen && (
                         <tr className="selected">
                           <td />
-                          <td colSpan={8}>
-                            <Breakdown row={r} data={data} periods={periods} filters={filters} />
+                          <td colSpan={7}>
+                            <Breakdown row={r} data={data} periods={periods} filters={scoped} />
                           </td>
                         </tr>
                       )}
@@ -131,17 +159,15 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
               <tfoot>
                 <tr>
                   <td /><td colSpan={2}>{rows.length} people</td>
-                  <td className="num">{fmtFte(rows.reduce((n, r) => n + r.allocatedFte, 0))}</td>
+                  <td className="num">{fmtFte(round(rows.reduce((n, r) => n + fteShown(r), 0), 3))}</td>
                   <td className="num">{fmtHours(sum.planned)}</td>
                   <td className="num">{fmtHours(sum.actual)}</td>
-                  <td className="num">{fmtSigned(sum.variance)}</td>
-                  <td className="num">{fmtPct(sum.utilization)}</td>
+                  <td className={`num ${utilTone(sum.utilization) === 'low' ? 'bad-text' : utilTone(sum.utilization) ? 'good-text' : ''}`}>{fmtPct(sum.utilization)}</td>
                   <td />
                 </tr>
               </tfoot>
             </table>
           </section>
-          <p className="rm-note">— means there is nothing to compare against: no capacity (FTE not set or 0) or no Redmine user mapped. Totals compute utilization from the summed hours.</p>
         </>
       )}
     </>
@@ -153,15 +179,15 @@ function Breakdown({ row, data, periods, filters }) {
   const per = periods.map((b) => ({ b, ...resourceRow(row.resource, data, b, filters) }));
   return (
     <div className="rm-breakdown">
-      {per.map(({ b, planned, actual, variance }) => {
+      {per.map(({ b, planned, actual, utilization: pctUsed }) => {
         const pct = planned > 0 ? Math.min(100, (actual / planned) * 100) : actual > 0 ? 100 : 0;
-        const tone = planned === 0 ? (actual > 0 ? 'var(--warning)' : 'var(--border-strong)') : actual > planned * 1.1 ? 'var(--danger)' : actual < planned * 0.85 ? 'var(--warning)' : 'var(--primary)';
+        const tone = planned === 0 ? (actual > 0 ? 'var(--warning)' : 'var(--border-strong)') : actual < planned * (LOW_UTILIZATION / 100) ? 'var(--danger)' : 'var(--success)';
         return (
           <div key={b.start} className="rm-bcard">
             <span className="muted small">{b.label}</span>
             <b>{fmtHours(round(actual))} <span className="muted">/ {fmtHours(planned)}</span></b>
             <span className="rm-util-bar rm-wide"><i style={{ width: `${pct}%`, background: tone }} /></span>
-            <span className={`small ${variance < 0 ? 'bad-text' : variance > 0 ? 'good-text' : 'muted'}`}>{fmtSigned(variance)}</span>
+            <span className={`small ${pctUsed == null ? 'muted' : pctUsed < LOW_UTILIZATION ? 'bad-text' : 'good-text'}`}>{fmtPct(pctUsed)}</span>
           </div>
         );
       })}

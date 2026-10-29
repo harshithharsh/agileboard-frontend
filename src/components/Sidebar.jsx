@@ -1,13 +1,10 @@
-import { ChartIcon, TeamIcon, HomeIcon, SlidersIcon, TimerIcon, FileTextIcon, SettingsIcon } from './Icons.jsx';
+import { ChartIcon, HomeIcon, TimerIcon, SettingsIcon } from './Icons.jsx';
 import { hrefFor } from '../lib/route.js';
 
 // Resource Management pages; Integration Settings only for administrators
 const RESOURCE_ITEMS = [
   { page: 'overview', label: 'Overview', icon: <HomeIcon /> },
-  { page: 'allocation', label: 'Resource Allocation', icon: <SlidersIcon /> },
   { page: 'effort', label: 'Effort Tracker', icon: <TimerIcon /> },
-  { page: 'teams', label: 'Teams', icon: <TeamIcon /> },
-  { page: 'reports', label: 'Reports', icon: <FileTextIcon /> },
 ];
 
 // Icon rail on the left: the logo, one icon per page (its name shows on hover and to screen readers),

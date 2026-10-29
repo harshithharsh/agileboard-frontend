@@ -5,11 +5,12 @@ import Footer from '../Footer.jsx';
 import SyncProgress from '../SyncProgress.jsx';
 import RedmineImport from './RedmineImport.jsx';
 import HolidaysCard from './HolidaysCard.jsx';
+import AllocationSettings from '../../resources/AllocationSettings.jsx';
 import { formatDateTime } from '../../lib/format.js';
 import { DATE_FORMATS, TIME_FORMATS, formatDate, formatTime, getDisplaySettings } from '../../lib/datetime.js';
 import { getThemeChoice, setThemeChoice } from '../../lib/theme.js';
 import {
-  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SunIcon, MoonIcon, MonitorIcon, ClockIcon, PlugIcon, JiraMark, MailIcon,
+  ClearIcon, UsersIcon, ShieldIcon, BoxIcon, PlusIcon, EditIcon, TrashIcon, SunIcon, MoonIcon, MonitorIcon, ClockIcon, PlugIcon, JiraMark, MailIcon, SearchIcon, SlidersIcon,
 } from '../Icons.jsx';
 
 const PERMISSION_LABELS = { view: 'View', create: 'Create', edit: 'Edit', delete: 'Delete', admin: 'Admin' };
@@ -35,20 +36,163 @@ function RowActions({ onEdit, onDelete }) {
   );
 }
 
-function AdminCard({ icon, tone, title, subtitle, addLabel, onAdd, children, count, wide = false, actions }) {
+// `plain`: the children bring their own table frame (e.g. with a toolbar and paging)
+function AdminCard({ icon, tone, title, subtitle, addLabel, onAdd, children, count, wide = false, actions, plain = false }) {
   return (
     <section className={`admin-card${wide ? ' admin-card-wide' : ''}`}>
-      <div className="admin-card-head">
+      <div className={`admin-card-head${subtitle ? '' : ' no-subtitle'}`}>
         <span className={`admin-card-icon tone-${tone}`}>{icon}</span>
         <div className="admin-card-titles">
           <h2>{title}{count !== undefined && <span className="admin-count">{count}</span>}</h2>
-          <p>{subtitle}</p>
+          {subtitle && <p>{subtitle}</p>}
         </div>
         {actions}
         <button className="btn-primary-solid" onClick={onAdd}><PlusIcon /> {addLabel}</button>
       </div>
-      <div className="admin-table-wrap">{children}</div>
+      {plain ? children : <div className="admin-table-wrap">{children}</div>}
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Users table: search, role and status filters, sortable columns, pages of 10
+// ---------------------------------------------------------------------------
+
+const USERS_PER_PAGE = 10;
+const ROLE_TONES = ['blue', 'purple', 'green', 'orange'];
+const roleTone = (role) => ROLE_TONES[[...role].reduce((n, c) => n + c.charCodeAt(0), 0) % ROLE_TONES.length];
+const NO_ROLE = '__none';
+
+// Missing values sort last in both directions
+const USER_SORTS = {
+  name: (u) => u.name.toLowerCase(),
+  role: (u) => u.role?.toLowerCase() ?? null,
+  status: (u) => u.status,
+};
+
+// Page numbers to show: first, last, and the current page with its neighbours ('…' for gaps)
+function pageList(page, pages) {
+  const keep = [...new Set([1, page - 1, page, page + 1, pages])].filter((p) => p >= 1 && p <= pages).sort((a, b) => a - b);
+  return keep.flatMap((p, i) => (i && p - keep[i - 1] > 1 ? ['…', p] : [p]));
+}
+
+function SortHeader({ label, field, sort, setSort }) {
+  const on = sort.key === field;
+  return (
+    <th aria-sort={on ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>
+      <button type="button" className={`sort-btn${on ? ' on' : ''}`} onClick={() => setSort({ key: field, dir: on ? -sort.dir : 1 })}>
+        {label} <span aria-hidden="true">{on ? (sort.dir === 1 ? '↑' : '↓') : '↕'}</span>
+      </button>
+    </th>
+  );
+}
+
+function UsersTable({ users, roles, onEdit, onDelete }) {
+  const [search, setSearch] = useState('');
+  const [role, setRole] = useState('');
+  const [status, setStatus] = useState('');
+  const [sort, setSort] = useState({ key: 'name', dir: 1 });
+  const [page, setPage] = useState(1);
+  const filtering = search || role || status;
+  const refilter = (set) => (e) => { set(e.target.value); setPage(1); };
+
+  const q = search.trim().toLowerCase();
+  const key = USER_SORTS[sort.key];
+  const rows = users
+    .filter((u) => !q || u.name.toLowerCase().includes(q) || u.username?.toLowerCase().includes(q))
+    .filter((u) => !role || (role === NO_ROLE ? !u.role_id : String(u.role_id) === role))
+    .filter((u) => !status || u.status === status)
+    .sort((a, b) => {
+      const x = key(a), y = key(b);
+      if (x === y) return a.name.localeCompare(b.name);
+      if (x === null) return 1;
+      if (y === null) return -1;
+      return (x < y ? -1 : 1) * sort.dir;
+    });
+  const pages = Math.max(1, Math.ceil(rows.length / USERS_PER_PAGE));
+  const current = Math.min(page, pages);
+  const shown = rows.slice((current - 1) * USERS_PER_PAGE, current * USERS_PER_PAGE);
+
+  return (
+    <>
+      <div className="users-toolbar">
+        <label className="users-search">
+          <SearchIcon />
+          <input type="search" value={search} onChange={refilter(setSearch)} placeholder="Search by name or sign-in" aria-label="Search users" />
+        </label>
+        <label className="filter users-filter">
+          <span>Role</span>
+          <select value={role} onChange={refilter(setRole)}>
+            <option value="">All roles</option>
+            {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+            <option value={NO_ROLE}>No role</option>
+          </select>
+        </label>
+        <label className="filter users-filter">
+          <span>Status</span>
+          <select value={status} onChange={refilter(setStatus)}>
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </label>
+        <button type="button" className="btn-link users-clear" disabled={!filtering}
+          onClick={() => { setSearch(''); setRole(''); setStatus(''); setPage(1); }}>Clear filters</button>
+      </div>
+
+      <div className="admin-table-wrap users-table-wrap">
+        <table className="admin-table users-table">
+          <thead>
+            <tr>
+              <SortHeader label="Name" field="name" sort={sort} setSort={setSort} />
+              <SortHeader label="Role" field="role" sort={sort} setSort={setSort} />
+              <th className="users-col-projects">Projects</th>
+              <SortHeader label="Status" field="status" sort={sort} setSort={setSort} />
+              <th className="col-actions users-col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((u) => (
+              <tr key={u.id}>
+                <td>
+                  <span className="person">
+                    <span className="avatar" style={{ background: avatarColor(u.name) }}>{initials(u.name)}</span>
+                    <span>
+                      <b>{u.name}</b>
+                      {u.can_sign_in && <div className="cell-sub"><span className="mono">@{u.username}</span></div>}
+                    </span>
+                  </span>
+                </td>
+                <td>{u.role ? <span className={`role-pill tone-${roleTone(u.role)}`}>{u.role}</span> : <span className="muted">No role</span>}</td>
+                <td>
+                  {u.projects.length
+                    ? <span className="project-tags" title={u.projects.join(', ')}>{u.projects.map((p) => <span key={p} className="tag">{p}</span>)}</span>
+                    : <span className="muted">—</span>}
+                </td>
+                <td><StatusBadge status={u.status} /></td>
+                <td><RowActions onEdit={() => onEdit(u)} onDelete={() => onDelete(u)} /></td>
+              </tr>
+            ))}
+            {!shown.length && <Empty cols={5} text={users.length ? 'No users match these filters' : 'No users yet'} />}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="users-foot">
+        <span className="muted">
+          {rows.length ? `Showing ${(current - 1) * USERS_PER_PAGE + 1} to ${(current - 1) * USERS_PER_PAGE + shown.length} of ${rows.length} users` : 'No users to show'}
+        </span>
+        {pages > 1 && (
+          <nav className="pager" aria-label="Pages">
+            <button type="button" onClick={() => setPage(current - 1)} disabled={current === 1} aria-label="Previous page">‹</button>
+            {pageList(current, pages).map((p, i) => (p === '…'
+              ? <span key={`gap${i}`} className="pager-gap">…</span>
+              : <button type="button" key={p} className={p === current ? 'on' : ''} aria-current={p === current ? 'page' : undefined} onClick={() => setPage(p)}>{p}</button>))}
+            <button type="button" onClick={() => setPage(current + 1)} disabled={current === pages} aria-label="Next page">›</button>
+          </nav>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -978,6 +1122,7 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
             ['users', 'Users', <UsersIcon key="i" />, data?.users.length],
             ['roles', 'Roles', <ShieldIcon key="i" />, data?.roles.length],
             ['projects', 'Projects', <BoxIcon key="i" />, data?.projects.length],
+            ['allocation', 'Resource allocation', <SlidersIcon key="i" />, null],
             ['integrations', 'Integrations', <PlugIcon key="i" />, null],
           ].map(([id, label, icon, count]) => (
             <button key={id} role="tab" aria-selected={tab === id} className={`admin-tab${tab === id ? ' active' : ''}`} onClick={() => chooseTab(id)}>
@@ -993,32 +1138,22 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
 
         {view && (
           <div className="admin-section">
-            {tab === 'general' && <DateTimeCard onSaved={onDisplayChange} />}
-            {tab === 'general' && <HolidaysCard onChanged={onChanged} />}
+            {tab === 'general' && (
+              <div className="admin-grid admin-grid-top">
+                <DateTimeCard onSaved={onDisplayChange} />
+                <HolidaysCard onChanged={onChanged} />
+              </div>
+            )}
+            {tab === 'allocation' && <AllocationSettings user={user} />}
             {tab === 'integrations' && <IntegrationsTab users={data.users} sub={integration} setSub={chooseIntegration} onChanged={onChanged} />}
 
             {tab === 'users' && (
-            <AdminCard icon={<UsersIcon />} tone="purple" title="Users" subtitle="People who can sign in, their role and the projects they can see."
-              addLabel="Add User" onAdd={() => openEdit('users')} count={view.users.length} wide
+            <AdminCard icon={<UsersIcon />} tone="purple" title="Users"
+              addLabel="Add User" onAdd={() => openEdit('users')} count={view.users.length} wide plain
               actions={<button className="btn" onClick={importFromJira} disabled={importing}
                 title="Add everyone who can work on the active projects in Jira, and make users deactivated in Jira inactive here.">{importing ? 'Importing…' : 'Import from Jira'}</button>}>
-              <table className="admin-table">
-                <thead><tr><th>Name</th><th>Email</th><th>Sign-in</th><th>Role</th><th>Projects</th><th>Status</th><th className="col-actions">Actions</th></tr></thead>
-                <tbody>
-                  {view.users.map((u) => (
-                    <tr key={u.id}>
-                      <td><span className="person"><span className="avatar" style={{ background: avatarColor(u.name) }}>{initials(u.name)}</span><b>{u.name}</b></span></td>
-                      <td className="muted email">{u.email || '—'}</td>
-                      <td>{u.can_sign_in ? <span className="signin-chip" title={u.last_login_at ? `Last signed in ${formatDateTime(u.last_login_at)}` : 'Has not signed in yet'}>@{u.username}</span> : <span className="muted">—</span>}</td>
-                      <td>{u.role || <span className="muted">No role</span>}</td>
-                      <td>{u.projects.join(', ') || <span className="muted">—</span>}</td>
-                      <td><StatusBadge status={u.status} /></td>
-                      <td><RowActions onEdit={() => openEdit('users', u)} onDelete={() => openDelete('users', u, u.name)} /></td>
-                    </tr>
-                  ))}
-                  {!view.users.length && <Empty cols={7} text="No users yet" />}
-                </tbody>
-              </table>
+              <UsersTable users={view.users} roles={view.roles}
+                onEdit={(u) => openEdit('users', u)} onDelete={(u) => openDelete('users', u, u.name)} />
             </AdminCard>
             )}
 

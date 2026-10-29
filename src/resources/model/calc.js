@@ -15,7 +15,7 @@ export const DEFINITIONS = {
   actual: 'Actual effort = the sum of eligible Redmine time entries in the period. Each time entry is counted once.',
   variance: 'Variance = Actual − Planned. Negative means less time was logged than planned.',
   utilization: 'Utilization = Actual ÷ Available capacity × 100. Filtered to a project, capacity is the time allocated to that project. Shown as — when there is no capacity (FTE not set or 0, or no working days).',
-  fte: 'FTE = full-time equivalent: 1.00 full time, 0.75 = 75%, 0.50 = half time. Employment FTE is the person’s total capacity; project allocations split it and must not add up to more.',
+  fte: 'FTE = full-time equivalent: 1.00 full time, 0.75 = 75%, 0.50 = half time. A person’s FTE is the sum of their project allocations (or planned on the team’s project). Available FTE is what is left of 1.00.',
 };
 
 export const EPSILON = 0.001;
@@ -98,15 +98,16 @@ export function configIssues(resource, allocations, day) {
   if (resource.employmentFte == null) issues.push('missing-fte');
   if (!resource.redmineUserId) issues.push('unmapped');
   if (!resource.teamId) issues.push('no-team');
-  if (resource.employmentFte != null && allocatedFte(resource.id, allocations, day) > resource.employmentFte + EPSILON) issues.push('overallocated');
+  if (allocatedFte(resource.id, allocations, day) > 1 + EPSILON) issues.push('overallocated'); // more than one full-time person
   return issues;
 }
 
-export function utilizationBand(pct, thresholds) {
+// Utilization is red ('low') below this and green ('ok') from it
+export const LOW_UTILIZATION = 80;
+
+export function utilizationBand(pct) {
   if (pct == null) return 'none';
-  if (pct > thresholds.over) return 'over';
-  if (pct < thresholds.under) return 'under';
-  return 'ok';
+  return pct < LOW_UTILIZATION ? 'low' : 'ok';
 }
 
 // Entries grouped by Redmine user, once per data load
@@ -132,7 +133,7 @@ export function resourceRow(resource, data, range, filters = {}) {
     actual,
     variance: round(actual - planned),
     utilization: pct,
-    band: utilizationBand(pct, data.rules.thresholds),
+    band: utilizationBand(pct),
     allocatedFte: allocatedFte(resource.id, data.allocations, range.asOf),
     issues: configIssues(resource, data.allocations, range.asOf),
   };
@@ -146,3 +147,6 @@ export function totals(rows) {
   const planned = sum('planned');
   return { capacity, planned, actual, variance: round(actual - planned), utilization: utilization(actual, capacity) };
 }
+
+// KPI tone for a utilization: 'low' (red) below LOW_UTILIZATION, 'good' (green) from it
+export const utilTone = (pct) => (pct == null ? undefined : pct < LOW_UTILIZATION ? 'low' : 'good');

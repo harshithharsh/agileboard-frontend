@@ -7,6 +7,30 @@ import { InfoIcon } from '../../components/Icons.jsx';
 export const fmtHours = (h) => (h == null ? '—' : `${Number(h).toLocaleString('en-IN', { maximumFractionDigits: 2 })} h`);
 export const fmtFte = (f) => (f == null ? '—' : Number(f).toFixed(2));
 export const fmtPct = (p) => (p == null ? '—' : `${p}%`);
+// Sortable tables: sort = { key, dir } with dir 1 (ascending) or -1. Missing values (null) go last either way.
+export function sortBy(rows, sort, keys) {
+  const key = keys[sort.key];
+  if (!key) return rows;
+  return [...rows].sort((a, b) => {
+    const x = key(a), y = key(b);
+    if (x == null || y == null) return x == null ? (y == null ? 0 : 1) : -1;
+    return (typeof x === 'string' ? x.localeCompare(y) : x - y) * sort.dir;
+  });
+}
+
+// Column header that sorts by `field`; a second click reverses the order
+export function SortTh({ label, field, sort, setSort, className, children }) {
+  const on = sort.key === field;
+  return (
+    <th className={className} aria-sort={on ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>
+      <button type="button" className={`sort-btn${on ? ' on' : ''}`} onClick={() => setSort({ key: field, dir: on ? -sort.dir : 1 })}>
+        {label} <span aria-hidden="true">{on ? (sort.dir === 1 ? '↑' : '↓') : '↕'}</span>
+      </button>
+      {children}
+    </th>
+  );
+}
+
 export const fmtSigned = (h) => (h > 0 ? `+${fmtHours(h)}` : h < 0 ? `−${fmtHours(-h)}` : fmtHours(0));
 
 // "i" with the calculation definition, as a tooltip (also readable by screen readers)
@@ -29,13 +53,13 @@ export function Kpi({ label, value, note, tone, tip }) {
   );
 }
 
-const BAND_COLOR = { ok: 'var(--success)', under: 'var(--warning)', over: 'var(--danger)', none: 'var(--border-strong)' };
+const BAND_COLOR = { ok: 'var(--success)', under: 'var(--warning)', low: 'var(--danger)', over: 'var(--danger)', none: 'var(--border-strong)' };
 export function UtilBar({ pct, band, reason }) {
   if (pct == null) return <span className="muted small" title={reason ?? 'No capacity, so utilization can’t be calculated'}>— {reason ? '' : 'no capacity'}</span>;
   return (
     <span className="rm-util" title={`${pct}% of available capacity`}>
       <span className="rm-util-bar"><i style={{ width: `${Math.min(100, pct)}%`, background: BAND_COLOR[band] }} /></span>
-      <b style={band === 'over' ? { color: 'var(--danger)' } : undefined}>{pct}%</b>
+      <b style={{ color: band === 'low' ? 'var(--danger)' : 'var(--success)' }}>{pct}%</b>
     </span>
   );
 }
@@ -47,7 +71,7 @@ export function IssuePills({ issues }) {
 }
 
 // Period, team and project filters (shared by every page through ResourceManagement)
-export function Filters({ filters, setFilters, data, period, show = ['period', 'team', 'project'], children }) {
+export function Filters({ filters, setFilters, data, period, show = ['period', 'team', 'project'], periodLabel = true, children }) {
   const set = (patch) => setFilters((f) => ({ ...f, ...patch }));
   return (
     <section className="card rm-filters" aria-label="Filters">
@@ -85,7 +109,7 @@ export function Filters({ filters, setFilters, data, period, show = ['period', '
         </label>
       )}
       {children}
-      <span className="rm-period-label">{period.label}</span>
+      {periodLabel && <span className="rm-period-label">{period.label}</span>}
     </section>
   );
 }

@@ -1,32 +1,48 @@
-import { useMemo } from 'react';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { Filters, PageHead, Kpi, fmtHours, fmtFte, fmtPct, fmtSigned } from '../components/ui.jsx';
-import { selectRows, totals, unmappedUsers } from '../model/select.js';
-import { DEFINITIONS, resourceRow, isWorkingDay, round, EPSILON } from '../model/calc.js';
+import { useMemo, useState } from 'react';
+import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { Filters, PageHead, Kpi, fmtHours, fmtFte, fmtPct } from '../components/ui.jsx';
+import { selectRows, totals, unmappedUsers, scopeProject, scopedFte } from '../model/select.js';
+import { DEFINITIONS, resourceRow, isWorkingDay, round, EPSILON, utilizationBand, utilTone, LOW_UTILIZATION } from '../model/calc.js';
 import { buckets, workingDayCount } from '../model/period.js';
 import { hrefFor, openSettings } from '../../lib/route.js';
-import { formatDateTime } from '../../lib/datetime.js';
+import { formatDate, formatDateTime } from '../../lib/datetime.js';
 import { COLORS } from '../../lib/format.js';
 import { axisProps, gridProps, tooltipProps, legendProps } from '../../components/charts/common.jsx';
 import { AlertIcon } from '../../components/Icons.jsx';
 
-const BAND_COLOR = { ok: 'var(--success)', under: 'var(--warning)', over: 'var(--danger)', none: 'var(--border-strong)' };
+const BAND_COLOR = { ok: 'var(--success)', under: 'var(--warning)', low: 'var(--danger)', over: 'var(--danger)', none: 'var(--border-strong)' };
 
 // Management view: key figures, what needs attention, and where capacity goes
 export default function Overview({ data, filters, setFilters, period, access }) {
-  const rows = useMemo(() => selectRows(data, period, filters), [data, period, filters]);
+  // Same rules as the Effort Tracker: numbers for one project (the selected project, or the selected
+  // team's project), for the whole period (e.g. the full quarter), or for one week picked in the chart
+  const scope = scopeProject(data, filters);
+  const scoped = useMemo(() => ({ ...filters, projectId: scope }), [filters, scope]);
+  const range = useMemo(() => (period.toDate ? { ...period, end: period.fullEnd } : period), [period]);
+  const weeks = useMemo(() => buckets(range, 'week', data.rules), [range, data.rules]);
+  const [focus, setFocus] = useState(null); // week start date
+  const picked = weeks.find((b) => b.start === focus) ?? null;
+  const view = picked ?? range;
+  const people = useMemo(() => selectRows(data, range, scoped), [data, range, scoped]);
+  const rows = useMemo(() => (picked ? people.map((r) => resourceRow(r.resource, data, picked, scoped)) : people), [people, picked, data, scoped]);
   const mapped = rows.filter((r) => r.resource.redmineUserId);
   const sum = totals(rows);
   const actualTotals = totals(mapped);
-  const days = workingDayCount(period, data.rules, isWorkingDay);
-  const employment = rows.reduce((n, r) => n + (r.resource.employmentFte ?? 0), 0);
-  const allocated = rows.reduce((n, r) => n + r.allocatedFte, 0);
+  const days = workingDayCount(view, data.rules, isWorkingDay);
+  const fteOf = (r) => scopedFte(data, r, scope, view.asOf);
+  const allocated = round(rows.reduce((n, r) => n + fteOf(r), 0), 2);
 
-  const trend = useMemo(() => buckets(period, 'week', data.rules).map((b) => {
-    const t = totals(rows.map((r) => resourceRow(r.resource, data, b, filters)));
-    return { label: b.label, planned: t.planned, actual: t.actual };
-  }), [rows, period, data, filters]);
+  const trend = useMemo(() => weeks.map((b) => {
+    const t = totals(people.map((r) => resourceRow(r.resource, data, b, scoped)));
+    return { label: b.label, planned: t.planned, actual: b.start > data.today ? null : t.actual };
+  }), [weeks, people, data, scoped]);
+  const pickWeek = (state) => {
+    const b = weeks[Number(state?.activeTooltipIndex)];
+    if (b) setFocus((f) => (f === b.start ? null : b.start));
+  };
+  const periodName = period.label.replace(' · to date', '');
 
+  // Capacity allocation: FTE planned against one full-time person (1.00) each
   const byTeam = data.teams.map((t) => {
     const teamRows = rows.filter((r) => r.resource.teamId === t.id);
     const tt = totals(teamRows.filter((r) => r.resource.redmineUserId));
@@ -34,55 +50,63 @@ export default function Overview({ data, filters, setFilters, period, access }) 
       team: t,
       people: teamRows.length,
       utilization: tt.utilization,
-      allocated: round(teamRows.reduce((n, r) => n + r.allocatedFte, 0), 2),
-      employment: round(teamRows.reduce((n, r) => n + (r.resource.employmentFte ?? 0), 0), 2),
+      allocated: round(teamRows.reduce((n, r) => n + fteOf(r), 0), 2),
+      employment: teamRows.length,
     };
   }).filter((t) => t.people);
-  const band = (pct) => (pct == null ? 'none' : pct > data.rules.thresholds.over ? 'over' : pct < data.rules.thresholds.under ? 'under' : 'ok');
+  const band = (pct) => utilizationBand(pct);
 
   // Alerts: the exceptions worth acting on, each linking to where it is fixed
-  const unmapped = unmappedUsers(data, period, filters.projectId);
+  const unmapped = unmappedUsers(data, view, scope);
   const lastRun = data.syncRuns[0];
   const over = rows.filter((r) => r.issues.includes('overallocated'));
   const noFte = rows.filter((r) => r.issues.includes('missing-fte'));
   const aboveplan = mapped.filter((r) => r.planned > 0 && r.actual > r.planned * 1.1);
   const alerts = [
     lastRun && lastRun.status !== 'success' && { tone: 'bad', title: lastRun.status === 'failed' ? 'Last Redmine sync failed' : 'Last Redmine sync was partial', text: lastRun.message, link: ['settings:redmine', 'View sync history'] },
-    over.length && { tone: 'bad', title: `${over.length} ${over.length === 1 ? 'person is' : 'people are'} over-allocated`, text: `Project allocations add up to more than their employment FTE: ${over.map((r) => r.resource.name).join(', ')}.`, link: ['allocation', 'Review allocations'] },
+    over.length && { tone: 'bad', title: `${over.length} ${over.length === 1 ? 'person is' : 'people are'} over-allocated`, text: `Project allocations add up to more than 1.00 FTE: ${over.map((r) => r.resource.name).join(', ')}.`, link: ['settings:allocation', 'Review allocations'] },
     unmapped.length && { tone: 'warn', title: `${unmapped.length} Redmine ${unmapped.length === 1 ? 'user is' : 'users are'} not mapped`, text: `${fmtHours(round(unmapped.reduce((n, u) => n + u.hours, 0)))} logged in this period isn’t counted for anyone.`, link: ['settings:redmine', 'Map users'] },
-    noFte.length && { tone: 'warn', title: `${noFte.length} ${noFte.length === 1 ? 'person has' : 'people have'} no FTE`, text: `${noFte.map((r) => `${r.resource.name} logged ${fmtHours(r.actual)}`).join(', ')}, but without capacity utilization can’t be shown.`, link: ['allocation', 'Set FTE'] },
+    noFte.length && { tone: 'warn', title: `${noFte.length} ${noFte.length === 1 ? 'person has' : 'people have'} no FTE`, text: `${noFte.map((r) => `${r.resource.name} logged ${fmtHours(r.actual)}`).join(', ')}, but without capacity utilization can’t be shown.`, link: ['settings:allocation', 'Set FTE'] },
     aboveplan.length && { tone: 'info', title: `Actual above plan for ${aboveplan.length} ${aboveplan.length === 1 ? 'person' : 'people'}`, text: 'More than 10% over their planned hours in this period.', link: ['effort', 'Open Effort Tracker'] },
   ].filter(Boolean);
 
   const ranked = mapped.filter((r) => r.utilization != null).sort((a, b) => b.utilization - a.utilization);
-  const top = ranked.filter((r) => r.band === 'over').slice(0, 4);
-  const bottom = ranked.filter((r) => r.band === 'under').slice(-4).reverse();
+  const top = ranked.filter((r) => r.band === 'ok').slice(0, 4);
+  const bottom = ranked.filter((r) => r.band === 'low').slice(-4).reverse();
 
   return (
     <>
-      <PageHead title="Resource overview" sub={`Capacity, planned and actual effort for ${period.label}. ${lastRun ? `Actual hours from Redmine, last synced ${formatDateTime(lastRun.startedAt)}.` : ''}`} />
+      <PageHead title="Resource overview" sub={`Capacity, planned and actual effort for ${periodName}. ${lastRun ? `Actual hours from Redmine, last synced ${formatDateTime(lastRun.startedAt)}.` : ''}`} />
       <Filters filters={filters} setFilters={setFilters} data={data} period={period} />
 
+      {picked && (
+        <div className="rm-focus" role="status">
+          <span>Showing <b>Week of {picked.label}</b> ({formatDate(picked.start, { year: false })} – {formatDate(picked.end)})</span>
+          <button className="btn btn-sm" onClick={() => setFocus(null)}>Show whole {periodName}</button>
+        </div>
+      )}
       <section className="rm-kpis">
         <Kpi label="Resources" value={rows.length} note={`${rows.filter((r) => r.issues.length).length} need attention`} />
-        <Kpi label="Allocated FTE" value={fmtFte(allocated)} note={`of ${fmtFte(employment)} employment FTE`} tip={DEFINITIONS.fte} />
+        <Kpi label="Allocated FTE" value={fmtFte(allocated)} note={`${fmtFte(round(rows.length - allocated, 2))} FTE available`} tip={DEFINITIONS.fte} />
         <Kpi label="Available capacity" value={fmtHours(sum.capacity)} note={`${days} working days`} tip={DEFINITIONS.capacity} />
         <Kpi label="Planned effort" value={fmtHours(sum.planned)} note={sum.capacity > EPSILON ? `${Math.round((sum.planned / sum.capacity) * 100)}% of capacity` : null} tip={DEFINITIONS.planned} />
-        <Kpi label="Actual effort" value={fmtHours(actualTotals.actual)} tone={actualTotals.variance < 0 ? 'bad' : undefined} note={`${fmtSigned(actualTotals.variance)} vs planned`} tip={DEFINITIONS.actual} />
-        <Kpi label="Utilization" value={fmtPct(actualTotals.utilization)} note={`Target ${data.rules.thresholds.under}–${data.rules.thresholds.over}%`} tip={DEFINITIONS.utilization} />
+        <Kpi label="Actual effort" value={fmtHours(actualTotals.actual)} tip={DEFINITIONS.actual} />
+        <Kpi label="Utilization" value={fmtPct(actualTotals.utilization)} tone={utilTone(actualTotals.utilization)} note={`Green from ${LOW_UTILIZATION}%`} tip={DEFINITIONS.utilization} />
       </section>
 
       <section className="rm-split">
         <div className="card rm-chart">
-          <div className="rm-chart-head"><h2>Planned vs. actual effort, by week</h2><span className="muted small">{period.label}</span></div>
+          <div className="rm-chart-head"><h2>Planned vs. actual effort, by week</h2><span className="muted small">Click a week to see it above · {periodName}</span></div>
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={trend} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={2}>
+            <BarChart data={trend} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={2} onClick={pickWeek} style={{ cursor: 'pointer' }}>
               <CartesianGrid {...gridProps} />
               <XAxis dataKey="label" {...axisProps} />
               <YAxis {...axisProps} width={52} />
               <Tooltip {...tooltipProps} formatter={(v) => fmtHours(v)} />
               <Legend {...legendProps} />
-              <Bar dataKey="planned" name="Planned" fill={COLORS.primarySoft} radius={[3, 3, 0, 0]} />
+              <Bar dataKey="planned" name="Planned" fill={COLORS.primarySoft} radius={[3, 3, 0, 0]}>
+                {weeks.map((b) => <Cell key={b.start} fill={b.start === focus ? COLORS.primaryMid : COLORS.primarySoft} />)}
+              </Bar>
               <Bar dataKey="actual" name="Actual" fill={COLORS.primary} radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -98,9 +122,9 @@ export default function Overview({ data, filters, setFilters, period, access }) 
                 <div>
                   <b>{a.title}</b>
                   {a.text && <p>{a.text}</p>}
-                  {a.link[0] !== 'settings:redmine' ? <a href={hrefFor('resources', a.link[0])}>{a.link[1]}</a>
-                    : access.canAdmin ? <button type="button" className="link-btn" onClick={() => openSettings('redmine')}>{a.link[1]} in Settings</button>
-                      : <span className="muted small">Ask an administrator to check Redmine settings</span>}
+                  {!a.link[0].startsWith('settings:') ? <a href={hrefFor('resources', a.link[0])}>{a.link[1]}</a>
+                    : access.canAdmin ? <button type="button" className="link-btn" onClick={() => openSettings(a.link[0].slice(9))}>{a.link[1]} in Settings</button>
+                      : <span className="muted small">{a.link[0] === 'settings:redmine' ? 'Ask an administrator to check Redmine settings' : 'Ask an administrator to update allocations in Settings'}</span>}
                 </div>
               </li>
             ))}
@@ -120,7 +144,7 @@ export default function Overview({ data, filters, setFilters, period, access }) 
               </div>
             ))}
           </div>
-          <p className="rm-note">Green {data.rules.thresholds.under}–{data.rules.thresholds.over}% · amber below · red above. Mapped people only.</p>
+          <p className="rm-note">Green {LOW_UTILIZATION}% and above · red below {LOW_UTILIZATION}%. Mapped people only.</p>
         </div>
         <div className="card rm-chart">
           <div className="rm-chart-head"><h2>Capacity allocation by team</h2><span className="muted small">FTE</span></div>
@@ -133,16 +157,16 @@ export default function Overview({ data, filters, setFilters, period, access }) 
               </div>
             ))}
           </div>
-          <p className="rm-note">Allocated FTE of employment FTE. Free capacity can take more project work.</p>
+          <p className="rm-note">Allocated FTE of 1.00 per person. Free capacity can take more project work.</p>
         </div>
         <div className="card rm-chart">
           <div className="rm-chart-head"><h2>Over- and under-utilized</h2></div>
-          <span className="muted small strong">Over {data.rules.thresholds.over}%</span>
+          <span className="muted small strong">Highest ({LOW_UTILIZATION}% and above)</span>
           {!top.length && <span className="muted small">No one</span>}
-          {top.map((r) => <div key={r.resource.id} className="rm-rank"><span>{r.resource.name}</span><span className="rm-pill bad">{r.utilization}%</span></div>)}
-          <span className="muted small strong rm-gap">Under {data.rules.thresholds.under}%</span>
+          {top.map((r) => <div key={r.resource.id} className="rm-rank"><span>{r.resource.name}</span><span className="rm-pill ok">{r.utilization}%</span></div>)}
+          <span className="muted small strong rm-gap">Below {LOW_UTILIZATION}%</span>
           {!bottom.length && <span className="muted small">No one</span>}
-          {bottom.map((r) => <div key={r.resource.id} className="rm-rank"><span>{r.resource.name}</span><span className="rm-pill warn">{r.utilization}%</span></div>)}
+          {bottom.map((r) => <div key={r.resource.id} className="rm-rank"><span>{r.resource.name}</span><span className="rm-pill bad">{r.utilization}%</span></div>)}
           <a className="small strong rm-gap" href={hrefFor('resources', 'effort')}>See everyone in the Effort Tracker</a>
         </div>
       </section>
