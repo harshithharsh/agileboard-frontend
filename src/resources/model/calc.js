@@ -3,14 +3,15 @@
 //   Available capacity = employment FTE × working hours, for each working day in the period
 //                        (configured weekdays, minus public holidays and leave days).
 //   Planned effort     = Σ project allocations (FTE) in effect on each working day × working hours.
-//                        Separate from capacity: allocations are set per project and per date range.
+//                        With no allocation saved, the whole employment FTE is planned on the person's
+//                        team project (withDefaultPlan); allocations are only needed to split time.
 //   Actual effort      = Σ eligible Redmine time entries in the period, each entry counted once.
 //   Variance           = Actual − Planned.
 //   Utilization        = Actual ÷ Available capacity × 100; no value (null) when capacity is 0.
 
 export const DEFINITIONS = {
   capacity: 'Available capacity = employment FTE × working hours per day, for each working day in the period. Weekends, public holidays and leave days are left out.',
-  planned: 'Planned effort = the project allocations (FTE) in effect on each working day × working hours per day. Set per project, separately from capacity.',
+  planned: 'Planned effort = FTE × working hours per day, for each working day. The FTE is planned on the person’s team project, unless their time is split across projects (project allocations).',
   actual: 'Actual effort = the sum of eligible Redmine time entries in the period. Each time entry is counted once.',
   variance: 'Variance = Actual − Planned. Negative means less time was logged than planned.',
   utilization: 'Utilization = Actual ÷ Available capacity × 100. Filtered to a project, capacity is the time allocated to that project. Shown as — when there is no capacity (FTE not set or 0, or no working days).',
@@ -69,6 +70,18 @@ export function actualHours(resource, entriesByUser, range, rules, projectIds = 
 }
 
 export const utilization = (actual, capacity) => (capacity > EPSILON ? Math.round((actual / capacity) * 100) : null);
+
+// Saved allocations plus a default one for everyone with none saved: their whole employment FTE on
+// their team's project, on every day. So setting a person's FTE and team is enough; project
+// allocations are only needed to split someone across projects. Default ones have `isDefault`.
+export function withDefaultPlan(resources, allocations, teams) {
+  const saved = new Set(allocations.map((a) => a.resourceId));
+  const projectOf = new Map(teams.map((t) => [t.id, t.projectId]));
+  const defaults = resources
+    .filter((r) => !saved.has(r.id) && r.employmentFte > 0 && projectOf.get(r.teamId))
+    .map((r) => ({ id: `default-${r.id}`, resourceId: r.id, projectId: projectOf.get(r.teamId), fte: r.employmentFte, startDate: '1900-01-01', endDate: null, isDefault: true }));
+  return [...allocations, ...defaults];
+}
 
 export const allocatedFte = (resourceId, allocations, day) =>
   round(allocations.filter((a) => a.resourceId === resourceId && inEffect(a, day)).reduce((n, a) => n + a.fte, 0), 3);

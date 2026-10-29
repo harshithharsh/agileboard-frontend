@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { resourceService } from '../data/resourceService.js';
-import { inEffect, shiftDay, plannedAndCapacity, hoursPerDay, round, EPSILON } from '../model/calc.js';
+import { inEffect, shiftDay, plannedAndCapacity, hoursPerDay, round, EPSILON, withDefaultPlan } from '../model/calc.js';
 import { fmtHours, fmtFte, Person, InfoTip } from './ui.jsx';
 import { DEFINITIONS } from '../model/calc.js';
 import { formatDate, formatDateTime } from '../../lib/datetime.js';
@@ -15,7 +15,8 @@ const PRESETS = [1, 0.75, 0.5, 0.25];
 export default function AllocationDrawer({ resource, data, period, access, onClose }) {
   const today = data.today;
   const readOnly = !access.canEdit;
-  const current = data.allocations.filter((a) => a.resourceId === resource.id && (inEffect(a, today) || a.startDate > today));
+  // Saved allocations only: the default plan (whole FTE on the team's project) is not edited here
+  const current = data.savedAllocations.filter((a) => a.resourceId === resource.id && (inEffect(a, today) || a.startDate > today));
   const [f, setF] = useState({
     teamId: resource.teamId ?? '',
     redmineUserId: resource.redmineUserId ?? '',
@@ -42,7 +43,7 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
 
   // Allocations as they would be saved
   function nextAllocations() {
-    const out = data.allocations.filter((a) => a.resourceId === resource.id && !current.includes(a)); // past ones stay as they are
+    const out = data.savedAllocations.filter((a) => a.resourceId === resource.id && !current.includes(a)); // past ones stay as they are
     const stamp = { modifiedBy: access.by, modifiedAt: new Date().toISOString() };
     for (const r of f.rows) {
       const o = r.original;
@@ -59,12 +60,19 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
   // Before / after, from the effective date to the end of the selected period (or 3 months if that is earlier)
   const until = period.fullEnd > f.from ? period.fullEnd : shiftDay(f.from, 90);
   const window = { start: f.from, end: until };
-  const draftResource = { ...resource, employmentFte: employment, weeklyHours: f.weeklyHours ? Number(f.weeklyHours) : null };
+  const draftResource = { ...resource, teamId: f.teamId || null, employmentFte: employment, weeklyHours: f.weeklyHours ? Number(f.weeklyHours) : null };
+  // After the change, with the default plan when no project is listed
+  const draftAllocations = readOnly ? data.allocations
+    : withDefaultPlan(data.resources.map((r) => (r.id === resource.id ? draftResource : r)),
+      [...data.savedAllocations.filter((a) => a.resourceId !== resource.id), ...nextAllocations()], data.teams);
   const before = plannedAndCapacity(resource, data.allocations, window, data.rules, data.leave);
-  const after = plannedAndCapacity(draftResource, readOnly ? data.allocations : nextAllocations(), window, data.rules, data.leave);
+  const after = plannedAndCapacity(draftResource, draftAllocations, window, data.rules, data.leave);
+  const fteOn = (allocs, res, day) => allocs.filter((a) => a.resourceId === res.id && inEffect(a, day)).reduce((n, a) => n + a.fte, 0);
   const perWeek = (res, fte) => round(hoursPerDay(res, data.rules) * data.rules.workingWeekdays.length * fte, 2);
-  const plannedWeekBefore = perWeek(resource, current.filter((a) => inEffect(a, f.from)).reduce((n, a) => n + a.fte, 0));
-  const plannedWeekAfter = perWeek(draftResource, allocated);
+  const plannedWeekBefore = perWeek(resource, fteOn(data.allocations, resource, f.from));
+  const plannedWeekAfter = perWeek(draftResource, fteOn(draftAllocations, draftResource, f.from));
+  // With no project listed, the whole FTE goes to the team's project
+  const teamProject = data.teams.find((t) => t.id === f.teamId)?.projectId ?? null;
 
   const errors = [];
   if (!(employment >= 0 && employment <= 1.5)) errors.push('Employment FTE must be between 0 and 1.5.');
@@ -92,7 +100,7 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
     }
   };
 
-  const history = data.allocations.filter((a) => a.resourceId === resource.id).sort((a, b) => b.startDate.localeCompare(a.startDate));
+  const history = data.savedAllocations.filter((a) => a.resourceId === resource.id).sort((a, b) => b.startDate.localeCompare(a.startDate));
   const usedUsers = new Set(data.resources.filter((r) => r.id !== resource.id).map((r) => r.redmineUserId));
 
   return createPortal(
@@ -133,7 +141,13 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
 
           <section className="rm-dsec">
             <div className="rm-dsec-head"><h3>Project allocation</h3>{!readOnly && <button className="btn-link" onClick={addRow}>+ Add project</button>}</div>
-            {!f.rows.length && <p className="muted small">No project allocation yet.</p>}
+            {!active.length && (
+              <p className="muted small">
+                {teamProject && employment > 0
+                  ? <>Not split: the whole {fmtFte(employment)} FTE is planned on <b>{projectName(data, teamProject)}</b> (the team’s project). Add projects only if this person splits time across projects.</>
+                  : 'Choose a team to plan this person’s FTE on the team’s project, or add projects to split their time.'}
+              </p>
+            )}
             {f.rows.map((r) => {
               const changed = !r.original || r.removed || Number(r.fte) !== r.original.fte || r.projectId !== r.original.projectId;
               return (
@@ -168,7 +182,7 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
                 <span className="field-hint">Earlier days keep the old allocation, so past reports don’t change.</span>
               </label>
             )}
-            <div className="rm-alloc-sum"><span>Allocated across projects</span><b className={free < -EPSILON ? 'bad-text' : ''}>{fmtFte(allocated)} of {fmtFte(employment)} FTE · {free >= 0 ? `${fmtFte(free)} free` : `${fmtFte(-free)} over`}</b></div>
+            {active.length > 0 && <div className="rm-alloc-sum"><span>Allocated across projects</span><b className={free < -EPSILON ? 'bad-text' : ''}>{fmtFte(allocated)} of {fmtFte(employment)} FTE · {free >= 0 ? `${fmtFte(free)} free` : `${fmtFte(-free)} over`}</b></div>}
           </section>
 
           {!readOnly && (
@@ -179,9 +193,9 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
                 <span>Planned per week</span><span className="num">{fmtHours(plannedWeekBefore)}</span><b className="num">{fmtHours(plannedWeekAfter)}</b>
                 <span>Planned, {formatDate(window.start, { year: false })} – {formatDate(window.end)}</span><span className="num">{fmtHours(before.planned)}</span><b className="num">{fmtHours(after.planned)}</b>
                 <span>Available capacity, same days</span><span className="num">{fmtHours(before.capacity)}</span><b className="num">{fmtHours(after.capacity)}</b>
-                <span>Free capacity</span><span className="num">{fmtFte(round((resource.employmentFte ?? 0) - current.filter((a) => inEffect(a, f.from)).reduce((n, a) => n + a.fte, 0), 3))} FTE</span><b className="num">{fmtFte(free)} FTE</b>
+                <span>Free capacity</span><span className="num">{fmtFte(round((resource.employmentFte ?? 0) - fteOn(data.allocations, resource, f.from), 3))} FTE</span><b className="num">{fmtFte(round(employment - fteOn(draftAllocations, draftResource, f.from), 3))} FTE</b>
               </div>
-              <p className="muted small">Capacity comes from the employment FTE; planned hours come from the project allocations.</p>
+              <p className="muted small">Capacity and planned hours both come from the FTE; project allocations only split the planned hours across projects.</p>
             </section>
           )}
 

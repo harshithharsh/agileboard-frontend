@@ -37,7 +37,7 @@ export default function Allocation({ data, filters, setFilters, period, access }
   return (
     <>
       <PageHead title="Resource allocation"
-        sub="Who works on what, and how much. Employment FTE is each person’s total capacity; project allocations split it. Hours are for the selected period.">
+        sub="Who works on what, and how much. Set each person’s team and FTE: their time is planned on the team’s project. Add project allocations only to split someone across projects. Hours are for the selected period.">
         <button className="btn" onClick={exportCsv}>Export CSV</button>
       </PageHead>
 
@@ -102,7 +102,7 @@ export default function Allocation({ data, filters, setFilters, period, access }
                     <td>{teamName(data, r.teamId) ?? <span className="muted">—</span>}</td>
                     <td>
                       {allocs.length
-                        ? <span className="rm-allocs">{allocs.map((a) => <span key={a.id}>{projectName(data, a.projectId)} {fmtFte(a.fte)}</span>)}</span>
+                        ? <span className="rm-allocs">{allocs.map((a) => <span key={a.id} title={a.isDefault ? 'The whole FTE on the team’s project (not split across projects)' : undefined}>{projectName(data, a.projectId)} {fmtFte(a.fte)}</span>)}</span>
                         : <span className="muted small">No allocation</span>}
                     </td>
                     <td className="num">

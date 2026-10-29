@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
-import { indexEntries } from '../model/calc.js';
+import { indexEntries, withDefaultPlan } from '../model/calc.js';
 
 // Data access for Resource Management. Every screen goes through this interface.
 // GET /api/resources returns people (Jira team members and matched Redmine people), their FTE and
@@ -15,6 +15,9 @@ const listeners = new Set();
 async function fetchData() {
   const data = await api.resources();
   data.entriesByUser = indexEntries(data.entries);
+  // Screens use `allocations` (with the default plan from FTE); the drawer edits `savedAllocations`
+  data.savedAllocations = data.allocations;
+  data.allocations = withDefaultPlan(data.resources, data.savedAllocations, data.teams);
   store = data;
   listeners.forEach((fn) => fn(data));
   return data;
