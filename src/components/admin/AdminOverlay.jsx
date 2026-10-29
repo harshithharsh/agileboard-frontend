@@ -910,7 +910,12 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
       const r = await api.admin.importJiraUsers();
       await load();
       onChanged?.();
-      flash(r.added ? `Added ${r.added} ${r.added === 1 ? 'person' : 'people'} from Jira. Give sign-in and a role to those who need it.` : `Everyone from Jira is already here (${r.found} people).`, 5000);
+      const people = (n) => `${n} ${n === 1 ? 'person' : 'people'}`;
+      const parts = [
+        r.added && `Added ${people(r.added)} from Jira. Give sign-in and a role to those who need it.`,
+        r.deactivated && `Made ${people(r.deactivated)} inactive (deactivated in Jira): ${r.deactivatedNames.join(', ')}.`,
+      ].filter(Boolean);
+      flash(parts.join(' ') || `Everyone from Jira is already here (${people(r.found)}), and statuses match Jira.`, parts.length ? 8000 : 5000);
     } catch (e) {
       flash(`Could not import from Jira: ${e.message}`, 6000);
     } finally {
@@ -996,7 +1001,7 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
             <AdminCard icon={<UsersIcon />} tone="purple" title="Users" subtitle="People who can sign in, their role and the projects they can see."
               addLabel="Add User" onAdd={() => openEdit('users')} count={view.users.length} wide
               actions={<button className="btn" onClick={importFromJira} disabled={importing}
-                title="Add everyone who can work on the active projects in Jira. Existing users stay as they are.">{importing ? 'Importing…' : 'Import from Jira'}</button>}>
+                title="Add everyone who can work on the active projects in Jira, and make users deactivated in Jira inactive here.">{importing ? 'Importing…' : 'Import from Jira'}</button>}>
               <table className="admin-table">
                 <thead><tr><th>Name</th><th>Email</th><th>Sign-in</th><th>Role</th><th>Projects</th><th>Status</th><th className="col-actions">Actions</th></tr></thead>
                 <tbody>
