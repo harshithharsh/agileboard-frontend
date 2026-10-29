@@ -1,7 +1,26 @@
 const BASE = import.meta.env.VITE_API_URL || '';
 
-async function request(path, options) {
+// 502/503/504 = the server could not be reached (e.g. restarting, or the proxy in front of it timed out)
+const UNREACHABLE = [502, 503, 504];
+const RETRIES = 4; // waits 0.7 + 1.4 + 2.1 + 2.8 s: long enough for a server restart
+
+async function request(path, options, attempt = 0) {
   const res = await fetch(`${BASE}/api${path}`, { credentials: 'include', ...options });
+  // Our own server answers errors as JSON (e.g. 502 when sending a test email fails); a proxy does not
+  const fromProxy = !(res.headers.get('content-type') || '').includes('application/json');
+  if (UNREACHABLE.includes(res.status) && fromProxy) {
+    // Reads are safe to repeat: wait a moment and try again. Changes are not repeated automatically.
+    const isRead = !options?.method || options.method === 'GET';
+    if (isRead && attempt < RETRIES) {
+      await new Promise((r) => setTimeout(r, 700 * (attempt + 1)));
+      return request(path, options, attempt + 1);
+    }
+    const err = new Error(isRead
+      ? 'Can’t reach the AgileMetrix server right now. Please try again in a moment.'
+      : 'Can’t reach the AgileMetrix server right now (it may be restarting), so this was not saved. Please try again in a moment.');
+    err.status = res.status;
+    throw err;
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     // Session expired or signed out elsewhere: send the user back to the sign-in page
@@ -58,6 +77,8 @@ export const api = {
     update: (kind, id, body) => send('PUT', `/admin/${kind}/${id}`, body),
     remove: (kind, id) => send('DELETE', `/admin/${kind}/${id}`),
     jiraProjects: () => request('/admin/jira/projects'),
+    // Everyone assignable in the active Jira projects becomes a user (existing users unchanged)
+    importJiraUsers: () => send('POST', '/admin/users/import-jira'),
     integrations: () => request('/admin/integrations'),
     holidays: () => request('/admin/holidays'),
     saveHoliday: (date, name) => send('PUT', `/admin/holidays/${date}`, { name }),
