@@ -35,7 +35,7 @@ function RowActions({ onEdit, onDelete }) {
   );
 }
 
-function AdminCard({ icon, tone, title, subtitle, addLabel, onAdd, children, count, wide = false }) {
+function AdminCard({ icon, tone, title, subtitle, addLabel, onAdd, children, count, wide = false, actions }) {
   return (
     <section className={`admin-card${wide ? ' admin-card-wide' : ''}`}>
       <div className="admin-card-head">
@@ -44,6 +44,7 @@ function AdminCard({ icon, tone, title, subtitle, addLabel, onAdd, children, cou
           <h2>{title}{count !== undefined && <span className="admin-count">{count}</span>}</h2>
           <p>{subtitle}</p>
         </div>
+        {actions}
         <button className="btn-primary-solid" onClick={onAdd}><PlusIcon /> {addLabel}</button>
       </div>
       <div className="admin-table-wrap">{children}</div>
@@ -896,9 +897,25 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
     };
   }, [onClose, editing, deleting, membersOf]);
 
-  const flash = (message) => {
+  const flash = (message, ms = 2500) => {
     setToast(message);
-    setTimeout(() => setToast(null), 2500);
+    setTimeout(() => setToast(null), ms);
+  };
+
+  // Add everyone who can work on the active projects in Jira (no sign-in, role or team)
+  const [importing, setImporting] = useState(false);
+  const importFromJira = async () => {
+    setImporting(true);
+    try {
+      const r = await api.admin.importJiraUsers();
+      await load();
+      onChanged?.();
+      flash(r.added ? `Added ${r.added} ${r.added === 1 ? 'person' : 'people'} from Jira. Give sign-in and a role to those who need it.` : `Everyone from Jira is already here (${r.found} people).`, 5000);
+    } catch (e) {
+      flash(`Could not import from Jira: ${e.message}`, 6000);
+    } finally {
+      setImporting(false);
+    }
   };
 
   const save = async (form) => {
@@ -977,7 +994,9 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
 
             {tab === 'users' && (
             <AdminCard icon={<UsersIcon />} tone="purple" title="Users" subtitle="People who can sign in, their role and the projects they can see."
-              addLabel="Add User" onAdd={() => openEdit('users')} count={view.users.length} wide>
+              addLabel="Add User" onAdd={() => openEdit('users')} count={view.users.length} wide
+              actions={<button className="btn" onClick={importFromJira} disabled={importing}
+                title="Add everyone who can work on the active projects in Jira. Existing users stay as they are.">{importing ? 'Importing…' : 'Import from Jira'}</button>}>
               <table className="admin-table">
                 <thead><tr><th>Name</th><th>Email</th><th>Sign-in</th><th>Role</th><th>Projects</th><th>Status</th><th className="col-actions">Actions</th></tr></thead>
                 <tbody>
