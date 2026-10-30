@@ -62,9 +62,17 @@ export function periodRange(preset, rules, today, custom = {}) {
   return { start, end: cut, fullEnd: end, asOf: cut, label: toDate ? `${label} · to date` : label, toDate };
 }
 
-// Weekly or monthly buckets covering a range (first and last may be partial)
+// Daily, weekly or monthly buckets covering a range (first and last week or month may be partial).
+// Daily buckets are the working weekdays only (holidays stay, with nothing planned).
 export function buckets(range, granularity, rules) {
   const out = [];
+  if (granularity === 'day') {
+    for (let d = range.start; d <= range.end; d = shiftDay(d, 1)) {
+      if (!rules.workingWeekdays.includes(parseDay(d).getDay())) continue;
+      out.push({ start: d, end: d, asOf: d, label: parseDay(d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) });
+    }
+    return out;
+  }
   if (granularity === 'month') {
     for (let d = parseDay(range.start); dayKey(d) <= range.end; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
       const s = dayKey(d) < range.start ? range.start : dayKey(d);

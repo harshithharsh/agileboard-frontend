@@ -4,6 +4,7 @@ import { Filters, InfoTip, Kpi, Empty, SortTh, sortBy, fmtHours, fmtFte, fmtPct 
 import { selectRows, totals, teamName, scopeProject, scopedFte } from '../model/select.js';
 import { DEFINITIONS, resourceRow, round, LOW_UTILIZATION, utilTone } from '../model/calc.js';
 import { buckets, hoursUntil } from '../model/period.js';
+import { parseDay } from '../model/calc.js';
 import { downloadXlsx, bold, hours, percent, fte } from '../../lib/excel.js';
 import { DownloadIcon, MailIcon } from '../../components/Icons.jsx';
 import WeeklyEmailDialog from '../components/WeeklyEmailDialog.jsx';
@@ -13,7 +14,7 @@ import { axisProps, gridProps, tooltipProps, legendProps } from '../../component
 
 const UTIL_TIP = 'Utilization to date = actual hours ÷ planned hours, counted from the start of the period up to the last full day of imported Redmine hours (the day before the last import). Later days are not counted yet.';
 
-// Planned against actual Redmine hours, per person, with a weekly or monthly breakdown on demand
+// Planned against actual Redmine hours, per person, with a daily, weekly or monthly breakdown on demand
 export default function EffortTracker({ data, filters, setFilters, period, setActions }) {
   const [granularity, setGranularity] = useState('week');
   const [search, setSearch] = useState('');
@@ -26,6 +27,12 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
   // The whole period (e.g. the full quarter), not just up to today: planned hours, capacity and
   // utilization are for the whole quarter; actual is what has been logged so far.
   const range = useMemo(() => (period.toDate ? { ...period, end: period.fullEnd } : period), [period]);
+  // A one-week period shows days; a longer one goes back to weeks (Daily can still be picked up to a month)
+  const days = Math.round((parseDay(range.end) - parseDay(range.start)) / 864e5) + 1;
+  useEffect(() => {
+    setGranularity((g) => (days <= 7 ? 'day' : g === 'day' ? 'week' : g));
+    setFocus(null);
+  }, [range.start, range.end]); // eslint-disable-line react-hooks/exhaustive-deps
   const periods = useMemo(() => buckets(range, granularity, data.rules), [range, granularity, data.rules]);
   // A week (or month) picked in the chart: the KPIs and table show just that week until it is cleared
   const [focus, setFocus] = useState(null); // bucket start date
@@ -66,7 +73,7 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
     const b = periods[Number(state?.activeTooltipIndex)];
     if (b) setFocus((f) => (f === b.start ? null : b.start));
   };
-  const unit = granularity === 'week' ? 'week' : 'month';
+  const unit = { day: 'day', week: 'week', month: 'month' }[granularity];
   const pickedLabel = picked && (granularity === 'week' ? `Week of ${picked.label}` : picked.label);
   const lastSync = data.syncRuns.find((s) => s.status !== 'failed');
 
@@ -93,7 +100,7 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
     });
     const total = [bold(`${rows.length} people`), null, fte(round(rows.reduce((n, r) => n + fteShown(r), 0), 3)), hours(plannedSoFar),
       hours(cumulative.actual), percent(cumulative.utilization), hours(sum.planned)].map((c) => (c && typeof c === 'object' ? { ...c, fontWeight: 'bold' } : c));
-    const unitHead = granularity === 'week' ? 'Week of' : 'Month';
+    const sheet = { day: 'By day', week: 'By week', month: 'By month' }[granularity];
     const breakdown = [
       [bold('Resource'), ...periods.flatMap((b) => [bold(`${b.label} planned (h)`), bold(`${b.label} actual (h)`)])],
       ...rows.map((r) => {
@@ -103,7 +110,7 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
     ];
     await downloadXlsx([
       { name: 'Effort', rows: [...title, head, ...people, total], columns: [{ width: 28 }, { width: 16 }, { width: 8 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 20 }], sticky: title.length + 1 },
-      { name: `${unitHead === 'Month' ? 'By month' : 'By week'}`, rows: breakdown, columns: [{ width: 28 }, ...periods.flatMap(() => [{ width: 16 }, { width: 16 }])], sticky: 1 },
+      { name: sheet, rows: breakdown, columns: [{ width: 28 }, ...periods.flatMap(() => [{ width: 16 }, { width: 16 }])], sticky: 1 },
     ], `agilemetrix-effort-${shown.start}-${shown.end}.xlsx`);
   };
   // The download icon sits in the top bar, like Agile Metrics
@@ -130,6 +137,7 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
         <label className="filter">
           <span>Breakdown</span>
           <select value={granularity} onChange={(e) => { setGranularity(e.target.value); setFocus(null); }}>
+            <option value="day" disabled={days > 31}>Daily</option>
             <option value="week">Weekly</option>
             <option value="month">Monthly</option>
           </select>
@@ -155,7 +163,7 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
       ) : (
         <>
           <section className="card rm-chart">
-            <div className="rm-chart-head"><h2>Planned vs. actual, {granularity === 'week' ? 'by week' : 'by month'}</h2></div>
+            <div className="rm-chart-head"><h2>Planned vs. actual, by {unit}</h2></div>
             <ResponsiveContainer width="100%" height={240}>
               <ComposedChart data={trend} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} onClick={pickBucket} style={{ cursor: 'pointer' }}>
                 <CartesianGrid {...gridProps} />
@@ -192,7 +200,7 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
                     <Fragment key={r.resource.id}>
                       <tr className={isOpen ? 'selected' : ''}>
                         <td className="rm-check">
-                          <button className="rm-expand" onClick={() => toggle(r.resource.id)} aria-expanded={isOpen} aria-label={`${isOpen ? 'Hide' : 'Show'} ${granularity === 'week' ? 'weekly' : 'monthly'} effort for ${r.resource.name}`}>{isOpen ? '▾' : '▸'}</button>
+                          <button className="rm-expand" onClick={() => toggle(r.resource.id)} aria-expanded={isOpen} aria-label={`${isOpen ? 'Hide' : 'Show'} ${{ day: 'daily', week: 'weekly', month: 'monthly' }[granularity]} effort for ${r.resource.name}`}>{isOpen ? '▾' : '▸'}</button>
                         </td>
                         <td><b>{r.resource.name}</b>{!r.resource.redmineUserId && <span className="rm-pill warn rm-inline">Not mapped</span>}</td>
                         <td>{teamName(data, r.resource.teamId) ?? <span className="muted">—</span>}</td>
@@ -207,7 +215,7 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
                         <tr className="selected">
                           <td />
                           <td colSpan={7}>
-                            <Breakdown row={r} data={data} periods={periods} filters={scoped} />
+                            <Breakdown row={r} data={data} periods={periods} filters={scoped} until={until} />
                           </td>
                         </tr>
                       )}
@@ -237,12 +245,22 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
   );
 }
 
-// One person's weeks (or months) as small cards that wrap, instead of a wide table
-function Breakdown({ row, data, periods, filters }) {
+// One person's days, weeks or months as small cards that wrap, instead of a wide table
+function Breakdown({ row, data, periods, filters, until }) {
   const per = periods.map((b) => ({ b, ...resourceRow(row.resource, data, b, filters) }));
   return (
     <div className="rm-breakdown">
       {per.map(({ b, planned, actual, utilization: pctUsed }) => {
+        if (b.start > until) { // Redmine hours not imported yet
+          return (
+            <div key={b.start} className="rm-bcard">
+              <span className="muted small">{b.label}</span>
+              <b><span className="muted">— / {fmtHours(planned)}</span></b>
+              <span className="rm-util-bar rm-wide"><i style={{ width: 0 }} /></span>
+              <span className="small muted">Not imported yet</span>
+            </div>
+          );
+        }
         const pct = planned > 0 ? Math.min(100, (actual / planned) * 100) : actual > 0 ? 100 : 0;
         const tone = planned === 0 ? (actual > 0 ? 'var(--warning)' : 'var(--border-strong)') : actual < planned * (LOW_UTILIZATION / 100) ? 'var(--danger)' : 'var(--success)';
         return (
