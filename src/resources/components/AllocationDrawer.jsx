@@ -1,35 +1,31 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { resourceService } from '../data/resourceService.js';
-import { inEffect, shiftDay, plannedAndCapacity, hoursPerDay, round, EPSILON, withDefaultPlan } from '../model/calc.js';
-import { fmtHours, fmtFte, Person, InfoTip } from './ui.jsx';
-import { DEFINITIONS } from '../model/calc.js';
+import { inEffect, plannedAndCapacity, hoursPerDay, round, EPSILON, withDefaultPlan } from '../model/calc.js';
+import { fmtHours, fmtFte, Person } from './ui.jsx';
 import { formatDate, formatDateTime } from '../../lib/datetime.js';
-import { projectName } from '../model/select.js';
-import { ClearIcon } from '../../components/Icons.jsx';
+import { projectName, teamName } from '../model/select.js';
+import { ClearIcon, PlusIcon, TrashIcon } from '../../components/Icons.jsx';
 
-const PRESETS = [1, 0.75, 0.5, 0.25];
+// Side panel with one person's project allocations: each row is a project, an FTE and the dates it
+// applies (no end date = ongoing). Rows can be edited, added or removed; allocations that already
+// ended are kept as history. The person's FTE is what is allocated today.
+const ALWAYS = '1900-01-01'; // stored start for "from the start"
 
-// Side panel to change a person's team, Redmine user, employment FTE and project allocations.
-// FTE changes take effect from a date: the old allocation ends the day before, so past numbers stay.
 export default function AllocationDrawer({ resource, data, period, access, onClose }) {
   const today = data.today;
   const readOnly = !access.canEdit;
-  const current = data.savedAllocations.filter((a) => a.resourceId === resource.id && (inEffect(a, today) || a.startDate > today));
-  // Nothing saved: the FTE planned on the team's project is listed as a project row, so adding another
-  // project shows what is already planned. It is only saved when the allocations change.
-  const homeProject = data.teams.find((t) => t.id === resource.teamId)?.projectId ?? null;
-  const teamPlan = !current.length && homeProject && resource.employmentFte > 0
-    ? { id: null, resourceId: resource.id, projectId: homeProject, fte: resource.employmentFte, startDate: '1900-01-01', endDate: null, teamPlan: true }
+  const mine = data.savedAllocations.filter((a) => a.resourceId === resource.id);
+  const ended = mine.filter((a) => a.endDate && a.endDate < today);
+  const editable = mine.filter((a) => !ended.includes(a));
+  // Nothing saved yet: the whole FTE is planned on the squad's project; shown as a row to edit
+  const squadProject = data.teams.find((t) => t.id === resource.teamId)?.projectId ?? null;
+  const defaultRow = !mine.length && squadProject && resource.employmentFte > 0
+    ? { id: null, projectId: squadProject, fte: resource.employmentFte, startDate: ALWAYS, endDate: null, isDefault: true }
     : null;
-  const [f, setF] = useState({
-    teamId: resource.teamId ?? '',
-    redmineUserId: resource.redmineUserId ?? '',
-    employmentFte: resource.employmentFte ?? data.rules.defaultFte,
-    weeklyHours: resource.weeklyHours ?? '',
-    from: today,
-    rows: (teamPlan ? [teamPlan] : current).map((a) => ({ key: a.id ?? 'team-plan', original: a, projectId: a.projectId, fte: a.fte, removed: false })),
-  });
+
+  const toRow = (a) => ({ key: a.id ?? 'default', original: a, projectId: a.projectId, fte: String(a.fte), from: a.startDate === ALWAYS ? '' : a.startDate, to: a.endDate ?? '' });
+  const [rows, setRows] = useState(() => (defaultRow ? [defaultRow] : editable).map(toRow));
   const [state, setState] = useState({ saving: false, error: null });
 
   useEffect(() => {
@@ -38,192 +34,154 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const setRow = (key, patch) => setF((s) => ({ ...s, rows: s.rows.map((r) => (r.key === key ? { ...r, ...patch } : r)) }));
-  const addRow = () => setF((s) => ({ ...s, rows: [...s.rows, { key: `new-${Date.now()}`, original: null, projectId: data.projects.find((p) => !s.rows.some((r) => r.projectId === p.id && !r.removed))?.id ?? data.projects[0].id, fte: 0.25, removed: false }] }));
+  const setRow = (key, patch) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+  const addRow = () => setRows((rs) => [...rs, {
+    key: `new-${Date.now()}`, original: null,
+    projectId: data.projects.find((p) => !rs.some((r) => r.projectId === p.id))?.id ?? data.projects[0]?.id, fte: '0.5', from: today, to: '',
+  }]);
+  const removeRow = (key) => setRows((rs) => rs.filter((r) => r.key !== key));
 
-  const active = f.rows.filter((r) => !r.removed);
-  const allocated = round(active.reduce((n, r) => n + Number(r.fte || 0), 0), 3);
-  // With projects listed, the FTE is their sum; Available FTE is what is left of one full-time person
-  const employment = active.length ? allocated : Number(f.employmentFte);
-  const free = round(1 - allocated, 3);
-  const isChanged = (r) => !r.original || r.removed || Number(r.fte) !== r.original.fte || r.projectId !== r.original.projectId;
+  const isChanged = (r) => !r.original
+    || r.projectId !== r.original.projectId || Number(r.fte) !== r.original.fte
+    || (r.from || ALWAYS) !== r.original.startDate || (r.to || null) !== (r.original.endDate ?? null);
+  const removedCount = (defaultRow ? [] : editable).filter((a) => !rows.some((r) => r.original === a)).length;
+  const dirty = removedCount > 0 || rows.some(isChanged);
 
-  // Allocations as they would be saved
-  function nextAllocations() {
-    const out = data.savedAllocations.filter((a) => a.resourceId === resource.id && !current.includes(a)); // past ones stay as they are
-    if (teamPlan && !f.rows.some(isChanged)) return out; // still just the team plan: nothing to save
-    const stamp = { modifiedBy: access.by, modifiedAt: new Date().toISOString() };
-    for (const r of f.rows) {
-      // The team plan becomes a saved allocation (from the start, so past numbers stay the same)
-      const o = r.original?.teamPlan ? { id: null, resourceId: resource.id, projectId: r.original.projectId, fte: r.original.fte, startDate: r.original.startDate, endDate: null, ...stamp } : r.original;
-      const changed = isChanged(r);
-      if (o && !changed) { out.push(o); continue; }
-      if (o) {
-        if (o.startDate < f.from) out.push({ ...o, endDate: shiftDay(f.from, -1), ...stamp }); // ends the day before
-      }
-      if (!r.removed) out.push({ id: `a-${resource.id}-${Date.now()}-${r.key}`, resourceId: resource.id, projectId: r.projectId, fte: Number(r.fte), startDate: f.from, endDate: o?.endDate ?? null, ...stamp });
-    }
-    return out;
-  }
+  // Allocations as they would be saved: ended ones unchanged, then the rows
+  const stamp = { modifiedBy: access.by, modifiedAt: new Date().toISOString() };
+  const nextAllocations = () => [
+    ...ended,
+    ...rows.map((r) => ({
+      ...(r.original && !r.original.isDefault ? r.original : {}),
+      id: r.original?.isDefault ? undefined : r.original?.id,
+      resourceId: resource.id, projectId: r.projectId, fte: Number(r.fte), startDate: r.from || ALWAYS, endDate: r.to || null,
+      ...(isChanged(r) || r.original?.isDefault ? stamp : {}),
+    })),
+  ];
 
-  // Before / after, from the effective date to the end of the selected period (or 3 months if that is earlier)
-  const until = period.fullEnd > f.from ? period.fullEnd : shiftDay(f.from, 90);
-  const window = { start: f.from, end: until };
-  const draftResource = { ...resource, teamId: f.teamId || null, employmentFte: employment, weeklyHours: f.weeklyHours ? Number(f.weeklyHours) : null };
-  // After the change, with the default plan when no project is listed
-  const draftAllocations = readOnly ? data.allocations
-    : withDefaultPlan(data.resources.map((r) => (r.id === resource.id ? draftResource : r)),
-      [...data.savedAllocations.filter((a) => a.resourceId !== resource.id), ...nextAllocations()], data.teams);
+  // FTE allocated on a day
+  const fteOn = (allocs, day) => round(allocs.filter((a) => a.resourceId === resource.id && inEffect(a, day)).reduce((n, a) => n + a.fte, 0), 3);
+  const draft = rows.map((r) => ({ resourceId: resource.id, projectId: r.projectId, fte: Number(r.fte) || 0, startDate: r.from || ALWAYS, endDate: r.to || null }));
+  const allocatedToday = fteOn(draft, today);
+  const available = round(1 - allocatedToday, 3);
+  // The person's FTE is what is allocated today (kept as it is when nothing is allocated today)
+  const employment = rows.length ? (allocatedToday > 0 ? allocatedToday : resource.employmentFte) : resource.employmentFte;
+
+  // Effect: planned per week today, and planned hours in the selected period
+  const draftResource = { ...resource, employmentFte: employment };
+  const draftAllocations = withDefaultPlan(data.resources.map((r) => (r.id === resource.id ? draftResource : r)),
+    [...data.savedAllocations.filter((a) => a.resourceId !== resource.id), ...nextAllocations()], data.teams);
+  const window = { start: period.start, end: period.fullEnd };
   const before = plannedAndCapacity(resource, data.allocations, window, data.rules, data.leave);
   const after = plannedAndCapacity(draftResource, draftAllocations, window, data.rules, data.leave);
-  const fteOn = (allocs, res, day) => allocs.filter((a) => a.resourceId === res.id && inEffect(a, day)).reduce((n, a) => n + a.fte, 0);
-  const perWeek = (res, fte) => round(hoursPerDay(res, data.rules) * data.rules.workingWeekdays.length * fte, 2);
-  const plannedWeekBefore = perWeek(resource, fteOn(data.allocations, resource, f.from));
-  const plannedWeekAfter = perWeek(draftResource, fteOn(draftAllocations, draftResource, f.from));
-  // With no project listed, the whole FTE goes to the team's project
-  const teamProject = data.teams.find((t) => t.id === f.teamId)?.projectId ?? null;
+  const perWeek = (fte) => round(hoursPerDay(resource, data.rules) * data.rules.workingWeekdays.length * fte, 2);
 
+  // Checks
   const errors = [];
-  if (!(employment >= 0 && employment <= 1.5)) errors.push('Employment FTE must be between 0 and 1.5.');
-  if (active.some((r) => !(Number(r.fte) > 0 && Number(r.fte) <= 1.5))) errors.push('Each project allocation needs an FTE above 0.');
-  if (new Set(active.map((r) => r.projectId)).size < active.length) errors.push('Each project can appear once.');
-  if (!f.from) errors.push('Choose the date the change takes effect.');
+  rows.forEach((r) => {
+    const name = projectName(data, r.projectId);
+    if (!(Number(r.fte) > 0 && Number(r.fte) <= 1.5)) errors.push(`${name}: FTE must be more than 0 and at most 1.5.`);
+    if (r.to && r.from && r.to < r.from) errors.push(`${name}: the end date is before the start date.`);
+  });
+  rows.forEach((a, i) => rows.slice(i + 1).forEach((b) => {
+    const overlap = a.projectId === b.projectId && (a.from || ALWAYS) <= (b.to || '9999-12-31') && (b.from || ALWAYS) <= (a.to || '9999-12-31');
+    if (overlap) errors.push(`${projectName(data, a.projectId)} appears twice for the same dates: set an end date on one of them.`);
+  }));
+  const overToday = allocatedToday > 1 + EPSILON;
 
   const save = async () => {
     if (errors.length) return setState({ saving: false, error: errors[0] });
     setState({ saving: true, error: null });
     try {
-      await resourceService.saveResource({
-        ...resource, teamId: f.teamId || null, redmineUserId: f.redmineUserId ? Number(f.redmineUserId) : null,
-        employmentFte: employment, weeklyHours: f.weeklyHours ? Number(f.weeklyHours) : null,
-      }, access.by);
-      const changes = f.rows.filter(isChanged);
-      const note = changes.length
-        ? `${changes.map((r) => `${projectName(data, r.projectId)} ${r.removed ? 'removed' : `${r.original ? fmtFte(r.original.fte) : 'new'} → ${fmtFte(r.fte)}`}`).join(', ')} from ${formatDate(f.from)}`
-        : null;
-      await resourceService.saveAllocations(resource.id, nextAllocations(), access.by, note);
+      if (Math.abs((employment ?? 0) - (resource.employmentFte ?? 0)) > EPSILON) await resourceService.saveResource({ ...resource, employmentFte: employment });
+      await resourceService.saveAllocations(resource.id, nextAllocations());
       onClose();
     } catch (e) {
       setState({ saving: false, error: e.message });
     }
   };
 
-  const history = data.savedAllocations.filter((a) => a.resourceId === resource.id).sort((a, b) => b.startDate.localeCompare(a.startDate));
-  const usedUsers = new Set(data.resources.filter((r) => r.id !== resource.id).map((r) => r.redmineUserId));
+  const history = [...mine].sort((a, b) => (b.endDate ?? '9999').localeCompare(a.endDate ?? '9999') || b.startDate.localeCompare(a.startDate));
+  const squad = teamName(data, resource.teamId);
+  const range = (a) => `${a.startDate === ALWAYS ? 'From the start' : formatDate(a.startDate)} – ${a.endDate ? formatDate(a.endDate) : 'ongoing'}`;
 
   return createPortal(
     <div className="rm-drawer-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <aside className="rm-drawer" role="dialog" aria-modal="true" aria-label={`Allocation for ${resource.name}`}>
         <div className="rm-drawer-head">
-          <Person resource={resource} sub={resource.email} />
+          <Person resource={resource} sub={[squad, resource.email].filter(Boolean).join(' · ')} />
           <button className="icon-btn icon-btn-sm" onClick={onClose} aria-label="Close"><ClearIcon /></button>
         </div>
 
         <div className="rm-drawer-body">
-          <section className="rm-dsec">
-            <h3>Person</h3>
-            <div className="rm-grid2">
-              <label className="field"><span className="field-label">Squad</span>
-                <select value={f.teamId} disabled={readOnly} onChange={(e) => setF((s) => ({ ...s, teamId: e.target.value }))}>
-                  <option value="">No squad</option>
-                  {data.teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-              </label>
-              <label className="field"><span className="field-label">Redmine user</span>
-                <select value={f.redmineUserId} disabled={readOnly || !access.canAdmin} onChange={(e) => setF((s) => ({ ...s, redmineUserId: e.target.value }))}>
-                  <option value="">Not mapped</option>
-                  {data.redmineUsers.filter((u) => !usedUsers.has(u.id)).map((u) => <option key={u.id} value={u.id}>{u.login ? `${u.login} (${u.name})` : u.name}</option>)}
-                </select>
-              </label>
-              <label className="field"><span className="field-label">FTE <InfoTip text={DEFINITIONS.fte} /></span>
-                <input type="number" min="0" max="1.5" step="0.05" value={active.length ? allocated : f.employmentFte} disabled={readOnly || active.length > 0}
-                  onChange={(e) => setF((s) => ({ ...s, employmentFte: e.target.value }))} />
-                <span className="field-hint">{active.length ? 'The sum of the project allocations below.' : 'Planned on the squad’s project.'}</span>
-              </label>
-              <label className="field"><span className="field-label">Weekly working hours</span>
-                <input type="number" min="1" max="60" step="0.5" value={f.weeklyHours} disabled={readOnly} placeholder={`${data.rules.hoursPerDay * data.rules.workingWeekdays.length} (workspace default)`}
-                  onChange={(e) => setF((s) => ({ ...s, weeklyHours: e.target.value }))} />
-                <span className="field-hint">Leave empty to use the workspace default.</span>
-              </label>
-            </div>
-          </section>
+          <div className="al-summary">
+            <div><span>Allocated today</span><b className={overToday ? 'bad-text' : ''}>{fmtFte(allocatedToday)} FTE</b></div>
+            <div><span>Available</span><b className={available < -EPSILON ? 'bad-text' : ''}>{available >= 0 ? `${fmtFte(available)} FTE` : `${fmtFte(-available)} over`}</b></div>
+            <div><span>Planned per week</span><b>{fmtHours(perWeek(allocatedToday))}</b></div>
+          </div>
 
           <section className="rm-dsec">
-            <div className="rm-dsec-head"><h3>Project allocation</h3>{!readOnly && <button className="btn-link" onClick={addRow}>+ Add project</button>}</div>
-            {!active.length && !(teamProject && employment > 0) && (
-              <p className="muted small">Choose a squad to plan this person’s FTE on the squad’s project, or add projects.</p>
-            )}
-            {f.rows.map((r) => {
-              const changed = isChanged(r);
-              return (
-                <div key={r.key} className={`rm-alloc${changed ? ' changed' : ''}${r.removed ? ' removed' : ''}`}>
-                  <div className="rm-alloc-top">
-                    <select value={r.projectId} disabled={readOnly || !!r.original} onChange={(e) => setRow(r.key, { projectId: e.target.value })} aria-label="Project">
+            <div className="rm-dsec-head">
+              <h3>Project allocations</h3>
+              {!readOnly && <button className="btn-link" onClick={addRow}><PlusIcon /> Add allocation</button>}
+            </div>
+            {rows.length > 0 ? (
+              <div className="al-table" role="table" aria-label="Project allocations">
+                <div className="al-row al-head" role="row">
+                  <span role="columnheader">Project</span><span role="columnheader">FTE</span><span role="columnheader">From</span><span role="columnheader">To</span><span aria-hidden="true" />
+                </div>
+                {rows.map((r) => (
+                  <div key={r.key} className={`al-row${isChanged(r) && !r.original?.isDefault ? ' changed' : ''}`} role="row">
+                    <select value={r.projectId} disabled={readOnly} onChange={(e) => setRow(r.key, { projectId: e.target.value })} aria-label="Project">
                       {data.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
-                    {changed && <span className="rm-pill info">{r.removed ? 'Removed' : r.original ? `Was ${fmtFte(r.original.fte)}` : 'New'}</span>}
-                    {!readOnly && <button className="btn-link rm-push" onClick={() => setRow(r.key, { removed: !r.removed })}>{r.removed ? 'Undo' : 'Remove'}</button>}
+                    <input type="number" min="0.05" max="1.5" step="0.05" value={r.fte} disabled={readOnly}
+                      onChange={(e) => setRow(r.key, { fte: e.target.value })} aria-label={`FTE on ${projectName(data, r.projectId)}`} />
+                    <input type="date" value={r.from} disabled={readOnly} onChange={(e) => setRow(r.key, { from: e.target.value })}
+                      aria-label="From" title={r.from ? undefined : 'Empty: from the start'} />
+                    <input type="date" value={r.to} min={r.from || undefined} disabled={readOnly} onChange={(e) => setRow(r.key, { to: e.target.value })}
+                      aria-label="To" title={r.to ? undefined : 'Empty: ongoing'} />
+                    {!readOnly ? <button className="action-btn action-danger" onClick={() => removeRow(r.key)} aria-label={`Remove ${projectName(data, r.projectId)}`} title="Remove"><TrashIcon /></button> : <span />}
                   </div>
-                  {!r.removed && (
-                    <div className="rm-alloc-fte">
-                      <div className="segmented" role="radiogroup" aria-label={`FTE on ${projectName(data, r.projectId)}`}>
-                        {PRESETS.map((p) => (
-                          <button key={p} role="radio" aria-checked={Number(r.fte) === p} disabled={readOnly}
-                            className={`segment${Number(r.fte) === p ? ' active' : ''}`} onClick={() => setRow(r.key, { fte: p })}>{fmtFte(p)}</button>
-                        ))}
-                      </div>
-                      <input type="number" min="0.05" max="1.5" step="0.05" value={r.fte} disabled={readOnly} aria-label="Custom FTE"
-                        onChange={(e) => setRow(r.key, { fte: e.target.value })} />
-                      <span className="muted small">{Math.round(Number(r.fte || 0) * 100)}% of a full-time week</span>
-                    </div>
-                  )}
-                  {r.original?.teamPlan && <span className="muted small">The squad’s project</span>}
-                  {r.original && !r.original.teamPlan && <span className="muted small">Since {formatDate(r.original.startDate)}{r.original.endDate ? ` until ${formatDate(r.original.endDate)}` : ''}</span>}
-                </div>
-              );
-            })}
-            {!readOnly && (
-              <label className="field rm-from"><span className="field-label">Changes take effect from</span>
-                <input type="date" value={f.from} onChange={(e) => setF((s) => ({ ...s, from: e.target.value }))} />
-                <span className="field-hint">Earlier days keep the old allocation, so past reports don’t change.</span>
-              </label>
+                ))}
+              </div>
+            ) : (
+              <p className="muted small">No allocation yet.{!readOnly && ' Add one to plan this person’s time on a project.'}</p>
             )}
-            {active.length > 0 && <div className="rm-alloc-sum"><span>Allocated across projects</span><b className={free < -EPSILON ? 'bad-text' : ''}>{fmtFte(allocated)} FTE · {free >= 0 ? `${fmtFte(free)} available` : `${fmtFte(-free)} over 1.00`}</b></div>}
+            <p className="field-hint">Leave <b>To</b> empty for an ongoing allocation, and <b>From</b> empty for “from the start”. To change an FTE from a date, set an end date on the current row and add a new row from the next day.</p>
+            {defaultRow && <p className="field-hint">Nothing is saved yet: the whole FTE is planned on {projectName(data, squadProject)}, {squad ? `${squad}’s` : 'the squad’s'} project.</p>}
           </section>
 
-          {!readOnly && (
+          {!readOnly && dirty && (
             <section className="rm-dsec rm-effect">
               <h3>Effect of this change</h3>
               <div className="rm-effect-grid">
                 <span /><span className="muted small num">Before</span><span className="muted small num">After</span>
-                <span>Planned per week</span><span className="num">{fmtHours(plannedWeekBefore)}</span><b className="num">{fmtHours(plannedWeekAfter)}</b>
-                <span>Planned, {formatDate(window.start, { year: false })} – {formatDate(window.end)}</span><span className="num">{fmtHours(before.planned)}</span><b className="num">{fmtHours(after.planned)}</b>
-                <span>Available capacity, same days</span><span className="num">{fmtHours(before.capacity)}</span><b className="num">{fmtHours(after.capacity)}</b>
-                <span>Available FTE</span><span className="num">{fmtFte(round(1 - fteOn(data.allocations, resource, f.from), 3))} FTE</span><b className="num">{fmtFte(round(1 - fteOn(draftAllocations, draftResource, f.from), 3))} FTE</b>
+                <span>Allocated today</span><span className="num">{fmtFte(fteOn(data.allocations, today))} FTE</span><b className="num">{fmtFte(allocatedToday)} FTE</b>
+                <span>Planned, {period.label}</span><span className="num">{fmtHours(before.planned)}</span><b className="num">{fmtHours(after.planned)}</b>
               </div>
-              <p className="muted small">Capacity and planned hours both come from the FTE; project allocations only split the planned hours across projects.</p>
             </section>
           )}
 
           <section className="rm-dsec">
-            <h3>Allocation history</h3>
+            <h3>History</h3>
             <ul className="rm-history">
               {history.map((a) => (
-                <li key={a.id}>
-                  <span><b>{projectName(data, a.projectId)} {fmtFte(a.fte)}</b> · {formatDate(a.startDate)}{a.endDate ? ` – ${formatDate(a.endDate)}` : ' onwards'}</span>
-                  <span className="muted small">{a.modifiedBy} · {formatDateTime(a.modifiedAt)}</span>
+                <li key={a.id} className={a.endDate && a.endDate < today ? 'is-ended' : ''}>
+                  <span><b>{projectName(data, a.projectId)} · {fmtFte(a.fte)} FTE</b><span className="muted"> · {range(a)}</span></span>
+                  <span className="muted small">{a.modifiedBy ? `${a.modifiedBy} · ` : ''}{formatDateTime(a.modifiedAt)}</span>
                 </li>
               ))}
-              {!history.length && <li className="muted small">No allocations yet.</li>}
+              {!history.length && <li className="muted small">No saved allocations yet.</li>}
             </ul>
           </section>
         </div>
 
         <div className="rm-drawer-foot">
-          {state.error && <span className="form-error">{state.error}</span>}
-          {!state.error && errors.length > 0 && !readOnly && <span className="warn-text small">{errors[0]}</span>}
+          {(state.error || (errors.length > 0 && !readOnly)) && <span className="form-error">{state.error ?? errors[0]}</span>}
+          {!state.error && !errors.length && overToday && !readOnly && <span className="warn-text small">More than 1.00 FTE is allocated today.</span>}
           <button className="btn rm-push" onClick={onClose}>{readOnly ? 'Close' : 'Cancel'}</button>
-          {!readOnly && <button className="btn-primary-solid" onClick={save} disabled={state.saving}>{state.saving ? 'Saving…' : 'Save changes'}</button>}
+          {!readOnly && <button className="btn-primary-solid" onClick={save} disabled={state.saving || !dirty}>{state.saving ? 'Saving…' : 'Save changes'}</button>}
         </div>
       </aside>
     </div>,
