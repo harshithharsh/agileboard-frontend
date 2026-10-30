@@ -823,7 +823,7 @@ function ProjectForm({ item, users = [], onSave, onCancel, saving, error }) {
   useEffect(() => {
     if (item || !fromJira || !boardList || filledFor.current === f.key) return;
     filledFor.current = f.key;
-    setF((s) => ({ ...s, teams: boardList.map((b) => ({ name: teamNameFor(b), jiraBoardId: String(b.id), wipLimit: 5 })) }));
+    setF((s) => ({ ...s, teams: boardList.filter((b) => b.type === 'scrum').map((b) => ({ name: teamNameFor(b), jiraBoardId: String(b.id), wipLimit: 5 })) }));
   }, [item, fromJira, boardList, f.key]);
 
   const pickJira = (e) => {
@@ -852,7 +852,7 @@ function ProjectForm({ item, users = [], onSave, onCancel, saving, error }) {
         <option value="">Select a board</option>
         {t.jiraBoardId && !known && <option value={t.jiraBoardId}>Board #{t.jiraBoardId} (not in this project)</option>}
         {boardList.map((b) => (
-          <option key={b.id} value={String(b.id)} disabled={used.has(String(b.id))}>{b.name} (#{b.id}){used.has(String(b.id)) ? ' · in use' : ''}</option>
+          <option key={b.id} value={String(b.id)} disabled={used.has(String(b.id))}>{b.name} (#{b.id}){b.type && b.type !== 'scrum' ? ' · Kanban' : ''}{used.has(String(b.id)) ? ' · in use' : ''}</option>
         ))}
       </select>
     );
@@ -860,7 +860,7 @@ function ProjectForm({ item, users = [], onSave, onCancel, saving, error }) {
 
   const teamsHint = loadingBoards ? 'Loading the project’s Scrum boards from Jira…'
     : boards.error && boardKey ? `Could not load boards from Jira (${boards.error}). Enter the board id from the board's URL (…/boards/524).`
-    : boardList ? (boardList.length ? 'Each squad is synced from one of the project’s Scrum boards in Jira.' : 'This project has no Scrum boards in Jira.')
+    : boardList ? (boardList.length ? 'Each squad is synced from one of the project’s Jira boards. Scrum boards bring sprints; Kanban boards (e.g. chapters) bring only members.' : 'This project has no boards in Jira.')
     : <>Each squad is synced from its Jira board. Find the board id in the board's URL (…/boards/<b>524</b>).</>;
 
   return (

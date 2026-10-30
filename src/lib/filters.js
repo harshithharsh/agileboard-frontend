@@ -1,6 +1,7 @@
 // Which teams and sprints belong to the current filter selection.
 
-export const teamsFor = (options, projectId) => options.teams.filter((t) => t.project_id === projectId);
+// Squads with sprints only: Kanban squads (chapters) have none, so they are not in Agile Metrics
+export const teamsFor = (options, projectId) => options.teams.filter((t) => t.project_id === projectId && options.sprints.some((s) => s.team_id === t.id));
 
 // Indian financial-year quarter a sprint belongs to, by its start date (the year runs April to March):
 // Q1 Apr–Jun, Q2 Jul–Sep, Q3 Oct–Dec, Q4 Jan–Mar. '2026-10-07' -> 'FY2026-Q3', '2027-02-01' -> 'FY2026-Q4'
