@@ -3,9 +3,8 @@ import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
 import { api } from '../api/client.js';
 import { MapIcon, TeamIcon, ClearIcon, PlusIcon, MinusIcon, SearchIcon } from '../components/Icons.jsx';
-import { layoutMap, SQUAD_COLORS } from './layout.js';
+import { layoutMap, SQUAD_COLORS, SQUAD_W, SQUAD_H, CORE_W, CORE_H } from './layout.js';
 
-const initials = (name = '') => name.replace(/\./g, ' ').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
 const fteText = (n) => (Math.round(n * 100) / 100).toFixed(2);
 
 // Team Map: a project in the middle, its squads around it and each squad's members around the squad.
@@ -113,28 +112,19 @@ export default function TeamMap({ user, onSignOut, onMenu, onOpenAdmin }) {
                 <svg className={`tm-svg${drag.current ? ' dragging' : ''}`} viewBox={viewBox} style={{ aspectRatio: `${map.width} / ${map.height}`, maxWidth: `${Math.round(map.width * 1.05)}px`, margin: "0 auto" }} role="img" aria-label={`${project.name}: ${project.squads.length} squads and their members`}
                   onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp} onWheel={onWheel}
                   onClick={(e) => { if (!e.target.closest('[data-node]')) setSelected(null); }}>
-                  <defs>
-                    <radialGradient id="tm-core" cx="50%" cy="35%" r="70%"><stop offset="0%" stopColor="#4f6bed" /><stop offset="100%" stopColor="#1e2a8a" /></radialGradient>
-                    <filter id="tm-shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#1e293b" floodOpacity="0.12" /></filter>
-                  </defs>
-                  {/* Rings behind the project */}
-                  <circle cx="0" cy="0" r={map.ring} className="tm-ring" />
-                  <circle cx="0" cy="0" r={map.ring * 0.62} className="tm-ring tm-ring-inner" />
-
-                  {/* Squad → member links, then project → squad links */}
+                  {/* Links: project → squads, squads → members */}
                   {map.squads.map((s) => s.members.map((m) => (
                     <path key={`l-${s.id}-${m.id}`} d={m.link} className={`tm-link${dimming && !(lit(m) || lit(s)) ? ' dim' : ''}`} style={{ stroke: s.color }} />
                   )))}
                   {map.squads.map((s) => (
-                    <path key={`p-${s.id}`} d={s.link} className={`tm-link tm-link-main${dimming && !lit(s) && !s.members.some(lit) ? ' dim' : ''}`} style={{ stroke: s.color }} />
+                    <path key={`p-${s.id}`} d={s.link} className={`tm-link tm-link-main${dimming && !lit(s) && !s.members.some(lit) ? ' dim' : ''}`} />
                   ))}
 
                   {/* Project */}
-                  <g className="tm-core" filter="url(#tm-shadow)">
-                    <circle r="96" fill="url(#tm-core)" stroke="#5a7cf0" strokeWidth="6" />
-                    <g transform="translate(-22,-62)" className="tm-core-icon"><TeamGlyph size={44} color="#c7d2fe" /></g>
-                    <text y="16" className="tm-core-name">{project.name}</text>
-                    <text y="46" className="tm-core-sub">Project</text>
+                  <g className="tm-core">
+                    <rect x={-CORE_W / 2} y={-CORE_H / 2} width={CORE_W} height={CORE_H} rx="14" />
+                    <text y="-2" className="tm-core-name">{project.name}</text>
+                    <text y="18" className="tm-core-sub">Project</text>
                   </g>
 
                   {/* Squads */}
@@ -142,17 +132,15 @@ export default function TeamMap({ user, onSignOut, onMenu, onOpenAdmin }) {
                     const active = (selected?.squad ?? hover?.squad) === s.id;
                     return (
                       <g key={s.id} data-node transform={`translate(${s.x},${s.y})`} className={`tm-squad${dimming && !lit(s) && !s.members.some(lit) ? ' dim' : ''}${active ? ' active' : ''}`}
-                        tabIndex={0} role="button" aria-label={`${s.name}: ${s.members.length} members`}
+                        style={{ '--c': s.color }} tabIndex={0} role="button" aria-label={`${s.name}: ${s.members.length} members`}
                         onMouseEnter={() => setHover({ squad: s.id })} onMouseLeave={() => setHover(null)}
                         onFocus={() => setHover({ squad: s.id })} onBlur={() => setHover(null)}
                         onClick={() => setSelected((x) => (x?.squad === s.id ? null : { squad: s.id }))}
                         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setSelected((x) => (x?.squad === s.id ? null : { squad: s.id })))}>
-                        <circle r="74" className="tm-squad-halo" style={{ fill: s.color }} />
-                        <circle r="62" className="tm-squad-card" filter="url(#tm-shadow)" />
-                        <circle cy="-22" r="26" style={{ fill: s.color }} />
-                        <g transform="translate(-14,-36)"><TeamGlyph size={28} color="#fff" /></g>
-                        <text y="22" className="tm-squad-name">{s.name}</text>
-                        <text y="40" className="tm-squad-sub">{s.members.length} {s.members.length === 1 ? 'member' : 'members'}{s.kind === 'kanban' ? ' · Kanban' : ''}</text>
+                        <rect x={-SQUAD_W / 2} y={-SQUAD_H / 2} width={SQUAD_W} height={SQUAD_H} rx="10" className="tm-squad-box" />
+                        <rect x={s.x < 0 ? -SQUAD_W / 2 : SQUAD_W / 2 - 5} y={-SQUAD_H / 2} width="5" height={SQUAD_H} rx="2.5" style={{ fill: s.color }} />
+                        <text y="-3" className="tm-squad-name">{s.name}</text>
+                        <text y="14" className="tm-squad-sub">{s.members.length} {s.members.length === 1 ? 'member' : 'members'}</text>
                       </g>
                     );
                   })}
@@ -165,22 +153,19 @@ export default function TeamMap({ user, onSignOut, onMenu, onOpenAdmin }) {
                     return (
                       <g key={`m-${s.id}-${m.id}`} data-node transform={`translate(${m.x},${m.y})`}
                         className={`tm-person${dimming && !on ? ' dim' : ''}${found || isSel || hover?.person === m.personId ? ' hl' : ''}`}
-                        tabIndex={0} role="button" aria-label={`${m.name}, ${s.name}`}
+                        style={{ '--c': s.color }} tabIndex={0} role="button" aria-label={`${m.name}, ${s.name}`}
                         onMouseEnter={() => setHover({ person: m.personId })} onMouseLeave={() => setHover(null)}
                         onFocus={() => setHover({ person: m.personId })} onBlur={() => setHover(null)}
                         onClick={() => setSelected((x) => (x?.person === m.personId ? null : { person: m.personId }))}
                         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setSelected((x) => (x?.person === m.personId ? null : { person: m.personId })))}>
-                        <rect x={m.left ? -m.pill + 18 : -18} y="-20" width={m.pill} height="40" rx="20" className="tm-pill" style={{ '--c': s.color }} />
-                        <circle r="17" style={{ fill: s.color }} className="tm-avatar" />
-                        <text className="tm-initials" y="5">{initials(m.name)}</text>
-                        <text className="tm-person-name" x={m.left ? -26 : 26} y="5" textAnchor={m.left ? 'end' : 'start'}>{m.short}</text>
-                        <circle cx={m.dot.x} cy={m.dot.y} r="3.5" style={{ fill: s.color }} />
+                        <rect x={m.left ? -m.pill : 0} y="-14" width={m.pill} height="28" rx="8" className="tm-chip" />
+                        <circle cx={m.left ? -12 : 12} cy="0" r="4" style={{ fill: s.color }} />
+                        <text className="tm-person-name" x={m.left ? -22 : 22} y="4.5" textAnchor={m.left ? 'end' : 'start'}>{m.short}</text>
                       </g>
                     );
                   }))}
                 </svg>
               )}
-              <p className="tm-hint muted small">Hover a squad or a person to highlight · click for details · drag to move · Ctrl + scroll to zoom</p>
 
               {selected && (
                 <aside className="tm-panel card" aria-live="polite">
@@ -249,17 +234,5 @@ export default function TeamMap({ user, onSignOut, onMenu, onOpenAdmin }) {
   );
 }
 
-// The "people" glyph used in the project and squad circles
-function TeamGlyph({ size, color }) {
-  const k = size / 24;
-  return (
-    <g transform={`scale(${k})`} fill={color}>
-      <circle cx="12" cy="7" r="4" />
-      <path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7z" />
-      <circle cx="4.5" cy="9" r="2.6" opacity="0.8" />
-      <circle cx="19.5" cy="9" r="2.6" opacity="0.8" />
-    </g>
-  );
-}
 
 export { SQUAD_COLORS };
