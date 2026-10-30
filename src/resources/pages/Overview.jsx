@@ -76,7 +76,7 @@ export default function Overview({ data, filters, setFilters, period, access }) 
 
   return (
     <>
-      <PageHead title="Resource overview" sub={`Capacity, planned and actual effort for ${periodName}. ${lastRun ? `Actual hours from Redmine, last synced ${formatDateTime(lastRun.startedAt)}.` : ''}`} />
+      <PageHead title="Project overview" sub={`Capacity, planned and actual effort for ${periodName}. ${lastRun ? `Actual hours from Redmine, last synced ${formatDateTime(lastRun.startedAt)}.` : ''}`} />
       <Filters filters={filters} setFilters={setFilters} data={data} period={period} />
 
       {picked && (

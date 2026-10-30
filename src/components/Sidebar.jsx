@@ -1,11 +1,6 @@
 import { ChartIcon, HomeIcon, TimerIcon, SettingsIcon } from './Icons.jsx';
 import { hrefFor } from '../lib/route.js';
 
-// Resource Management pages; Integration Settings only for administrators
-const RESOURCE_ITEMS = [
-  { page: 'overview', label: 'Overview', icon: <HomeIcon /> },
-  { page: 'effort', label: 'Effort Tracker', icon: <TimerIcon /> },
-];
 
 // Icon rail on the left: the logo, one icon per page (its name shows on hover and to screen readers),
 // and Settings at the bottom for administrators.
@@ -18,17 +13,16 @@ export default function Sidebar({ route, canAdmin, onOpenAdmin, settingsOpen = f
   );
   return (
     <nav className="sidebar" aria-label="Main navigation">
-      <a className="side-logo" href="#/" onClick={onNavigate} aria-label="AgileMetrix home">
+      <a className="side-logo" href={hrefFor('resources', 'overview')} onClick={onNavigate} aria-label="AgileMetrix home">
         <img className="logo-light" src="/logo-icon.svg" alt="" />
         <img className="logo-dark" src="/logo-icon-dark.svg" alt="" />
         <span className="side-tip" role="tooltip">AgileMetrix</span>
       </a>
 
       <div className="side-items">
+        {link(hrefFor('resources', 'overview'), 'Project Overview', <HomeIcon />, route.module === 'resources' && route.page === 'overview')}
         {link(hrefFor('sprint'), 'Agile Metrics', <ChartIcon />, route.module === 'sprint')}
-        <span className="side-divider" aria-hidden="true" />
-        {RESOURCE_ITEMS.filter((i) => !i.admin || canAdmin).map((i) =>
-          link(hrefFor('resources', i.page), `Resource Management · ${i.label}`, i.icon, route.module === 'resources' && route.page === i.page))}
+        {link(hrefFor('resources', 'effort'), 'Effort Tracker', <TimerIcon />, route.module === 'resources' && route.page === 'effort')}
       </div>
 
       {onOpenAdmin && (

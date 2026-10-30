@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
-import { TeamIcon } from '../components/Icons.jsx';
+import { HomeIcon, TimerIcon } from '../components/Icons.jsx';
 import { useResourceData, resourceService } from './data/resourceService.js';
 import { openSettings } from '../lib/route.js';
 import { useResourceFilters, resourceAccess } from './useResourceFilters.js';
@@ -10,8 +10,8 @@ import EffortTracker from './pages/EffortTracker.jsx';
 
 // Resource allocation lives in Settings (resources/AllocationSettings.jsx)
 const PAGES = {
-  overview: ['Overview', Overview],
-  effort: ['Effort Tracker', EffortTracker],
+  overview: ['Project Overview', Overview, <HomeIcon key="i" />],
+  effort: ['Effort Tracker', EffortTracker, <TimerIcon key="i" />],
 };
 
 // Resource Management module: shared data, filters and permissions for its pages
@@ -22,11 +22,11 @@ export default function ResourceManagement({ page, user, onSignOut, onMenu, onOp
   const access = resourceAccess(user);
   // Period, team and project stay the same while moving between pages
   const { filters, setFilters, period } = useResourceFilters(data);
-  const [title, Page] = PAGES[page] ?? PAGES.overview;
+  const [title, Page, pageIcon] = PAGES[page] ?? PAGES.overview;
 
   return (
     <>
-      <Header title={`Resource Management · ${title}`} icon={<TeamIcon />} onMenu={onMenu} onOpenAdmin={onOpenAdmin} user={user} onSignOut={onSignOut}
+      <Header title={title} icon={pageIcon} onMenu={onMenu} onOpenAdmin={onOpenAdmin} user={user} onSignOut={onSignOut}
         />
       <main className="rm-main">
         {error && <div className="card error">Could not load resource data: {error}</div>}

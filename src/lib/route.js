@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
 
 // Pages are addressed by the URL hash, so they can be bookmarked and Back works:
-//   #/                          Agile Metrics
-//   #/resources/<page>          Resource Management (overview, effort)
+//   #/  or  #/resources/overview   Project overview (the start page)
+//   #/agile                        Agile Metrics
+//   #/resources/effort             Effort Tracker
 // Resource allocation is a Settings tab: openSettings('allocation')
 export const RESOURCE_PAGES = ['overview', 'effort'];
 
 export function parseRoute(hash = window.location.hash) {
   const [, module, page] = hash.replace(/^#\/?/, '#/').split('/');
-  if (module === 'resources') return { module: 'resources', page: RESOURCE_PAGES.includes(page) ? page : 'overview' };
-  return { module: 'sprint', page: null };
+  if (module === 'agile') return { module: 'sprint', page: null };
+  return { module: 'resources', page: RESOURCE_PAGES.includes(page) ? page : 'overview' };
 }
 
-export const hrefFor = (module, page) => (module === 'resources' ? `#/resources/${page ?? 'overview'}` : '#/');
+export const hrefFor = (module, page) => (module === 'resources' ? `#/resources/${page ?? 'overview'}` : '#/agile');
 
 export function useRoute() {
   const [route, setRoute] = useState(() => parseRoute());
