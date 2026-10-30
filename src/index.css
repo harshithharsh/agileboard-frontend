@@ -1199,3 +1199,35 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 .tm-legend-item span { color: var(--muted); font-size: 12px; }
 .tm-legend-item.on, .tm-legend-item:hover { border-color: var(--primary); }
 @media (max-width: 760px) { .tm-main { padding: 16px; } .tm-search { margin-left: 0; width: 100%; } .tm-search input { width: 100%; } .tm-panel { left: 12px; width: auto; } }
+
+/* Weekly Redmine update email */
+.wk-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.wk-top p { margin: 0; flex: 1; min-width: 240px; }
+.wk-week { display: inline-flex; align-items: center; gap: 10px; padding: 6px; border: 1px solid var(--border); border-radius: 10px; }
+.wk-week div { display: flex; flex-direction: column; min-width: 150px; text-align: center; }
+.wk-week b { font-size: 14px; }
+.wk-week span { font-size: 12px; color: var(--muted); }
+.wk-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.wk-lists { display: flex; flex-direction: column; gap: 12px; }
+.wk-group { border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.wk-group-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.wk-group h4 { margin: 0; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.wk-group h4 span { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.wk-good { border-left: 4px solid var(--success); }
+.wk-bad { border-left: 4px solid var(--danger); }
+.wk-group ul, .wk-ok ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.wk-group li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto 44px; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--border); font-size: 13px; }
+.wk-group li label { display: flex; align-items: center; gap: 8px; min-width: 0; cursor: pointer; }
+.wk-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wk-stat { font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.wk-pct { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.wk-ok { font-size: 13px; }
+.wk-ok summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+.wk-ok li { display: flex; justify-content: space-between; padding: 4px 0; }
+.wk-preview { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; position: sticky; top: 0; }
+.wk-preview-label { display: block; padding: 8px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--border); }
+.wk-preview-body { padding: 14px 16px; max-height: 60vh; overflow: auto; background: #fff; color: #1f2937; }
+.wk-foot-msg { margin-right: auto; }
+@media (max-width: 860px) { .wk-grid { grid-template-columns: 1fr; } }
+.wk-rules { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 12px; color: var(--muted); }
+.wk-rules input { width: 52px; margin: 0 4px; padding: 3px 6px; font: inherit; font-size: 12px; text-align: right; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }

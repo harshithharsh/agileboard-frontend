@@ -5,7 +5,8 @@ import { selectRows, totals, teamName, scopeProject, scopedFte } from '../model/
 import { DEFINITIONS, resourceRow, round, LOW_UTILIZATION, utilTone } from '../model/calc.js';
 import { buckets, hoursUntil } from '../model/period.js';
 import { downloadXlsx, bold, hours, percent, fte } from '../../lib/excel.js';
-import { DownloadIcon } from '../../components/Icons.jsx';
+import { DownloadIcon, MailIcon } from '../../components/Icons.jsx';
+import WeeklyEmailDialog from '../components/WeeklyEmailDialog.jsx';
 import { formatDate, formatDateTime } from '../../lib/datetime.js';
 import { COLORS } from '../../lib/format.js';
 import { axisProps, gridProps, tooltipProps, legendProps } from '../../components/charts/common.jsx';
@@ -28,6 +29,7 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
   const periods = useMemo(() => buckets(range, granularity, data.rules), [range, granularity, data.rules]);
   // A week (or month) picked in the chart: the KPIs and table show just that week until it is cleared
   const [focus, setFocus] = useState(null); // bucket start date
+  const [weekly, setWeekly] = useState(false); // weekly Redmine update email
   const picked = periods.find((b) => b.start === focus) ?? null;
   const people = useMemo(
     () => selectRows(data, range, scoped, { search }).filter((r) => r.resource.redmineUserId || r.planned > 0),
@@ -110,9 +112,14 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
   const canExport = rows.length > 0;
   useEffect(() => {
     setActions?.(
-      <button className="icon-btn" onClick={() => exportRef.current()} disabled={!canExport} title="Export to Excel" aria-label="Export to Excel">
-        <DownloadIcon />
-      </button>
+      <>
+        <button className="icon-btn" onClick={() => setWeekly(true)} title="Weekly Redmine update email" aria-label="Weekly Redmine update email">
+          <MailIcon />
+        </button>
+        <button className="icon-btn" onClick={() => exportRef.current()} disabled={!canExport} title="Export to Excel" aria-label="Export to Excel">
+          <DownloadIcon />
+        </button>
+      </>
     );
     return () => setActions?.(null);
   }, [canExport, setActions]);
@@ -221,6 +228,10 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
             </table>
           </section>
         </>
+      )}
+      {weekly && (
+        <WeeklyEmailDialog data={data} resources={people.map((r) => r.resource)}
+          projectName={scope ? data.projects.find((p) => p.id === scope)?.name : null} onClose={() => setWeekly(false)} />
       )}
     </>
   );
