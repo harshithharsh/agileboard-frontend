@@ -780,12 +780,16 @@ function RoleForm({ item, permissions, onSave, onCancel, saving, error }) {
 // Team name suggested from a Jira board name ("Nexo Board" -> "Nexo")
 const teamNameFor = (board) => board.name.replace(/\s+(board|sprint|scrum)$/i, '').trim() || board.name;
 
-function ProjectForm({ item, onSave, onCancel, saving, error }) {
+function ProjectForm({ item, users = [], onSave, onCancel, saving, error }) {
   const [f, setF] = useState({
     key: item?.key ?? '', name: item?.name ?? '', description: item?.description ?? '', status: item?.status ?? 'active',
+    managerId: item?.manager_id ?? '',
     teams: (item?.teams ?? []).map((t) => ({ ...t, jiraBoardId: t.jiraBoardId != null ? String(t.jiraBoardId) : '' })),
   });
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
+  // Project managers: active users with the Project Manager role (and whoever is assigned now)
+  const managers = users.filter((u) => (u.status === 'active' && u.role === 'Project Manager') || u.id === item?.manager_id)
+    .sort((a, b) => a.name.localeCompare(b.name));
   const setTeam = (i, k) => (e) => setF((s) => ({ ...s, teams: s.teams.map((t, n) => (n === i ? { ...t, [k]: e.target.value } : t)) }));
   const addTeam = () => setF((s) => ({ ...s, teams: [...s.teams, { name: '', jiraBoardId: '', wipLimit: 5 }] }));
   const removeTeam = (i) => setF((s) => ({ ...s, teams: s.teams.filter((_, n) => n !== i) }));
@@ -878,9 +882,17 @@ function ProjectForm({ item, onSave, onCancel, saving, error }) {
         <Field label="Key" hint={item ? 'The Jira project key can’t be changed.' : fromJira ? 'From Jira' : 'Jira project key, e.g. FIBI'}><input value={f.key} onChange={set('key')} readOnly={fromJira || !!item} /></Field>
       </div>
       <Field label="Description"><input value={f.description ?? ''} onChange={set('description')} /></Field>
-      <Field label="Status" hint="Inactive projects are hidden from the dashboard and not synced.">
-        <select value={f.status} onChange={set('status')}><option value="active">Active</option><option value="inactive">Inactive</option></select>
-      </Field>
+      <div className="form-grid">
+        <Field label="Project manager" hint={managers.length ? 'Users with the Project Manager role.' : 'No one has the Project Manager role yet: give it to someone in Users.'}>
+          <select value={f.managerId} onChange={set('managerId')}>
+            <option value="">Not assigned</option>
+            {managers.map((u) => <option key={u.id} value={u.id}>{u.name}{u.role !== 'Project Manager' ? ` (${u.role ?? 'no role'})` : ''}</option>)}
+          </select>
+        </Field>
+        <Field label="Status" hint="Inactive projects are hidden from the dashboard and not synced.">
+          <select value={f.status} onChange={set('status')}><option value="active">Active</option><option value="inactive">Inactive</option></select>
+        </Field>
+      </div>
       <div className="field">
         <span className="field-label">Squads</span>
         <span className="field-hint">{teamsHint}</span>
@@ -1182,12 +1194,13 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
             <AdminCard icon={<BoxIcon />} tone="orange" title="Projects" subtitle="Jira projects tracked in AgileMetrix, and the board behind each team."
               addLabel="Add Project" onAdd={() => openEdit('projects')}>
               <table className="admin-table">
-                <thead><tr><th>Project Name</th><th>Key</th><th>Squads · members</th><th className="num">Members</th><th>Status</th><th className="col-actions">Actions</th></tr></thead>
+                <thead><tr><th>Project Name</th><th>Key</th><th>Project manager</th><th>Squads · members</th><th className="num">Members</th><th>Status</th><th className="col-actions">Actions</th></tr></thead>
                 <tbody>
                   {view.projects.map((p) => (
                     <tr key={p.id}>
                       <td><b>{p.name}</b>{p.description && <div className="cell-sub">{p.description}</div>}</td>
                       <td className="mono">{p.key}</td>
+                      <td>{p.manager_name ?? <span className="muted">Not assigned</span>}</td>
                       <td>
                         <div className="team-chips">
                           {p.teams.map((t) => (
@@ -1204,7 +1217,7 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
                       <td><RowActions onEdit={() => openEdit('projects', p)} onDelete={() => openDelete('projects', p, p.name)} /></td>
                     </tr>
                   ))}
-                  {!view.projects.length && <Empty cols={6} text="No projects yet" />}
+                  {!view.projects.length && <Empty cols={7} text="No projects yet" />}
                 </tbody>
               </table>
             </AdminCard>
@@ -1217,7 +1230,7 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
 
       {editing?.kind === 'users' && <UserForm item={editing.item} roles={data.roles} projects={data.projects} onSave={save} onCancel={() => setEditing(null)} saving={saving} error={formError} />}
       {editing?.kind === 'roles' && <RoleForm item={editing.item} permissions={data.permissions} onSave={save} onCancel={() => setEditing(null)} saving={saving} error={formError} />}
-      {editing?.kind === 'projects' && <ProjectForm item={editing.item} onSave={save} onCancel={() => setEditing(null)} saving={saving} error={formError} />}
+      {editing?.kind === 'projects' && <ProjectForm item={editing.item} users={data.users} onSave={save} onCancel={() => setEditing(null)} saving={saving} error={formError} />}
 
       {membersOf && (
         <TeamMembersDialog team={membersOf.team} users={data.users}
