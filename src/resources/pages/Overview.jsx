@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { ResponsiveContainer, ComposedChart, Bar, Line, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { Filters, PageHead, Kpi, fmtHours, fmtFte, fmtPct } from '../components/ui.jsx';
 import { selectRows, totals, unmappedUsers, scopeProject, scopedFte } from '../model/select.js';
-import { DEFINITIONS, resourceRow, plannedAndCapacity, utilization, isWorkingDay, round, EPSILON, utilizationBand, utilTone, LOW_UTILIZATION } from '../model/calc.js';
+import { DEFINITIONS, resourceRow, utilization, isWorkingDay, round, EPSILON, utilizationBand, utilTone, LOW_UTILIZATION } from '../model/calc.js';
 import { buckets, workingDayCount } from '../model/period.js';
 import { hrefFor, openSettings } from '../../lib/route.js';
 import { formatDate, formatDateTime } from '../../lib/datetime.js';
@@ -10,7 +10,6 @@ import { COLORS } from '../../lib/format.js';
 import { axisProps, gridProps, tooltipProps, legendProps } from '../../components/charts/common.jsx';
 import { AlertIcon } from '../../components/Icons.jsx';
 
-const CAPACITY_TIP = 'Available capacity = 1.00 FTE (full time) for each person × working hours per day, for each working day in the period. Weekends, public holidays and leave days are left out.';
 const UTIL_TIP = 'Utilization to date = actual hours ÷ planned hours, counted from the start of the period up to today (cumulative). Future weeks are not counted.';
 
 const BAND_COLOR = { ok: 'var(--success)', under: 'var(--warning)', low: 'var(--danger)', over: 'var(--danger)', none: 'var(--border-strong)' };
@@ -31,8 +30,6 @@ export default function Overview({ data, filters, setFilters, period, access }) 
   const mapped = rows.filter((r) => r.resource.redmineUserId);
   const sum = totals(rows);
   const actualTotals = totals(mapped);
-  // Available capacity: everyone's full-time working hours (1.00 FTE each), whichever project they are planned on
-  const fullCapacity = round(rows.reduce((n, r) => n + plannedAndCapacity({ ...r.resource, employmentFte: 1 }, [], view, data.rules, data.leave).capacity, 0));
   // Utilization is cumulative: actual ÷ planned from the start of the period up to today
   const soFar = view.start > data.today ? null : { ...view, end: view.end < data.today ? view.end : data.today, asOf: view.end < data.today ? view.end : data.today };
   const dateRows = useMemo(() => (soFar ? rows.map((r) => resourceRow(r.resource, data, soFar, scoped)) : []), [rows, soFar?.start, soFar?.end, data, scoped]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -108,11 +105,10 @@ export default function Overview({ data, filters, setFilters, period, access }) 
           <button className="btn btn-sm" onClick={() => setFocus(null)}>Show whole {periodName}</button>
         </div>
       )}
-      <section className="rm-kpis">
+      <section className="rm-kpis rm-kpis-5">
         <Kpi label="Resources" value={rows.length} note={`${rows.filter((r) => r.issues.length).length} need attention`} />
         <Kpi label="Allocated FTE" value={fmtFte(allocated)} note={`${fmtFte(round(rows.length - allocated, 2))} FTE available`} tip={DEFINITIONS.fte} />
-        <Kpi label="Available capacity" value={fmtHours(fullCapacity)} note={`${rows.length} full-time · ${days} working days`} tip={CAPACITY_TIP} />
-        <Kpi label="Planned effort" value={fmtHours(sum.planned)} note={fullCapacity > EPSILON ? `${Math.round((sum.planned / fullCapacity) * 100)}% of capacity` : null} tip={DEFINITIONS.planned} />
+        <Kpi label="Planned effort" value={fmtHours(sum.planned)} note={`${days} working days`} tip={DEFINITIONS.planned} />
         <Kpi label="Actual effort" value={fmtHours(actualTotals.actual)} note={soFar && view.end > data.today ? `to ${formatDate(data.today, { year: false })}` : null} tip={DEFINITIONS.actual} />
         <Kpi label="Utilization to date" value={fmtPct(cumulative.utilization)} tone={utilTone(cumulative.utilization)}
           note={soFar ? `${fmtHours(cumulative.actual)} of ${fmtHours(cumulative.planned)} planned` : 'Period not started'} tip={UTIL_TIP} />
