@@ -108,7 +108,7 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
       ) : (
         <>
           <section className="card rm-chart">
-            <div className="rm-chart-head"><h2>Planned vs. actual, {granularity === 'week' ? 'by week' : 'by month'}</h2><span className="muted small">Click a {unit} to see it in the table · {period.label.replace(' · to date', '')}</span></div>
+            <div className="rm-chart-head"><h2>Planned vs. actual, {granularity === 'week' ? 'by week' : 'by month'}</h2></div>
             <ResponsiveContainer width="100%" height={240}>
               <ComposedChart data={trend} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} onClick={pickBucket} style={{ cursor: 'pointer' }}>
                 <CartesianGrid {...gridProps} />

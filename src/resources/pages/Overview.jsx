@@ -118,7 +118,7 @@ export default function Overview({ data, filters, setFilters, period, access }) 
 
       <section className="rm-split">
         <div className="card rm-chart">
-          <div className="rm-chart-head"><h2>Planned vs. actual effort, by week</h2><span className="muted small">Click a week to see it above · {periodName}</span></div>
+          <div className="rm-chart-head"><h2>Planned vs. actual effort, by week</h2></div>
           <ResponsiveContainer width="100%" height={260}>
             <ComposedChart data={trend} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={2} onClick={pickWeek} style={{ cursor: 'pointer' }}>
               <CartesianGrid {...gridProps} />
