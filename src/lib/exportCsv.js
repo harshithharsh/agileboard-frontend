@@ -16,7 +16,7 @@ export function exportDashboardCsv(data) {
   const rows = [
     ['AgileMetrix Sprint Report'],
     ['Project', context.project.name],
-    ['Team', context.team.name],
+    ['Squad', context.team.name],
     ['Sprint', context.sprint.name],
     ['Release', context.sprint.release || ''],
     ['Generated', context.generatedAt],

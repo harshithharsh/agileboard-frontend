@@ -91,11 +91,11 @@ export function Filters({ filters, setFilters, data, period, show = ['period', '
       )}
       {show.includes('team') && (
         <label className="rm-field">
-          <span>Team</span>
+          <span>Squad</span>
           <select value={filters.teamId ?? ''} onChange={(e) => set({ teamId: e.target.value || null })}>
-            <option value="">All teams</option>
+            <option value="">All squads</option>
             {data.teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-            <option value="none">No team</option>
+            <option value="none">No squad</option>
           </select>
         </label>
       )}

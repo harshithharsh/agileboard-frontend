@@ -14,7 +14,7 @@ export function BulkDialog({ data, ids, access, onClose, onDone }) {
       if (!(fte >= 0 && fte <= 1.5)) return setError('Employment FTE must be between 0 and 1.5');
       patch.employmentFte = fte;
     }
-    if (!Object.keys(patch).length) return setError('Choose a team or an FTE to change');
+    if (!Object.keys(patch).length) return setError('Choose a squad or an FTE to change');
     await resourceService.bulkUpdate(ids, patch, access.by);
     onDone();
   };
@@ -25,10 +25,10 @@ export function BulkDialog({ data, ids, access, onClose, onDone }) {
       {error && <p className="form-error">{error}</p>}
       <p className="muted small">{names.join(', ')}</p>
       <div className="form-grid">
-        <Field label="Team">
+        <Field label="Squad">
           <select value={f.teamId} onChange={(e) => setF((s) => ({ ...s, teamId: e.target.value }))}>
-            <option value="__keep">Keep current team</option>
-            <option value="">No team</option>
+            <option value="__keep">Keep current squad</option>
+            <option value="">No squad</option>
             {data.teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </Field>

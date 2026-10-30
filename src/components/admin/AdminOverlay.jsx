@@ -610,7 +610,7 @@ function JiraIntegration({ info, onSynced, onChanged }) {
   return (
     <div className="integration-grid">
       <ConnectionCard name="jira" title="Jira connection" info={info}
-        intro="Sprints, issues and team members come from Jira Cloud."
+        intro="Sprints, issues and squad members come from Jira Cloud."
         envHint={info.unreadable
           ? 'The saved API token can’t be read (SECRETS_KEY in the backend .env changed). Click Edit and enter it again.'
           : 'Set JIRA_BASE_URL in the backend .env, then click Edit to enter the account email and API token.'}
@@ -636,7 +636,7 @@ function JiraIntegration({ info, onSynced, onChanged }) {
             <Row label="API token" hint={info.source === 'app' ? 'Saved in Settings.' : info.source === 'env' ? 'From the backend .env.' : undefined}>
               <Status ok={info.tokenSet && !info.unreadable}>{info.unreadable ? 'Unreadable' : info.tokenSet ? 'Set' : 'Not set'}</Status>
             </Row>
-            <Row label="What is synced" hint={`Sprints that started since ${formatDate(info.syncSince)}, and at least the last ${info.closedSprints} closed sprints of each team's board.`}>
+            <Row label="What is synced" hint={`Sprints that started since ${formatDate(info.syncSince)}, and at least the last ${info.closedSprints} closed sprints of each squad's board.`}>
               <span className="pref-value">{info.projects} projects · {info.teams} teams · {info.sprints} sprints</span>
             </Row>
             <Row label="Last sync" hint={last?.message ?? (info.running ? 'A sync is running now.' : 'No sync has run yet.')}>
@@ -856,8 +856,8 @@ function ProjectForm({ item, onSave, onCancel, saving, error }) {
 
   const teamsHint = loadingBoards ? 'Loading the project’s Scrum boards from Jira…'
     : boards.error && boardKey ? `Could not load boards from Jira (${boards.error}). Enter the board id from the board's URL (…/boards/524).`
-    : boardList ? (boardList.length ? 'Each team is synced from one of the project’s Scrum boards in Jira.' : 'This project has no Scrum boards in Jira.')
-    : <>Each team is synced from its Jira board. Find the board id in the board's URL (…/boards/<b>524</b>).</>;
+    : boardList ? (boardList.length ? 'Each squad is synced from one of the project’s Scrum boards in Jira.' : 'This project has no Scrum boards in Jira.')
+    : <>Each squad is synced from its Jira board. Find the board id in the board's URL (…/boards/<b>524</b>).</>;
 
   return (
     <Modal title={item ? 'Edit Project' : 'Add Project'} width={600} onClose={onCancel}
@@ -882,22 +882,22 @@ function ProjectForm({ item, onSave, onCancel, saving, error }) {
         <select value={f.status} onChange={set('status')}><option value="active">Active</option><option value="inactive">Inactive</option></select>
       </Field>
       <div className="field">
-        <span className="field-label">Teams</span>
+        <span className="field-label">Squads</span>
         <span className="field-hint">{teamsHint}</span>
         <div className="team-rows">
           {f.teams.length > 0 && (
-            <div className="team-row team-row-head" aria-hidden="true"><span>Team name</span><span>Jira board</span><span>WIP</span><span /></div>
+            <div className="team-row team-row-head" aria-hidden="true"><span>Squad name</span><span>Jira board</span><span>WIP</span><span /></div>
           )}
           {f.teams.map((t, i) => (
             <div className="team-row" key={t.id ?? `new-${i}`}>
-              <input value={t.name} onChange={setTeam(i, 'name')} placeholder="Team name" aria-label="Team name" />
+              <input value={t.name} onChange={setTeam(i, 'name')} placeholder="Squad name" aria-label="Squad name" />
               {boardField(t, i)}
               <input value={t.wipLimit} onChange={setTeam(i, 'wipLimit')} placeholder="WIP" inputMode="numeric" aria-label="WIP limit" title="WIP limit" />
               <button type="button" className="action-btn action-danger" onClick={() => removeTeam(i)} disabled={t.sprints > 0}
-                title={t.sprints > 0 ? 'This team has synced sprints and can’t be removed' : 'Remove team'} aria-label="Remove team"><TrashIcon /></button>
+                title={t.sprints > 0 ? 'This squad has synced sprints and can’t be removed' : 'Remove squad'} aria-label="Remove squad"><TrashIcon /></button>
             </div>
           ))}
-          <button type="button" className="btn-link" onClick={addTeam}><PlusIcon /> Add team</button>
+          <button type="button" className="btn-link" onClick={addTeam}><PlusIcon /> Add squad</button>
         </div>
       </div>
     </Modal>
@@ -950,7 +950,7 @@ function TeamMembersDialog({ team, users, onClose, onChanged }) {
   const candidates = users.filter((u) => !listed.has(u.id) && u.status === 'active');
 
   return (
-    <Modal title={`${team.name} · Team members`} width={640} onClose={onClose}
+    <Modal title={`${team.name} · Squad members`} width={640} onClose={onClose}
       footer={<button className="btn" onClick={onClose}>Done</button>}>
       {error && <p className="form-error">{error}</p>}
       {!info && !error && <p className="muted">Loading…</p>}
@@ -966,7 +966,7 @@ function TeamMembersDialog({ team, users, onClose, onChanged }) {
                       <span><b>{m.name}</b>{m.email && <span className="cell-sub">{m.email}</span>}</span></span>
                   </td>
                   <td className="col-actions"><button className="action-btn action-danger" onClick={() => run(m.id, () => api.admin.removeTeamMember(team.id, m.id))} disabled={!!busy}
-                    title="Remove from team" aria-label={`Remove ${m.name}`}><TrashIcon /></button></td>
+                    title="Remove from squad" aria-label={`Remove ${m.name}`}><TrashIcon /></button></td>
                 </tr>
               ))}
               {!members.length && <Empty cols={2} text="No members yet." />}
@@ -1182,7 +1182,7 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
             <AdminCard icon={<BoxIcon />} tone="orange" title="Projects" subtitle="Jira projects tracked in AgileMetrix, and the board behind each team."
               addLabel="Add Project" onAdd={() => openEdit('projects')}>
               <table className="admin-table">
-                <thead><tr><th>Project Name</th><th>Key</th><th>Teams · members</th><th className="num">Members</th><th>Status</th><th className="col-actions">Actions</th></tr></thead>
+                <thead><tr><th>Project Name</th><th>Key</th><th>Squads · members</th><th className="num">Members</th><th>Status</th><th className="col-actions">Actions</th></tr></thead>
                 <tbody>
                   {view.projects.map((p) => (
                     <tr key={p.id}>
@@ -1196,7 +1196,7 @@ export default function AdminOverlay({ user, initialTab, onClose, onChanged, onD
                               {t.name}<span>{t.members}</span>
                             </button>
                           ))}
-                          {!p.teams.length && <span className="muted">No teams</span>}
+                          {!p.teams.length && <span className="muted">No squads</span>}
                         </div>
                       </td>
                       <td className="num">{p.members}</td>

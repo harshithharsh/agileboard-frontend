@@ -134,7 +134,7 @@ export default function Overview({ data, filters, setFilters, period, access }) 
 
       <section className="rm-three">
         <div className="card rm-chart">
-          <div className="rm-chart-head"><h2>Utilization by team</h2></div>
+          <div className="rm-chart-head"><h2>Utilization by squad</h2></div>
           <div className="rm-hbars">
             {byTeam.map((t) => (
               <div key={t.team.id} className="rm-hbar">
@@ -147,7 +147,7 @@ export default function Overview({ data, filters, setFilters, period, access }) 
           <p className="rm-note">Green {LOW_UTILIZATION}% and above · red below {LOW_UTILIZATION}%. Mapped people only.</p>
         </div>
         <div className="card rm-chart">
-          <div className="rm-chart-head"><h2>Capacity allocation by team</h2><span className="muted small">FTE</span></div>
+          <div className="rm-chart-head"><h2>Capacity allocation by squad</h2><span className="muted small">FTE</span></div>
           <div className="rm-hbars">
             {byTeam.map((t) => (
               <div key={t.team.id} className="rm-hbar">

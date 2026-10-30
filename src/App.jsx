@@ -186,7 +186,7 @@ export default function App({ user, onSignOut, onMenu, onOpenAdmin, adminVersion
         {syncError && <div className="card warning">Could not sync from Jira: {syncError}. Showing the last synced data.</div>}
         {error && (
           <div className={`card ${/no sprints/i.test(error) ? 'empty' : 'error'}`}>
-            {/no sprints/i.test(error) ? 'No sprints synced for this team yet. An administrator can sync from Settings → Integrations → Jira.' : `Could not load the dashboard: ${error}`}
+            {/no sprints/i.test(error) ? 'No sprints synced for this squad yet. An administrator can sync from Settings → Integrations → Jira.' : `Could not load the dashboard: ${error}`}
           </div>
         )}
         {options && !options.sprints.length && !error && (

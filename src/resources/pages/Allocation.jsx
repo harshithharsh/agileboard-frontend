@@ -8,7 +8,7 @@ import { BulkDialog } from '../components/ResourceDialogs.jsx';
 import { SlidersIcon } from '../../components/Icons.jsx';
 
 const STATUS_FILTERS = [
-  ['all', 'All'], ['attention', 'Needs attention'], ['overallocated', 'Over-allocated'], ['missing-fte', 'FTE not set'], ['unmapped', 'Not mapped'], ['no-team', 'No team'],
+  ['all', 'All'], ['attention', 'Needs attention'], ['overallocated', 'Over-allocated'], ['missing-fte', 'FTE not set'], ['unmapped', 'Not mapped'], ['no-team', 'No squad'],
 ];
 
 // Resource allocation and FTE: who works on what, how much, and what needs fixing
@@ -39,7 +39,7 @@ export default function Allocation({ data, filters, setFilters, period, access, 
   const toggle = (id) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.resource.id));
   const exportCsv = () => downloadCsv([
-    ['Resource', 'Email', 'Redmine user', 'Team', 'Project allocation', 'Allocated FTE', 'Employment FTE', 'Weekly capacity (h)', 'Planned (h)', 'Actual (h)', 'Utilization %', 'Available FTE', 'Status'],
+    ['Resource', 'Email', 'Redmine user', 'Squad', 'Project allocation', 'Allocated FTE', 'Employment FTE', 'Weekly capacity (h)', 'Planned (h)', 'Actual (h)', 'Utilization %', 'Available FTE', 'Status'],
     ...rows.map(({ resource: r, ...x }) => [r.name, r.email, redmineLogin(data, r.redmineUserId) ?? '', teamName(data, r.teamId) ?? '',
       currentAllocs(data, r.id, today).map((a) => `${projectName(data, a.projectId)} ${fmtFte(a.fte)}`).join('; '),
       fteShown({ resource: r, ...x }), r.employmentFte ?? '', r.employmentFte == null ? '' : round(weeklyHours(r, data.rules) * fteShown({ resource: r, ...x })), x.planned, x.actual, x.utilization ?? '', availableFte(x.allocatedFte), x.issues.join(' ') || 'ok']),
@@ -79,13 +79,13 @@ export default function Allocation({ data, filters, setFilters, period, access, 
       {access.canEdit && selected.size > 0 && (
         <div className="card rm-bulk" role="region" aria-label="Bulk actions">
           <b>{selected.size} selected</b>
-          <button className="btn" onClick={() => setBulk(true)}>Change team or FTE…</button>
+          <button className="btn" onClick={() => setBulk(true)}>Change squad or FTE…</button>
           <button className="btn rm-push" onClick={() => setSelected(new Set())}>Clear selection</button>
         </div>
       )}
 
       {!rows.length ? (
-        <Empty title="No one matches these filters">Clear the search or pick another team, project or status.</Empty>
+        <Empty title="No one matches these filters">Clear the search or pick another squad, project or status.</Empty>
       ) : (
         <section className="card rm-table-card">
           <table className="rm-table">
@@ -96,7 +96,7 @@ export default function Allocation({ data, filters, setFilters, period, access, 
                     onChange={() => setSelected(allSelected ? new Set() : new Set(rows.map((r) => r.resource.id)))} /></th>
                 )}
                 <SortTh label="Resource" field="name" sort={sort} setSort={setSort} />
-                <SortTh label="Team" field="team" sort={sort} setSort={setSort} />
+                <SortTh label="Squad" field="team" sort={sort} setSort={setSort} />
                 <th>Project allocation</th>
                 <SortTh label="FTE" field="fte" sort={sort} setSort={setSort} className="num"> <InfoTip text={DEFINITIONS.fte} /></SortTh>
                 <SortTh label="Available FTE" field="available" sort={sort} setSort={setSort} className="num"> <InfoTip text="What is left of one full-time person (1.00 FTE) after the FTE planned here. Red when more than 1.00 is planned." /></SortTh>
@@ -117,7 +117,7 @@ export default function Allocation({ data, filters, setFilters, period, access, 
                     <td>{teamName(data, r.teamId) ?? <span className="muted">—</span>}</td>
                     <td>
                       {allocs.length
-                        ? <span className="rm-allocs">{allocs.map((a) => <span key={a.id} title={a.isDefault ? 'The whole FTE on the team’s project (not split across projects)' : undefined}>{projectName(data, a.projectId)} {fmtFte(a.fte)}</span>)}</span>
+                        ? <span className="rm-allocs">{allocs.map((a) => <span key={a.id} title={a.isDefault ? 'The whole FTE on the squad’s project (not split across projects)' : undefined}>{projectName(data, a.projectId)} {fmtFte(a.fte)}</span>)}</span>
                         : <span className="muted small">No allocation</span>}
                     </td>
                     <td className="num">

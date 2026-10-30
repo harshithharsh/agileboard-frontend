@@ -55,7 +55,7 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
 
   const toggle = (id) => setOpen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const exportCsv = () => {
-    const header = ['Resource', 'Team', 'FTE', 'Planned (h)', 'Actual (h)', 'Utilization %', ...periods.flatMap((b) => [`${b.label} planned`, `${b.label} actual`])];
+    const header = ['Resource', 'Squad', 'FTE', 'Planned (h)', 'Actual (h)', 'Utilization %', ...periods.flatMap((b) => [`${b.label} planned`, `${b.label} actual`])];
     downloadCsv([header, ...rows.map((r) => {
       const per = periods.map((b) => resourceRow(r.resource, data, b, scoped));
       return [r.resource.name, teamName(data, r.resource.teamId) ?? '', fteShown(r), r.planned, r.actual, r.utilization ?? '', ...per.flatMap((p) => [p.planned, p.actual])];
@@ -92,7 +92,7 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
       </section>
 
       {!rows.length ? (
-        <Empty title="No effort in this period">Nobody in this selection had planned or logged hours. Try another period, team or project.</Empty>
+        <Empty title="No effort in this period">Nobody in this selection had planned or logged hours. Try another period, squad or project.</Empty>
       ) : (
         <>
           <section className="card rm-chart">
@@ -118,7 +118,7 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
                 <tr>
                   <th className="rm-check" aria-label="Expand" />
                   <SortTh label="Resource" field="name" sort={sort} setSort={setSort} />
-                  <SortTh label="Team" field="team" sort={sort} setSort={setSort} />
+                  <SortTh label="Squad" field="team" sort={sort} setSort={setSort} />
                   <SortTh label="FTE" field="fte" sort={sort} setSort={setSort} className="num" />
                   <SortTh label="Planned" field="planned" sort={sort} setSort={setSort} className="num"> <InfoTip text={DEFINITIONS.planned} /></SortTh>
                   <SortTh label="Actual" field="actual" sort={sort} setSort={setSort} className="num"> <InfoTip text={DEFINITIONS.actual} /></SortTh>

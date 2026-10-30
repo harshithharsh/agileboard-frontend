@@ -47,7 +47,7 @@ export default function FilterBar({ options, filters, onChange, onClear, isDefau
       <div className="filters-grid">
         <Select label="Project" value={filters.projectId} options={toOptions(options.projects)}
           onChange={(v) => onChange({ projectId: v, teamId: null, quarter: null, releaseId: null, sprintId: null })} />
-        <Select label="Team" value={filters.teamId} options={toOptions(teams)}
+        <Select label="Squad" value={filters.teamId} options={toOptions(teams)}
           onChange={(v) => onChange({ teamId: v, quarter: null, sprintId: null })} />
         <Select label="Quarter" value={filters.quarter} options={quartersFor(options, filters)}
           onChange={(v) => onChange({ quarter: v, sprintId: null })} />

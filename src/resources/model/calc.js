@@ -11,11 +11,11 @@
 
 export const DEFINITIONS = {
   capacity: 'Available capacity = employment FTE × working hours per day, for each working day in the period. Weekends, public holidays and leave days are left out.',
-  planned: 'Planned effort = FTE × working hours per day, for each working day. The FTE is planned on the person’s team project, unless their time is split across projects (project allocations).',
+  planned: 'Planned effort = FTE × working hours per day, for each working day. The FTE is planned on the person’s squad project, unless their time is split across projects (project allocations).',
   actual: 'Actual effort = the sum of eligible Redmine time entries in the period. Each time entry is counted once.',
   variance: 'Variance = Actual − Planned. Negative means less time was logged than planned.',
   utilization: 'Utilization = Actual ÷ Available capacity × 100. Filtered to a project, capacity is the time allocated to that project. Shown as — when there is no capacity (FTE not set or 0, or no working days).',
-  fte: 'FTE = full-time equivalent: 1.00 full time, 0.75 = 75%, 0.50 = half time. A person’s FTE is the sum of their project allocations (or planned on the team’s project). Available FTE is what is left of 1.00.',
+  fte: 'FTE = full-time equivalent: 1.00 full time, 0.75 = 75%, 0.50 = half time. A person’s FTE is the sum of their project allocations (or planned on the squad’s project). Available FTE is what is left of 1.00.',
 };
 
 export const EPSILON = 0.001;
@@ -89,7 +89,7 @@ export const allocatedFte = (resourceId, allocations, day) =>
 export const ISSUE_LABEL = {
   'missing-fte': 'FTE not set',
   unmapped: 'Not mapped',
-  'no-team': 'No team',
+  'no-team': 'No squad',
   overallocated: 'Over-allocated',
 };
 

@@ -123,9 +123,9 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
           <section className="rm-dsec">
             <h3>Person</h3>
             <div className="rm-grid2">
-              <label className="field"><span className="field-label">Team</span>
+              <label className="field"><span className="field-label">Squad</span>
                 <select value={f.teamId} disabled={readOnly} onChange={(e) => setF((s) => ({ ...s, teamId: e.target.value }))}>
-                  <option value="">No team</option>
+                  <option value="">No squad</option>
                   {data.teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               </label>
@@ -138,7 +138,7 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
               <label className="field"><span className="field-label">FTE <InfoTip text={DEFINITIONS.fte} /></span>
                 <input type="number" min="0" max="1.5" step="0.05" value={active.length ? allocated : f.employmentFte} disabled={readOnly || active.length > 0}
                   onChange={(e) => setF((s) => ({ ...s, employmentFte: e.target.value }))} />
-                <span className="field-hint">{active.length ? 'The sum of the project allocations below.' : 'Planned on the team’s project.'}</span>
+                <span className="field-hint">{active.length ? 'The sum of the project allocations below.' : 'Planned on the squad’s project.'}</span>
               </label>
               <label className="field"><span className="field-label">Weekly working hours</span>
                 <input type="number" min="1" max="60" step="0.5" value={f.weeklyHours} disabled={readOnly} placeholder={`${data.rules.hoursPerDay * data.rules.workingWeekdays.length} (workspace default)`}
@@ -151,7 +151,7 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
           <section className="rm-dsec">
             <div className="rm-dsec-head"><h3>Project allocation</h3>{!readOnly && <button className="btn-link" onClick={addRow}>+ Add project</button>}</div>
             {!active.length && !(teamProject && employment > 0) && (
-              <p className="muted small">Choose a team to plan this person’s FTE on the team’s project, or add projects.</p>
+              <p className="muted small">Choose a squad to plan this person’s FTE on the squad’s project, or add projects.</p>
             )}
             {f.rows.map((r) => {
               const changed = isChanged(r);
@@ -177,7 +177,7 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
                       <span className="muted small">{Math.round(Number(r.fte || 0) * 100)}% of a full-time week</span>
                     </div>
                   )}
-                  {r.original?.teamPlan && <span className="muted small">The team’s project</span>}
+                  {r.original?.teamPlan && <span className="muted small">The squad’s project</span>}
                   {r.original && !r.original.teamPlan && <span className="muted small">Since {formatDate(r.original.startDate)}{r.original.endDate ? ` until ${formatDate(r.original.endDate)}` : ''}</span>}
                 </div>
               );
