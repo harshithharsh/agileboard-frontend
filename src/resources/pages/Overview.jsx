@@ -1,14 +1,17 @@
 import { useMemo, useState } from 'react';
-import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { ResponsiveContainer, ComposedChart, Bar, Line, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { Filters, PageHead, Kpi, fmtHours, fmtFte, fmtPct } from '../components/ui.jsx';
 import { selectRows, totals, unmappedUsers, scopeProject, scopedFte } from '../model/select.js';
-import { DEFINITIONS, resourceRow, isWorkingDay, round, EPSILON, utilizationBand, utilTone, LOW_UTILIZATION } from '../model/calc.js';
+import { DEFINITIONS, resourceRow, plannedAndCapacity, utilization, isWorkingDay, round, EPSILON, utilizationBand, utilTone, LOW_UTILIZATION } from '../model/calc.js';
 import { buckets, workingDayCount } from '../model/period.js';
 import { hrefFor, openSettings } from '../../lib/route.js';
 import { formatDate, formatDateTime } from '../../lib/datetime.js';
 import { COLORS } from '../../lib/format.js';
 import { axisProps, gridProps, tooltipProps, legendProps } from '../../components/charts/common.jsx';
 import { AlertIcon } from '../../components/Icons.jsx';
+
+const CAPACITY_TIP = 'Available capacity = 1.00 FTE (full time) for each person × working hours per day, for each working day in the period. Weekends, public holidays and leave days are left out.';
+const UTIL_TIP = 'Utilization to date = actual hours ÷ planned hours, counted from the start of the period up to today (cumulative). Future weeks are not counted.';
 
 const BAND_COLOR = { ok: 'var(--success)', under: 'var(--warning)', low: 'var(--danger)', over: 'var(--danger)', none: 'var(--border-strong)' };
 
@@ -28,14 +31,34 @@ export default function Overview({ data, filters, setFilters, period, access }) 
   const mapped = rows.filter((r) => r.resource.redmineUserId);
   const sum = totals(rows);
   const actualTotals = totals(mapped);
+  // Available capacity: everyone's full-time working hours (1.00 FTE each), whichever project they are planned on
+  const fullCapacity = round(rows.reduce((n, r) => n + plannedAndCapacity({ ...r.resource, employmentFte: 1 }, [], view, data.rules, data.leave).capacity, 0));
+  // Utilization is cumulative: actual ÷ planned from the start of the period up to today
+  const soFar = view.start > data.today ? null : { ...view, end: view.end < data.today ? view.end : data.today, asOf: view.end < data.today ? view.end : data.today };
+  const dateRows = useMemo(() => (soFar ? rows.map((r) => resourceRow(r.resource, data, soFar, scoped)) : []), [rows, soFar?.start, soFar?.end, data, scoped]); // eslint-disable-line react-hooks/exhaustive-deps
+  const dateMapped = dateRows.filter((r) => r.resource.redmineUserId);
+  const cumulative = totals(dateMapped);
   const days = workingDayCount(view, data.rules, isWorkingDay);
   const fteOf = (r) => scopedFte(data, r, scope, view.asOf);
   const allocated = round(rows.reduce((n, r) => n + fteOf(r), 0), 2);
 
-  const trend = useMemo(() => weeks.map((b) => {
-    const t = totals(people.map((r) => resourceRow(r.resource, data, b, scoped)));
-    return { label: b.label, planned: t.planned, actual: b.start > data.today ? null : t.actual };
-  }), [weeks, people, data, scoped]);
+  const trend = useMemo(() => {
+    let plannedSoFar = 0;
+    let actualSoFar = 0;
+    return weeks.map((b) => {
+      const all = people.map((r) => resourceRow(r.resource, data, b, scoped));
+      const t = totals(all);
+      const future = b.start > data.today;
+      if (!future) {
+        // The current week counts up to today, like the Utilization to date figure
+        const upTo = b.end > data.today ? { ...b, end: data.today, asOf: data.today } : null;
+        const m = totals((upTo ? people.map((r) => resourceRow(r.resource, data, upTo, scoped)) : all).filter((r) => r.resource.redmineUserId));
+        plannedSoFar += m.planned;
+        actualSoFar += m.actual;
+      }
+      return { label: b.label, planned: t.planned, actual: future ? null : t.actual, cumulative: future ? null : utilization(actualSoFar, plannedSoFar) };
+    });
+  }, [weeks, people, data, scoped]);
   const pickWeek = (state) => {
     const b = weeks[Number(state?.activeTooltipIndex)];
     if (b) setFocus((f) => (f === b.start ? null : b.start));
@@ -45,7 +68,7 @@ export default function Overview({ data, filters, setFilters, period, access }) 
   // Capacity allocation: FTE planned against one full-time person (1.00) each
   const byTeam = data.teams.map((t) => {
     const teamRows = rows.filter((r) => r.resource.teamId === t.id);
-    const tt = totals(teamRows.filter((r) => r.resource.redmineUserId));
+    const tt = totals(dateMapped.filter((r) => r.resource.teamId === t.id));
     return {
       team: t,
       people: teamRows.length,
@@ -70,7 +93,7 @@ export default function Overview({ data, filters, setFilters, period, access }) 
     aboveplan.length && { tone: 'info', title: `Actual above plan for ${aboveplan.length} ${aboveplan.length === 1 ? 'person' : 'people'}`, text: 'More than 10% over their planned hours in this period.', link: ['effort', 'Open Effort Tracker'] },
   ].filter(Boolean);
 
-  const ranked = mapped.filter((r) => r.utilization != null).sort((a, b) => b.utilization - a.utilization);
+  const ranked = dateMapped.filter((r) => r.utilization != null).sort((a, b) => b.utilization - a.utilization);
   const top = ranked.filter((r) => r.band === 'ok').slice(0, 4);
   const bottom = ranked.filter((r) => r.band === 'low').slice(-4).reverse();
 
@@ -88,27 +111,30 @@ export default function Overview({ data, filters, setFilters, period, access }) 
       <section className="rm-kpis">
         <Kpi label="Resources" value={rows.length} note={`${rows.filter((r) => r.issues.length).length} need attention`} />
         <Kpi label="Allocated FTE" value={fmtFte(allocated)} note={`${fmtFte(round(rows.length - allocated, 2))} FTE available`} tip={DEFINITIONS.fte} />
-        <Kpi label="Available capacity" value={fmtHours(sum.capacity)} note={`${days} working days`} tip={DEFINITIONS.capacity} />
-        <Kpi label="Planned effort" value={fmtHours(sum.planned)} note={sum.capacity > EPSILON ? `${Math.round((sum.planned / sum.capacity) * 100)}% of capacity` : null} tip={DEFINITIONS.planned} />
-        <Kpi label="Actual effort" value={fmtHours(actualTotals.actual)} tip={DEFINITIONS.actual} />
-        <Kpi label="Utilization" value={fmtPct(actualTotals.utilization)} tone={utilTone(actualTotals.utilization)} note={`Green from ${LOW_UTILIZATION}%`} tip={DEFINITIONS.utilization} />
+        <Kpi label="Available capacity" value={fmtHours(fullCapacity)} note={`${rows.length} full-time · ${days} working days`} tip={CAPACITY_TIP} />
+        <Kpi label="Planned effort" value={fmtHours(sum.planned)} note={fullCapacity > EPSILON ? `${Math.round((sum.planned / fullCapacity) * 100)}% of capacity` : null} tip={DEFINITIONS.planned} />
+        <Kpi label="Actual effort" value={fmtHours(actualTotals.actual)} note={soFar && view.end > data.today ? `to ${formatDate(data.today, { year: false })}` : null} tip={DEFINITIONS.actual} />
+        <Kpi label="Utilization to date" value={fmtPct(cumulative.utilization)} tone={utilTone(cumulative.utilization)}
+          note={soFar ? `${fmtHours(cumulative.actual)} of ${fmtHours(cumulative.planned)} planned` : 'Period not started'} tip={UTIL_TIP} />
       </section>
 
       <section className="rm-split">
         <div className="card rm-chart">
           <div className="rm-chart-head"><h2>Planned vs. actual effort, by week</h2><span className="muted small">Click a week to see it above · {periodName}</span></div>
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={trend} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={2} onClick={pickWeek} style={{ cursor: 'pointer' }}>
+            <ComposedChart data={trend} margin={{ top: 8, right: 8, left: 0, bottom: 0 }} barGap={2} onClick={pickWeek} style={{ cursor: 'pointer' }}>
               <CartesianGrid {...gridProps} />
               <XAxis dataKey="label" {...axisProps} />
-              <YAxis {...axisProps} width={52} />
-              <Tooltip {...tooltipProps} formatter={(v) => fmtHours(v)} />
+              <YAxis yAxisId="h" {...axisProps} width={52} />
+              <YAxis yAxisId="pct" orientation="right" {...axisProps} width={44} unit="%" domain={[0, (max) => Math.max(100, Math.ceil(max / 20) * 20)]} />
+              <Tooltip {...tooltipProps} formatter={(v, name) => (name === 'Cumulative utilization' ? `${v}%` : fmtHours(v))} />
               <Legend {...legendProps} />
-              <Bar dataKey="planned" name="Planned" fill={COLORS.primarySoft} radius={[3, 3, 0, 0]}>
+              <Bar yAxisId="h" dataKey="planned" name="Planned" fill={COLORS.primarySoft} radius={[3, 3, 0, 0]}>
                 {weeks.map((b) => <Cell key={b.start} fill={b.start === focus ? COLORS.primaryMid : COLORS.primarySoft} />)}
               </Bar>
-              <Bar dataKey="actual" name="Actual" fill={COLORS.primary} radius={[3, 3, 0, 0]} />
-            </BarChart>
+              <Bar yAxisId="h" dataKey="actual" name="Actual" fill={COLORS.primary} radius={[3, 3, 0, 0]} />
+              <Line yAxisId="pct" dataKey="cumulative" name="Cumulative utilization" stroke={COLORS.warning} strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
 
@@ -144,7 +170,7 @@ export default function Overview({ data, filters, setFilters, period, access }) 
               </div>
             ))}
           </div>
-          <p className="rm-note">Green {LOW_UTILIZATION}% and above · red below {LOW_UTILIZATION}%. Mapped people only.</p>
+          <p className="rm-note">Cumulative to date. Green {LOW_UTILIZATION}% and above · red below {LOW_UTILIZATION}%. Mapped people only.</p>
         </div>
         <div className="card rm-chart">
           <div className="rm-chart-head"><h2>Capacity allocation by squad</h2><span className="muted small">FTE</span></div>
