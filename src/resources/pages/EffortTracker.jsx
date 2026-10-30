@@ -1,10 +1,11 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { ResponsiveContainer, ComposedChart, Bar, Cell, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { Filters, InfoTip, Kpi, Empty, SortTh, sortBy, fmtHours, fmtFte, fmtPct } from '../components/ui.jsx';
 import { selectRows, totals, teamName, scopeProject, scopedFte } from '../model/select.js';
 import { DEFINITIONS, resourceRow, round, LOW_UTILIZATION, utilTone } from '../model/calc.js';
 import { buckets, hoursUntil } from '../model/period.js';
-import { downloadCsv } from '../../lib/download.js';
+import { downloadXlsx, bold, hours, percent, fte } from '../../lib/excel.js';
+import { DownloadIcon } from '../../components/Icons.jsx';
 import { formatDate, formatDateTime } from '../../lib/datetime.js';
 import { COLORS } from '../../lib/format.js';
 import { axisProps, gridProps, tooltipProps, legendProps } from '../../components/charts/common.jsx';
@@ -12,7 +13,7 @@ import { axisProps, gridProps, tooltipProps, legendProps } from '../../component
 const UTIL_TIP = 'Utilization to date = actual hours ÷ planned hours, counted from the start of the period up to the last full day of imported Redmine hours (the day before the last import). Later days are not counted yet.';
 
 // Planned against actual Redmine hours, per person, with a weekly or monthly breakdown on demand
-export default function EffortTracker({ data, filters, setFilters, period }) {
+export default function EffortTracker({ data, filters, setFilters, period, setActions }) {
   const [granularity, setGranularity] = useState('week');
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(new Set());
@@ -68,18 +69,57 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
   const lastSync = data.syncRuns.find((s) => s.status !== 'failed');
 
   const toggle = (id) => setOpen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-  const exportCsv = () => {
-    const header = ['Resource', 'Squad', 'FTE', 'Planned (h)', 'Actual (h)', 'Utilization to date %', ...periods.flatMap((b) => [`${b.label} planned`, `${b.label} actual`])];
-    downloadCsv([header, ...rows.map((r) => {
-      const per = periods.map((b) => resourceRow(r.resource, data, b, scoped));
-      return [r.resource.name, teamName(data, r.resource.teamId) ?? '', fteShown(r), r.planned, r.actual, utilOf(r) ?? '', ...per.flatMap((p) => [p.planned, p.actual])];
-    })], `agilemetrix-effort-${(picked ?? range).start}-${(picked ?? range).end}.csv`);
+  // Excel download: the people table (to date and for the period) and one sheet per week or month
+  const exportXlsx = async () => {
+    const shown = picked ?? range;
+    const projectLabel = scope ? data.projects.find((p) => p.id === scope)?.name : 'All projects';
+    const squadLabel = filters.teamId ? (filters.teamId === 'none' ? 'No squad' : teamName(data, filters.teamId)) : 'All squads';
+    const title = [
+      [bold('AgileMetrix · Effort tracker')],
+      ['Project', projectLabel],
+      ['Squad', squadLabel],
+      ['Period', `${picked ? pickedLabel : period.label.replace(' · to date', '')} (${formatDate(shown.start)} – ${formatDate(shown.end)})`],
+      ['To date', soFar ? `${formatDate(soFar.start)} – ${formatDate(soFar.end)} (last full day of imported Redmine hours)` : 'Not started yet'],
+      ['Generated', formatDateTime(new Date().toISOString())],
+      [],
+    ];
+    const head = ['Resource', 'Squad', 'FTE', 'Planned to date (h)', 'Actual to date (h)', 'Utilization to date', 'Planned in period (h)'].map(bold);
+    const people = rows.map((r) => {
+      const d = toDate.get(r.resource.id);
+      return [r.resource.name, teamName(data, r.resource.teamId) ?? '', fte(fteShown(r)), hours(d?.planned ?? 0),
+        r.resource.redmineUserId ? hours(d?.actual ?? 0) : null, percent(utilOf(r)), hours(r.planned)];
+    });
+    const total = [bold(`${rows.length} people`), null, fte(round(rows.reduce((n, r) => n + fteShown(r), 0), 3)), hours(plannedSoFar),
+      hours(cumulative.actual), percent(cumulative.utilization), hours(sum.planned)].map((c) => (c && typeof c === 'object' ? { ...c, fontWeight: 'bold' } : c));
+    const unitHead = granularity === 'week' ? 'Week of' : 'Month';
+    const breakdown = [
+      [bold('Resource'), ...periods.flatMap((b) => [bold(`${b.label} planned (h)`), bold(`${b.label} actual (h)`)])],
+      ...rows.map((r) => {
+        const per = periods.map((b) => resourceRow(r.resource, data, b, scoped));
+        return [r.resource.name, ...per.flatMap((x, i) => [hours(x.planned), periods[i].start > until ? null : hours(x.actual)])];
+      }),
+    ];
+    await downloadXlsx([
+      { name: 'Effort', rows: [...title, head, ...people, total], columns: [{ width: 28 }, { width: 16 }, { width: 8 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 20 }], sticky: title.length + 1 },
+      { name: `${unitHead === 'Month' ? 'By month' : 'By week'}`, rows: breakdown, columns: [{ width: 28 }, ...periods.flatMap(() => [{ width: 16 }, { width: 16 }])], sticky: 1 },
+    ], `agilemetrix-effort-${shown.start}-${shown.end}.xlsx`);
   };
+  // The download icon sits in the top bar, like Agile Metrics
+  const exportRef = useRef(exportXlsx);
+  exportRef.current = exportXlsx;
+  const canExport = rows.length > 0;
+  useEffect(() => {
+    setActions?.(
+      <button className="icon-btn" onClick={() => exportRef.current()} disabled={!canExport} title="Export to Excel" aria-label="Export to Excel">
+        <DownloadIcon />
+      </button>
+    );
+    return () => setActions?.(null);
+  }, [canExport, setActions]);
 
   return (
     <>
-      <Filters filters={filters} setFilters={setFilters} data={data} period={period}
-        actions={<button className="btn filters-action" onClick={exportCsv} disabled={!rows.length}>Export CSV</button>}>
+      <Filters filters={filters} setFilters={setFilters} data={data} period={period}>
         <label className="filter">
           <span>Breakdown</span>
           <select value={granularity} onChange={(e) => { setGranularity(e.target.value); setFocus(null); }}>

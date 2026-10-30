@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
 import { HomeIcon, TimerIcon } from '../components/Icons.jsx';
@@ -22,11 +22,13 @@ export default function ResourceManagement({ page, user, onSignOut, onMenu, onOp
   const access = resourceAccess(user);
   // Period, team and project stay the same while moving between pages
   const { filters, setFilters, period } = useResourceFilters(data);
+  // Buttons a page puts in the top bar (e.g. the Effort Tracker's Excel download)
+  const [actions, setActions] = useState(null);
   const [title, Page, pageIcon] = PAGES[page] ?? PAGES.overview;
 
   return (
     <>
-      <Header title={title} icon={pageIcon} onMenu={onMenu} onOpenAdmin={onOpenAdmin} user={user} onSignOut={onSignOut}
+      <Header title={title} icon={pageIcon} actions={actions} onMenu={onMenu} onOpenAdmin={onOpenAdmin} user={user} onSignOut={onSignOut}
         />
       <main className="rm-main">
         {error && <div className="card error">Could not load resource data: {error}</div>}
@@ -38,7 +40,7 @@ export default function ResourceManagement({ page, user, onSignOut, onMenu, onOp
             {access.canAdmin && <button className="btn-primary-solid" onClick={() => openSettings('redmine')}>Open Redmine settings</button>}
           </div>
         )}
-        {data && filters.projectId !== undefined && <Page data={data} filters={filters} setFilters={setFilters} period={period} access={access} />}
+        {data && filters.projectId !== undefined && <Page key={page} data={data} filters={filters} setFilters={setFilters} period={period} access={access} setActions={setActions} />}
       </main>
       <Footer />
     </>
