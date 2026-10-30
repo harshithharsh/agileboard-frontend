@@ -3,13 +3,13 @@ import { ResponsiveContainer, ComposedChart, Bar, Cell, Line, XAxis, YAxis, Cart
 import { Filters, PageHead, InfoTip, Kpi, Empty, SortTh, sortBy, fmtHours, fmtFte, fmtPct } from '../components/ui.jsx';
 import { selectRows, totals, teamName, scopeProject, scopedFte } from '../model/select.js';
 import { DEFINITIONS, resourceRow, round, LOW_UTILIZATION, utilTone } from '../model/calc.js';
-import { buckets } from '../model/period.js';
+import { buckets, hoursUntil } from '../model/period.js';
 import { downloadCsv } from '../../lib/download.js';
 import { formatDate, formatDateTime } from '../../lib/datetime.js';
 import { COLORS } from '../../lib/format.js';
 import { axisProps, gridProps, tooltipProps, legendProps } from '../../components/charts/common.jsx';
 
-const UTIL_TIP = 'Utilization to date = actual hours ÷ planned hours, counted from the start of the period up to today (cumulative). Future weeks are not counted.';
+const UTIL_TIP = 'Utilization to date = actual hours ÷ planned hours, counted from the start of the period up to the last full day of imported Redmine hours (the day before the last import). Later days are not counted yet.';
 
 // Planned against actual Redmine hours, per person, with a weekly or monthly breakdown on demand
 export default function EffortTracker({ data, filters, setFilters, period }) {
@@ -35,7 +35,9 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
   const fteShown = (row) => scopedFte(data, row, scope, picked?.asOf ?? period.asOf);
   // Utilization is cumulative: actual ÷ planned from the start of the shown period up to today
   const view = picked ?? range;
-  const soFar = view.start > data.today ? null : { ...view, end: view.end < data.today ? view.end : data.today, asOf: view.end < data.today ? view.end : data.today };
+  const until = hoursUntil(data);
+  const soFar = view.start > until ? null : { ...view, end: view.end < until ? view.end : until, asOf: view.end < until ? view.end : until };
+  const toLabel = soFar ? `${formatDate(soFar.start, { year: false })} – ${formatDate(soFar.end, { year: false })}` : 'not started';
   const toDate = useMemo(
     () => new Map(soFar ? people.map((r) => [r.resource.id, resourceRow(r.resource, data, soFar, scoped)]) : []),
     [people, soFar?.start, soFar?.end, data, scoped] // eslint-disable-line react-hooks/exhaustive-deps
@@ -45,17 +47,18 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
     name: (r) => r.resource.name,
     team: (r) => teamName(data, r.resource.teamId),
     fte: fteShown,
-    planned: (r) => r.planned,
-    actual: (r) => (r.resource.redmineUserId ? r.actual : null),
+    planned: (r) => toDate.get(r.resource.id)?.planned ?? 0,
+    actual: (r) => (r.resource.redmineUserId ? toDate.get(r.resource.id)?.actual ?? 0 : null),
     utilization: utilOf,
   });
   const sum = totals(rows);
   const cumulative = totals(rows.filter((r) => r.resource.redmineUserId).map((r) => toDate.get(r.resource.id)).filter(Boolean));
+  const plannedSoFar = totals(rows.map((r) => toDate.get(r.resource.id)).filter(Boolean)).planned;
   // The chart: everyone in scope, per week or month; no actual line for weeks that haven't started
   const trend = useMemo(() => periods.map((b) => {
     const t = totals(people.map((r) => resourceRow(r.resource, data, b, scoped)));
-    return { label: b.label, planned: t.planned, actual: b.start > data.today ? null : t.actual };
-  }), [periods, people, data, scoped]);
+    return { label: b.label, planned: t.planned, actual: b.start > until ? null : t.actual };
+  }), [periods, people, data, scoped, until]);
   const pickBucket = (state) => {
     const b = periods[Number(state?.activeTooltipIndex)];
     if (b) setFocus((f) => (f === b.start ? null : b.start));
@@ -97,10 +100,10 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
         </div>
       )}
       <section className="rm-kpis rm-kpis-3">
-        <Kpi label="Planned" value={fmtHours(sum.planned)} note={picked ? pickedLabel : period.label.replace(' · to date', '')} tip={DEFINITIONS.planned} />
-        <Kpi label="Actual (Redmine)" value={fmtHours(sum.actual)} note={soFar && view.end > data.today ? `to ${formatDate(data.today, { year: false })}` : null} tip={DEFINITIONS.actual} />
+        <Kpi label="Planned to date" value={soFar ? fmtHours(plannedSoFar) : '—'} note={`${toLabel} · ${fmtHours(sum.planned)} for ${picked ? pickedLabel : period.label.replace(' · to date', '')}`} tip={DEFINITIONS.planned} />
+        <Kpi label="Actual to date" value={soFar ? fmtHours(cumulative.actual) : '—'} note={`${toLabel} · from Redmine`} tip={DEFINITIONS.actual} />
         <Kpi label="Utilization to date" value={fmtPct(cumulative.utilization)} tone={utilTone(cumulative.utilization)}
-          note={soFar ? `${fmtHours(cumulative.actual)} of ${fmtHours(cumulative.planned)} planned · green from ${LOW_UTILIZATION}%` : 'Not started yet'} tip={UTIL_TIP} />
+          note={soFar ? `Actual ÷ planned · ${toLabel}` : 'Not started yet'} tip={UTIL_TIP} />
       </section>
 
       {!rows.length ? (
@@ -132,8 +135,8 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
                   <SortTh label="Resource" field="name" sort={sort} setSort={setSort} />
                   <SortTh label="Squad" field="team" sort={sort} setSort={setSort} />
                   <SortTh label="FTE" field="fte" sort={sort} setSort={setSort} className="num" />
-                  <SortTh label="Planned" field="planned" sort={sort} setSort={setSort} className="num"> <InfoTip text={DEFINITIONS.planned} /></SortTh>
-                  <SortTh label="Actual" field="actual" sort={sort} setSort={setSort} className="num"> <InfoTip text={DEFINITIONS.actual} /></SortTh>
+                  <SortTh label="Planned to date" field="planned" sort={sort} setSort={setSort} className="num"> <InfoTip text={DEFINITIONS.planned} /></SortTh>
+                  <SortTh label="Actual to date" field="actual" sort={sort} setSort={setSort} className="num"> <InfoTip text={DEFINITIONS.actual} /></SortTh>
                   <SortTh label="Utilization to date" field="utilization" sort={sort} setSort={setSort} className="num"> <InfoTip text={UTIL_TIP} /></SortTh>
                   <th>Last synced</th>
                 </tr>
@@ -150,8 +153,8 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
                         <td><b>{r.resource.name}</b>{!r.resource.redmineUserId && <span className="rm-pill warn rm-inline">Not mapped</span>}</td>
                         <td>{teamName(data, r.resource.teamId) ?? <span className="muted">—</span>}</td>
                         <td className="num">{fmtFte(fteShown(r))}</td>
-                        <td className="num">{fmtHours(r.planned)}</td>
-                        <td className="num">{r.resource.redmineUserId ? fmtHours(r.actual) : '—'}</td>
+                        <td className="num">{fmtHours(toDate.get(r.resource.id)?.planned ?? 0)}</td>
+                        <td className="num">{r.resource.redmineUserId ? fmtHours(toDate.get(r.resource.id)?.actual ?? 0) : '—'}</td>
                         <td className={`num${utilTone(utilOf(r)) === 'low' ? ' bad-text' : utilTone(utilOf(r)) ? ' good-text' : ''}`}
                           title={utilOf(r) == null ? 'Nothing planned up to today, so no percentage' : 'Actual ÷ planned up to today'}>{fmtPct(utilOf(r))}</td>
                         <td className="muted small">{r.resource.redmineUserId && lastSync ? formatDateTime(lastSync.startedAt) : '—'}</td>
@@ -172,8 +175,8 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
                 <tr>
                   <td /><td colSpan={2}>{rows.length} people</td>
                   <td className="num">{fmtFte(round(rows.reduce((n, r) => n + fteShown(r), 0), 3))}</td>
-                  <td className="num">{fmtHours(sum.planned)}</td>
-                  <td className="num">{fmtHours(sum.actual)}</td>
+                  <td className="num">{fmtHours(plannedSoFar)}</td>
+                  <td className="num">{fmtHours(cumulative.actual)}</td>
                   <td className={`num ${utilTone(cumulative.utilization) === 'low' ? 'bad-text' : utilTone(cumulative.utilization) ? 'good-text' : ''}`}>{fmtPct(cumulative.utilization)}</td>
                   <td />
                 </tr>

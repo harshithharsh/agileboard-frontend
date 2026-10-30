@@ -3,14 +3,14 @@ import { ResponsiveContainer, ComposedChart, Bar, Line, Cell, XAxis, YAxis, Cart
 import { Filters, PageHead, Kpi, fmtHours, fmtFte, fmtPct } from '../components/ui.jsx';
 import { selectRows, totals, unmappedUsers, scopeProject, scopedFte } from '../model/select.js';
 import { DEFINITIONS, resourceRow, utilization, isWorkingDay, round, EPSILON, utilizationBand, utilTone, LOW_UTILIZATION } from '../model/calc.js';
-import { buckets, workingDayCount } from '../model/period.js';
+import { buckets, workingDayCount, hoursUntil } from '../model/period.js';
 import { hrefFor, openSettings } from '../../lib/route.js';
 import { formatDate, formatDateTime } from '../../lib/datetime.js';
 import { COLORS } from '../../lib/format.js';
 import { axisProps, gridProps, tooltipProps, legendProps } from '../../components/charts/common.jsx';
 import { AlertIcon } from '../../components/Icons.jsx';
 
-const UTIL_TIP = 'Utilization to date = actual hours ÷ planned hours, counted from the start of the period up to today (cumulative). Future weeks are not counted.';
+const UTIL_TIP = 'Utilization to date = actual hours ÷ planned hours, counted from the start of the period up to the last full day of imported Redmine hours (the day before the last import). Later days are not counted yet.';
 
 const BAND_COLOR = { ok: 'var(--success)', under: 'var(--warning)', low: 'var(--danger)', over: 'var(--danger)', none: 'var(--border-strong)' };
 
@@ -31,10 +31,12 @@ export default function Overview({ data, filters, setFilters, period, access }) 
   const sum = totals(rows);
   const actualTotals = totals(mapped);
   // Utilization is cumulative: actual ÷ planned from the start of the period up to today
-  const soFar = view.start > data.today ? null : { ...view, end: view.end < data.today ? view.end : data.today, asOf: view.end < data.today ? view.end : data.today };
+  const until = hoursUntil(data);
+  const soFar = view.start > until ? null : { ...view, end: view.end < until ? view.end : until, asOf: view.end < until ? view.end : until };
   const dateRows = useMemo(() => (soFar ? rows.map((r) => resourceRow(r.resource, data, soFar, scoped)) : []), [rows, soFar?.start, soFar?.end, data, scoped]); // eslint-disable-line react-hooks/exhaustive-deps
   const dateMapped = dateRows.filter((r) => r.resource.redmineUserId);
   const cumulative = totals(dateMapped);
+  const plannedSoFar = totals(dateRows).planned;
   const days = workingDayCount(view, data.rules, isWorkingDay);
   const fteOf = (r) => scopedFte(data, r, scope, view.asOf);
   const allocated = round(rows.reduce((n, r) => n + fteOf(r), 0), 2);
@@ -45,22 +47,23 @@ export default function Overview({ data, filters, setFilters, period, access }) 
     return weeks.map((b) => {
       const all = people.map((r) => resourceRow(r.resource, data, b, scoped));
       const t = totals(all);
-      const future = b.start > data.today;
+      const future = b.start > until;
       if (!future) {
         // The current week counts up to today, like the Utilization to date figure
-        const upTo = b.end > data.today ? { ...b, end: data.today, asOf: data.today } : null;
+        const upTo = b.end > until ? { ...b, end: until, asOf: until } : null;
         const m = totals((upTo ? people.map((r) => resourceRow(r.resource, data, upTo, scoped)) : all).filter((r) => r.resource.redmineUserId));
         plannedSoFar += m.planned;
         actualSoFar += m.actual;
       }
       return { label: b.label, planned: t.planned, actual: future ? null : t.actual, cumulative: future ? null : utilization(actualSoFar, plannedSoFar) };
     });
-  }, [weeks, people, data, scoped]);
+  }, [weeks, people, data, scoped, until]);
   const pickWeek = (state) => {
     const b = weeks[Number(state?.activeTooltipIndex)];
     if (b) setFocus((f) => (f === b.start ? null : b.start));
   };
   const periodName = period.label.replace(' · to date', '');
+  const toLabel = soFar ? `${formatDate(soFar.start, { year: false })} – ${formatDate(soFar.end, { year: false })}` : 'not started';
 
   // Capacity allocation: FTE planned against one full-time person (1.00) each
   const byTeam = data.teams.map((t) => {
@@ -108,10 +111,10 @@ export default function Overview({ data, filters, setFilters, period, access }) 
       <section className="rm-kpis rm-kpis-5">
         <Kpi label="Resources" value={rows.length} note={`${rows.filter((r) => r.issues.length).length} need attention`} />
         <Kpi label="Allocated FTE" value={fmtFte(allocated)} note={`${fmtFte(round(rows.length - allocated, 2))} FTE available`} tip={DEFINITIONS.fte} />
-        <Kpi label="Planned effort" value={fmtHours(sum.planned)} note={`${days} working days`} tip={DEFINITIONS.planned} />
-        <Kpi label="Actual effort" value={fmtHours(actualTotals.actual)} note={soFar && view.end > data.today ? `to ${formatDate(data.today, { year: false })}` : null} tip={DEFINITIONS.actual} />
+        <Kpi label="Planned to date" value={soFar ? fmtHours(plannedSoFar) : '—'} note={`${toLabel} · ${fmtHours(sum.planned)} for the ${picked ? 'week' : 'period'}`} tip={DEFINITIONS.planned} />
+        <Kpi label="Actual to date" value={soFar ? fmtHours(cumulative.actual) : '—'} note={`${toLabel} · from Redmine`} tip={DEFINITIONS.actual} />
         <Kpi label="Utilization to date" value={fmtPct(cumulative.utilization)} tone={utilTone(cumulative.utilization)}
-          note={soFar ? `${fmtHours(cumulative.actual)} of ${fmtHours(cumulative.planned)} planned` : 'Period not started'} tip={UTIL_TIP} />
+          note={soFar ? `Actual ÷ planned · ${toLabel}` : 'Period not started'} tip={UTIL_TIP} />
       </section>
 
       <section className="rm-split">

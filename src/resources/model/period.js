@@ -80,6 +80,18 @@ export function buckets(range, granularity, rules) {
   return out;
 }
 
+// The last full day the imported Redmine hours cover: the day before the last successful import
+// (hours for the import day itself are usually not logged yet), and never after today.
+// "To date" figures compare planned and actual hours up to this day.
+export function hoursUntil(data) {
+  const run = data.syncRuns.find((s) => s.status !== 'failed');
+  if (!run) return data.today;
+  const d = new Date(run.startedAt);
+  d.setDate(d.getDate() - 1);
+  const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return day < data.today ? day : data.today;
+}
+
 export const workingDayCount = (range, rules, isWorkingDay) => {
   let n = 0;
   for (let d = range.start; d <= range.end; d = shiftDay(d, 1)) if (isWorkingDay(d, rules)) n += 1;
