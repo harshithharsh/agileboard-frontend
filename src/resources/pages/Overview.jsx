@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { ResponsiveContainer, ComposedChart, Bar, Line, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { Filters, PageHead, Kpi, fmtHours, fmtFte, fmtPct } from '../components/ui.jsx';
+import { Filters, Kpi, fmtHours, fmtFte, fmtPct } from '../components/ui.jsx';
 import { selectRows, totals, unmappedUsers, scopeProject, scopedFte } from '../model/select.js';
 import { DEFINITIONS, resourceRow, utilization, isWorkingDay, round, EPSILON, utilizationBand, utilTone, LOW_UTILIZATION } from '../model/calc.js';
 import { buckets, workingDayCount, hoursUntil } from '../model/period.js';
 import { hrefFor, openSettings } from '../../lib/route.js';
-import { formatDate, formatDateTime } from '../../lib/datetime.js';
+import { formatDate } from '../../lib/datetime.js';
 import { COLORS } from '../../lib/format.js';
 import { axisProps, gridProps, tooltipProps, legendProps } from '../../components/charts/common.jsx';
 import { AlertIcon } from '../../components/Icons.jsx';
@@ -99,7 +99,6 @@ export default function Overview({ data, filters, setFilters, period, access }) 
 
   return (
     <>
-      <PageHead title="Project overview" sub={`Capacity, planned and actual effort for ${periodName}. ${lastRun ? `Actual hours from Redmine, last synced ${formatDateTime(lastRun.startedAt)}.` : ''}`} />
       <Filters filters={filters} setFilters={setFilters} data={data} period={period} />
 
       {picked && (

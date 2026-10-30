@@ -61,8 +61,8 @@ export default function Allocation({ data, filters, setFilters, period, access, 
         </PageHead>
       )}
 
-      <Filters filters={filters} setFilters={setFilters} data={data} period={period} periodLabel={false}>
-        <label className="rm-field rm-search">
+      <Filters filters={filters} setFilters={setFilters} data={data} period={period}>
+        <label className="filter filter-search">
           <span>Search</span>
           <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name, email or Redmine user" />
         </label>

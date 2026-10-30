@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from 'react';
 import { ResponsiveContainer, ComposedChart, Bar, Cell, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { Filters, PageHead, InfoTip, Kpi, Empty, SortTh, sortBy, fmtHours, fmtFte, fmtPct } from '../components/ui.jsx';
+import { Filters, InfoTip, Kpi, Empty, SortTh, sortBy, fmtHours, fmtFte, fmtPct } from '../components/ui.jsx';
 import { selectRows, totals, teamName, scopeProject, scopedFte } from '../model/select.js';
 import { DEFINITIONS, resourceRow, round, LOW_UTILIZATION, utilTone } from '../model/calc.js';
 import { buckets, hoursUntil } from '../model/period.js';
@@ -78,19 +78,16 @@ export default function EffortTracker({ data, filters, setFilters, period }) {
 
   return (
     <>
-      <PageHead title="Effort tracker" sub={`Planned hours against actual Redmine hours. ${lastSync ? `Last synced ${formatDateTime(lastSync.startedAt)}.` : 'Not synced yet.'}`}>
-        <button className="btn" onClick={exportCsv} disabled={!rows.length}>Export CSV</button>
-      </PageHead>
-
-      <Filters filters={filters} setFilters={setFilters} data={data} period={period}>
-        <label className="rm-field">
+      <Filters filters={filters} setFilters={setFilters} data={data} period={period}
+        actions={<button className="btn filters-action" onClick={exportCsv} disabled={!rows.length}>Export CSV</button>}>
+        <label className="filter">
           <span>Breakdown</span>
           <select value={granularity} onChange={(e) => { setGranularity(e.target.value); setFocus(null); }}>
             <option value="week">Weekly</option>
             <option value="month">Monthly</option>
           </select>
         </label>
-        <label className="rm-field rm-search"><span>Search</span><input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name or Redmine user" /></label>
+        <label className="filter filter-search"><span>Search</span><input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name or Redmine user" /></label>
       </Filters>
 
       {picked && (

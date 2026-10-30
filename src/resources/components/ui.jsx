@@ -1,6 +1,6 @@
 import { PERIOD_PRESETS } from '../model/period.js';
 import { ISSUE_LABEL } from '../model/calc.js';
-import { InfoIcon } from '../../components/Icons.jsx';
+import { InfoIcon, FilterIcon, ClearIcon } from '../../components/Icons.jsx';
 
 // Small building blocks shared by the Resource Management pages
 
@@ -70,46 +70,63 @@ export function IssuePills({ issues }) {
   return <span className="rm-pills">{issues.map((i) => <span key={i} className={`rm-pill ${ISSUE_TONE[i]}`}>{ISSUE_LABEL[i]}</span>)}</span>;
 }
 
-// Period, team and project filters (shared by every page through ResourceManagement)
-export function Filters({ filters, setFilters, data, period, show = ['period', 'team', 'project'], periodLabel = true, children }) {
+// Project, squad and period filters, in the same filter bar as Agile Metrics (shared by every page
+// through ResourceManagement). Pages can add fields (children) and buttons (actions, e.g. Export).
+export function Filters({ filters, setFilters, data, period, show = ['period', 'team', 'project'], children, actions }) {
   const set = (patch) => setFilters((f) => ({ ...f, ...patch }));
+  // Defaults: this quarter, all squads, the first project linked to Redmine
+  const defaults = { preset: 'this-quarter', customStart: null, customEnd: null, teamId: null, projectId: data.projects.find((p) => p.redmineProjectId)?.id ?? null };
+  const isDefault = Object.keys(defaults).every((k) => (filters[k] ?? null) === defaults[k]);
   return (
-    <section className="card rm-filters" aria-label="Filters">
-      {show.includes('period') && (
-        <label className="rm-field">
-          <span>Period</span>
-          <select value={filters.preset} onChange={(e) => set({ preset: e.target.value })}>
-            {PERIOD_PRESETS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-        </label>
-      )}
-      {show.includes('period') && filters.preset === 'custom' && (
-        <>
-          <label className="rm-field"><span>From</span><input type="date" value={filters.customStart ?? period.start} onChange={(e) => set({ customStart: e.target.value })} /></label>
-          <label className="rm-field"><span>To</span><input type="date" value={filters.customEnd ?? period.fullEnd} onChange={(e) => set({ customEnd: e.target.value })} /></label>
-        </>
-      )}
-      {show.includes('team') && (
-        <label className="rm-field">
-          <span>Squad</span>
-          <select value={filters.teamId ?? ''} onChange={(e) => set({ teamId: e.target.value || null })}>
-            <option value="">All squads</option>
-            {data.teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-            <option value="none">No squad</option>
-          </select>
-        </label>
-      )}
-      {show.includes('project') && (
-        <label className="rm-field">
-          <span>Project</span>
-          <select value={filters.projectId ?? ''} onChange={(e) => set({ projectId: e.target.value || null })}>
-            <option value="">All projects</option>
-            {data.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </label>
-      )}
-      {children}
-      {periodLabel && <span className="rm-period-label">{period.label}</span>}
+    <section className="card filters" aria-label="Filters">
+      <div className="filters-intro has-tip" tabIndex={0} aria-describedby="rm-filters-hint">
+        <span className="filters-icon"><FilterIcon /></span>
+        <h2>Filters</h2>
+        <span id="rm-filters-hint" role="tooltip" className="tip">Select criteria to view insights.</span>
+      </div>
+      <div className="filters-grid rm-filters-grid">
+        {show.includes('project') && (
+          <label className="filter">
+            <span>Project</span>
+            <select value={filters.projectId ?? ''} onChange={(e) => set({ projectId: e.target.value || null })}>
+              <option value="">All projects</option>
+              {data.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </label>
+        )}
+        {show.includes('team') && (
+          <label className="filter">
+            <span>Squad</span>
+            <select value={filters.teamId ?? ''} onChange={(e) => set({ teamId: e.target.value || null })}>
+              <option value="">All squads</option>
+              {data.teams.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              <option value="none">No squad</option>
+            </select>
+          </label>
+        )}
+        {show.includes('period') && (
+          <label className="filter">
+            <span>Period</span>
+            <select value={filters.preset} onChange={(e) => set({ preset: e.target.value })}>
+              {PERIOD_PRESETS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </label>
+        )}
+        {show.includes('period') && filters.preset === 'custom' && (
+          <>
+            <label className="filter"><span>From</span><input type="date" value={filters.customStart ?? period.start} onChange={(e) => set({ customStart: e.target.value })} /></label>
+            <label className="filter"><span>To</span><input type="date" value={filters.customEnd ?? period.fullEnd} onChange={(e) => set({ customEnd: e.target.value })} /></label>
+          </>
+        )}
+        {children}
+      </div>
+      {actions}
+      <span className="has-tip clear-wrap">
+        <button className="icon-btn btn-clear" onClick={() => setFilters((f) => ({ ...f, ...defaults }))} disabled={isDefault} aria-label="Clear filters" aria-describedby="rm-clear-hint">
+          <ClearIcon />
+        </button>
+        <span id="rm-clear-hint" role="tooltip" className="tip tip-right">{isDefault ? 'Filters are already at their defaults' : 'Clear filters'}</span>
+      </span>
     </section>
   );
 }
