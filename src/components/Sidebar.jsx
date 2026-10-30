@@ -1,4 +1,4 @@
-import { ChartIcon, HomeIcon, TimerIcon, SettingsIcon } from './Icons.jsx';
+import { ChartIcon, HomeIcon, TimerIcon, SettingsIcon, MapIcon } from './Icons.jsx';
 import { hrefFor } from '../lib/route.js';
 
 
@@ -23,6 +23,7 @@ export default function Sidebar({ route, canAdmin, onOpenAdmin, settingsOpen = f
         {link(hrefFor('resources', 'overview'), 'Project Overview', <HomeIcon />, route.module === 'resources' && route.page === 'overview')}
         {link(hrefFor('sprint'), 'Agile Metrics', <ChartIcon />, route.module === 'sprint')}
         {link(hrefFor('resources', 'effort'), 'Effort Tracker', <TimerIcon />, route.module === 'resources' && route.page === 'effort')}
+        {link(hrefFor('map'), 'Team Map', <MapIcon />, route.module === 'map')}
       </div>
 
       {onOpenAdmin && (

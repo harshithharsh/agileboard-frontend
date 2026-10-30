@@ -3,6 +3,7 @@ import App from './App.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import AdminOverlay from './components/admin/AdminOverlay.jsx';
 import ResourceManagement from './resources/ResourceManagement.jsx';
+import TeamMap from './teammap/TeamMap.jsx';
 import { useRoute } from './lib/route.js';
 
 // Signed-in layout: the icon sidebar, then the current module (Agile Metrics or Resource Management).
@@ -44,9 +45,9 @@ export default function Shell({ user, onSignOut, onDisplayChange }) {
         onOpenAdmin={canAdmin ? () => { setAdminTab(null); setAdminOpen(true); } : null}
         onNavigate={adminOpen ? closeAdmin : undefined} />
       <div className="shell-main">
-        {route.module === 'resources'
-          ? <ResourceManagement {...page} page={route.page} adminVersion={adminVersion} />
-          : <App {...page} adminVersion={adminVersion} />}
+        {route.module === 'resources' && <ResourceManagement {...page} page={route.page} adminVersion={adminVersion} />}
+        {route.module === 'map' && <TeamMap key={adminVersion} {...page} />}
+        {route.module === 'sprint' && <App {...page} adminVersion={adminVersion} />}
       </div>
       {adminOpen && canAdmin && (
         <AdminOverlay

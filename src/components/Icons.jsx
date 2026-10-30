@@ -132,3 +132,7 @@ export const AlertIcon = () => (
 export const MailIcon = () => (
   <svg {...base}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>
 );
+export const MapIcon = () => (
+  <svg {...base} width={18} height={18}><circle cx="12" cy="12" r="3" /><circle cx="4.5" cy="5" r="2" /><circle cx="19.5" cy="5" r="2" /><circle cx="4.5" cy="19" r="2" /><circle cx="19.5" cy="19" r="2" /><path d="M6 6.4l3.8 3.6M18 6.4l-3.8 3.6M6 17.6l3.8-3.6M18 17.6l-3.8-3.6" /></svg>
+);
+export const MinusIcon = () => <svg {...base}><path d="M5 12h14" /></svg>;

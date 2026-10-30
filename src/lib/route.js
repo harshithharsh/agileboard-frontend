@@ -4,16 +4,18 @@ import { useEffect, useState } from 'react';
 //   #/  or  #/resources/overview   Project overview (the start page)
 //   #/agile                        Agile Metrics
 //   #/resources/effort             Effort Tracker
+//   #/team-map                     Team Map
 // Resource allocation is a Settings tab: openSettings('allocation')
 export const RESOURCE_PAGES = ['overview', 'effort'];
 
 export function parseRoute(hash = window.location.hash) {
   const [, module, page] = hash.replace(/^#\/?/, '#/').split('/');
   if (module === 'agile') return { module: 'sprint', page: null };
+  if (module === 'team-map') return { module: 'map', page: null };
   return { module: 'resources', page: RESOURCE_PAGES.includes(page) ? page : 'overview' };
 }
 
-export const hrefFor = (module, page) => (module === 'resources' ? `#/resources/${page ?? 'overview'}` : '#/agile');
+export const hrefFor = (module, page) => (module === 'resources' ? `#/resources/${page ?? 'overview'}` : module === 'map' ? '#/team-map' : '#/agile');
 
 export function useRoute() {
   const [route, setRoute] = useState(() => parseRoute());
