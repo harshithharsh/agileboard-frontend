@@ -610,7 +610,7 @@ function JiraIntegration({ info, onSynced, onChanged }) {
   return (
     <div className="integration-grid">
       <ConnectionCard name="jira" title="Jira connection" info={info}
-        intro="Sprints, issues and squad members come from Jira Cloud."
+        intro="Sprints and issues come from Jira Cloud. Squad members are managed here, in Projects."
         envHint={info.unreadable
           ? 'The saved API token can’t be read (SECRETS_KEY in the backend .env changed). Click Edit and enter it again.'
           : 'Set JIRA_BASE_URL in the backend .env, then click Edit to enter the account email and API token.'}
@@ -860,7 +860,7 @@ function ProjectForm({ item, users = [], onSave, onCancel, saving, error }) {
 
   const teamsHint = loadingBoards ? 'Loading the project’s Scrum boards from Jira…'
     : boards.error && boardKey ? `Could not load boards from Jira (${boards.error}). Enter the board id from the board's URL (…/boards/524).`
-    : boardList ? (boardList.length ? 'Each squad is synced from one of the project’s Jira boards. Scrum boards bring sprints; Kanban boards (e.g. chapters) bring only members.' : 'This project has no boards in Jira.')
+    : boardList ? (boardList.length ? 'Each squad is synced from one of the project’s Jira boards. Scrum boards bring sprints; Kanban boards (e.g. chapters) bring none. Members are added by hand.' : 'This project has no boards in Jira.')
     : <>Each squad is synced from its Jira board. Find the board id in the board's URL (…/boards/<b>524</b>).</>;
 
   return (
