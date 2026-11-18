@@ -132,7 +132,7 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
             {rows.length > 0 ? (
               <div className="al-table" role="table" aria-label="Project allocations">
                 <div className="al-row al-head" role="row">
-                  <span role="columnheader">Project</span><span role="columnheader">FTE</span><span role="columnheader">Type</span><span role="columnheader">From</span><span role="columnheader">To</span><span aria-hidden="true" />
+                  <span role="columnheader">Project</span><span role="columnheader" className="num">FTE</span><span role="columnheader">Type</span><span role="columnheader">From</span><span role="columnheader">To</span><span aria-hidden="true" />
                 </div>
                 {rows.map((r) => (
                   <div key={r.key} className={`al-row${isChanged(r) && !r.original?.isDefault ? ' changed' : ''}`} role="row">
@@ -157,7 +157,6 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
             ) : (
               <p className="muted small">No allocation yet.{!readOnly && ' Add one to plan this person’s time on a project.'}</p>
             )}
-            <p className="field-hint"><b>Non-billable</b> time takes the person’s FTE but is not counted in the Project Overview or Effort Tracker (no planned or actual hours). Leave <b>To</b> empty for an ongoing allocation, and <b>From</b> empty for “from the start”. To change an FTE from a date, set an end date on the current row and add a new row from the next day.</p>
             {defaultRow && <p className="field-hint">Nothing is saved yet: the whole FTE is planned on {projectName(data, squadProject)}, {squad ? `${squad}’s` : 'the squad’s'} project.</p>}
           </section>
 
