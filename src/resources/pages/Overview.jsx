@@ -46,6 +46,9 @@ export default function Overview({ data, filters, setFilters, period, access }) 
   const days = workingDayCount(view, data.rules, isWorkingDay);
   const fteOf = (r) => scopedFte(data, r, scope, view.asOf);
   const allocated = round(rows.reduce((n, r) => n + fteOf(r), 0), 2);
+  // Available = what is left of each full-time person (1.00) after all their allocations, on any project
+  // (as in Resource allocation): time given to another project is not available here
+  const available = round(rows.reduce((n, r) => n + Math.max(0, 1 - allocatedFte(r.resource.id, data.allAllocations, view.asOf)), 0), 2);
 
   const trend = useMemo(() => {
     let plannedSoFar = 0;
@@ -123,7 +126,7 @@ export default function Overview({ data, filters, setFilters, period, access }) 
       )}
       <section className="rm-kpis rm-kpis-5">
         <Kpi label="Resources" value={rows.length} note={`${rows.filter((r) => r.issues.length).length} need attention`} />
-        <Kpi label="Allocated FTE" value={fmtFte(allocated)} note={`${fmtFte(round(rows.length - allocated, 2))} FTE available`} tip={DEFINITIONS.fte} />
+        <Kpi label="Allocated FTE" value={fmtFte(allocated)} note={`${fmtFte(available)} FTE available`} tip={DEFINITIONS.fte} />
         <Kpi label="Planned to date" value={soFar ? fmtHours(plannedSoFar) : '—'} note={`${toLabel} · ${fmtHours(sum.planned)} for the ${picked ? 'week' : 'period'}`} tip={DEFINITIONS.planned} />
         <Kpi label="Actual to date" value={soFar ? fmtHours(cumulative.actual) : '—'} note={`${toLabel} · from Redmine`} tip={DEFINITIONS.actual} />
         <Kpi label="Utilization to date" value={fmtPct(cumulative.utilization)} tone={utilTone(cumulative.utilization)}
