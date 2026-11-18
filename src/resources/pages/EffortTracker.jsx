@@ -239,7 +239,9 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
                         <td>{teamName(data, r.resource.teamId) ?? <span className="muted">—</span>}</td>
                         <td className="num">{fmtFte(fteShown(r))}</td>
                         {isNonBillable(r) ? (
-                          <td colSpan={3} className="muted small rm-nb-note">Not counted · open ▸ to see the days logged in Redmine</td>
+                          <>
+                            <td className="num muted">—</td><td className="num muted">—</td><td className="num muted">—</td>
+                          </>
                         ) : (
                           <>
                             <td className="num">{fmtHours(shown.get(r.resource.id)?.planned ?? 0)}</td>
