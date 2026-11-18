@@ -256,7 +256,7 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
                         <tr className="selected">
                           <td />
                           <td colSpan={7}>
-                            <Breakdown row={r} data={dataFor(r)} periods={periods} filters={scoped} until={until} logOnly={isNonBillable(r)} />
+                            <Breakdown row={r} data={dataFor(r)} periods={periods} filters={scoped} until={until} logOnly={isNonBillable(r)} focus={focus} />
                           </td>
                         </tr>
                       )}
@@ -288,7 +288,8 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
 
 // One person's days, weeks or months as small cards that wrap, instead of a wide table
 // Non-billable people (logOnly): just whether they log in Redmine, i.e. hours and days logged
-function Breakdown({ row, data, periods, filters, until, logOnly }) {
+// The week (or day, month) picked in the chart is highlighted
+function Breakdown({ row, data, periods, filters, until, logOnly, focus }) {
   const per = periods.map((b) => ({ b, ...resourceRow(row.resource, data, b, filters) }));
   const logged = new Set((data.entriesByUser.get(row.resource.redmineUserId) ?? [])
     .filter((e) => e.hours > 0 && data.rules.eligibleActivities.includes(e.activity) && (!filters.projectId || e.projectId === filters.projectId))
@@ -301,7 +302,7 @@ function Breakdown({ row, data, periods, filters, until, logOnly }) {
         if (logOnly) {
           if (b.start > until) {
             return (
-              <div key={b.start} className="rm-bcard">
+              <div key={b.start} className={`rm-bcard${b.start === focus ? ' is-focus' : ''}`}>
                 <span className="muted small">{b.label}</span><b className="muted">—</b>
                 <span className="rm-util-bar rm-wide"><i style={{ width: 0 }} /></span>
                 <span className="small muted">Not imported yet</span>
@@ -312,7 +313,7 @@ function Breakdown({ row, data, periods, filters, until, logOnly }) {
           const done = working.filter((d) => logged.has(d)).length;
           const tone = !working.length ? 'var(--border-strong)' : done === working.length ? 'var(--success)' : done === 0 ? 'var(--danger)' : 'var(--warning)';
           return (
-            <div key={b.start} className="rm-bcard">
+            <div key={b.start} className={`rm-bcard${b.start === focus ? ' is-focus' : ''}`}>
               <span className="muted small">{b.label}</span>
               <b>{fmtHours(round(actual))} <span className="muted">logged</span></b>
               <span className="rm-util-bar rm-wide"><i style={{ width: `${working.length ? (done / working.length) * 100 : 0}%`, background: tone }} /></span>
@@ -324,7 +325,7 @@ function Breakdown({ row, data, periods, filters, until, logOnly }) {
         }
         if (b.start > until) { // Redmine hours not imported yet
           return (
-            <div key={b.start} className="rm-bcard">
+            <div key={b.start} className={`rm-bcard${b.start === focus ? ' is-focus' : ''}`}>
               <span className="muted small">{b.label}</span>
               <b><span className="muted">— / {fmtHours(planned)}</span></b>
               <span className="rm-util-bar rm-wide"><i style={{ width: 0 }} /></span>
@@ -335,7 +336,7 @@ function Breakdown({ row, data, periods, filters, until, logOnly }) {
         const pct = planned > 0 ? Math.min(100, (actual / planned) * 100) : actual > 0 ? 100 : 0;
         const tone = planned === 0 ? (actual > 0 ? 'var(--warning)' : 'var(--border-strong)') : actual < planned * (LOW_UTILIZATION / 100) ? 'var(--danger)' : 'var(--success)';
         return (
-          <div key={b.start} className="rm-bcard">
+          <div key={b.start} className={`rm-bcard${b.start === focus ? ' is-focus' : ''}`}>
             <span className="muted small">{b.label}</span>
             <b>{fmtHours(round(actual))} <span className="muted">/ {fmtHours(planned)}</span></b>
             <span className="rm-util-bar rm-wide"><i style={{ width: `${pct}%`, background: tone }} /></span>
