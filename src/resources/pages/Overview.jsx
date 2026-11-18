@@ -178,14 +178,16 @@ export default function Overview({ data, filters, setFilters, period, access }) 
           <div className="rm-chart-head"><h2>Utilization by squad</h2></div>
           <div className="rm-hbars">
             {byTeam.map((t) => (
-              <div key={t.team.id} className="rm-hbar">
+              // Opens the Effort Tracker filtered to this squad (same project and period)
+              <a key={t.team.id} className="rm-hbar rm-hbar-link" href={hrefFor('resources', 'effort')}
+                onClick={() => setFilters((f) => ({ ...f, teamId: t.team.id }))} title={`Open ${t.team.name} in the Effort Tracker`}>
                 <span>{t.team.name}</span>
                 <span className="rm-util-bar rm-wide"><i style={{ width: `${Math.min(100, t.utilization ?? 0)}%`, background: BAND_COLOR[band(t.utilization)] }} /></span>
                 <b>{fmtPct(t.utilization)}</b>
-              </div>
+              </a>
             ))}
           </div>
-          <p className="rm-note">Cumulative to date. Green {LOW_UTILIZATION}% and above · red below {LOW_UTILIZATION}%. Mapped people only.</p>
+          <p className="rm-note">Cumulative to date. Green {LOW_UTILIZATION}% and above · red below {LOW_UTILIZATION}%. Mapped people only. Click a squad to open it in the Effort Tracker.</p>
         </div>
         <div className="card rm-chart">
           <div className="rm-chart-head"><h2>Capacity allocation by squad</h2><span className="muted small">FTE</span></div>
