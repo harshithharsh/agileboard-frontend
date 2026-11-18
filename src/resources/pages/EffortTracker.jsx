@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ResponsiveContainer, ComposedChart, Bar, Cell, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { Filters, InfoTip, Kpi, Empty, SortTh, sortBy, fmtHours, fmtFte, fmtPct } from '../components/ui.jsx';
 import { selectRows, totals, teamName, scopeProject, scopedFte } from '../model/select.js';
@@ -6,7 +6,10 @@ import { DEFINITIONS, resourceRow, round, LOW_UTILIZATION, utilTone } from '../m
 import { buckets, hoursUntil } from '../model/period.js';
 import { parseDay } from '../model/calc.js';
 import { downloadXlsx, bold, hours, percent, fte } from '../../lib/excel.js';
-import { DownloadIcon, MailIcon } from '../../components/Icons.jsx';
+import { DownloadIcon, MailIcon, RefreshIcon } from '../../components/Icons.jsx';
+import { useImport, ImportProgress } from '../../components/admin/RedmineImport.jsx';
+import { resourceService } from '../data/resourceService.js';
+import { api } from '../../api/client.js';
 import WeeklyEmailDialog from '../components/WeeklyEmailDialog.jsx';
 import { formatDate, formatDateTime } from '../../lib/datetime.js';
 import { COLORS } from '../../lib/format.js';
@@ -15,7 +18,13 @@ import { axisProps, gridProps, tooltipProps, legendProps } from '../../component
 const UTIL_TIP = 'Utilization to date = actual hours ÷ planned hours, counted from the start of the period up to the last full day of imported Redmine hours (the day before the last import). Later days are not counted yet.';
 
 // Planned against actual Redmine hours, per person, with a daily, weekly or monthly breakdown on demand
-export default function EffortTracker({ data, filters, setFilters, period, setActions }) {
+export default function EffortTracker({ data, filters, setFilters, period, access, setActions }) {
+  // Sync (administrators): import the latest time entries from Redmine, then reload
+  const redmine = useImport(useCallback(() => { resourceService.reload().catch(() => {}); }, []));
+  useEffect(() => {
+    if (!access?.canAdmin) return;
+    api.admin.redmineSyncStatus().then((s) => { if (s.running) redmine.follow(s); }).catch(() => {});
+  }, [access?.canAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
   const [granularity, setGranularity] = useState('week');
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(new Set());
@@ -120,6 +129,12 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
   useEffect(() => {
     setActions?.(
       <>
+        {access?.canAdmin && (
+          <button className={`icon-btn${redmine.running ? ' is-active' : ''}`} onClick={redmine.start} disabled={redmine.running}
+            title={redmine.running ? 'Importing from Redmine…' : 'Sync: import the latest hours from Redmine'} aria-label="Sync from Redmine">
+            <span className={redmine.running ? 'spin' : undefined}><RefreshIcon /></span>
+          </button>
+        )}
         <button className="icon-btn" onClick={() => setWeekly(true)} title="Weekly Redmine update email" aria-label="Weekly Redmine update email">
           <MailIcon />
         </button>
@@ -129,7 +144,7 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
       </>
     );
     return () => setActions?.(null);
-  }, [canExport, setActions]);
+  }, [canExport, setActions, access?.canAdmin, redmine.running]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
@@ -144,6 +159,9 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
         </label>
         <label className="filter filter-search"><span>Search</span><input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name or Redmine user" /></label>
       </Filters>
+      {redmine.running && <ImportProgress progress={redmine.progress} />}
+      {redmine.error && <div className="card warning">Could not import from Redmine: {redmine.error}</div>}
+      {!redmine.running && redmine.message && <div className="card rm-sync-done" role="status">Redmine import finished: {redmine.message}</div>}
 
       {picked && (
         <div className="rm-focus" role="status">

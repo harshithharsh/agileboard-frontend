@@ -112,8 +112,8 @@ export default function App({ user, onSignOut, onMenu, onOpenAdmin, adminVersion
     api.syncStatus().then((status) => { if (status.running) follow(status); }).catch(() => {});
   }, [adminVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Jira sync runs from Settings → Integrations → Jira. If one is running when the dashboard opens,
-  // follow its progress every 2 s and reload when it ends.
+  // Jira sync: started with the Sync button (administrators) or in Settings → Integrations → Jira.
+  // While one runs, follow its progress every 2 s and reload when it ends.
   const [syncProgress, setSyncProgress] = useState(null); // { phase, sprintsDone, sprintsTotal, current, percent, startedAt }
   const [syncDone, setSyncDone] = useState(null); // { sprints, seconds } briefly after a successful sync
   const following = useRef(false);
@@ -157,6 +157,10 @@ export default function App({ user, onSignOut, onMenu, onOpenAdmin, adminVersion
     await loadFilters();
     load();
   }, [loadFilters, load]);
+  const startSync = async () => {
+    setSyncError(null);
+    try { follow(await api.syncFromJira()); } catch (e) { setSyncError(e.message); }
+  };
 
   // Opening the dashboard while a sync is already running: show its progress too
   useEffect(() => {
@@ -178,7 +182,7 @@ export default function App({ user, onSignOut, onMenu, onOpenAdmin, adminVersion
   return (
     <div className="app">
       <Header title="Agile Metrics" icon={<ChartIcon />} onMenu={onMenu} onOpenAdmin={onOpenAdmin} user={user} onSignOut={onSignOut}
-        actions={<SprintActions context={data?.context} onExport={() => data && exportDashboardCsv(data)} onCustomize={data && !editing ? startCustomize : null} customizing={editing} />} />
+        actions={<SprintActions context={data?.context} onExport={() => data && exportDashboardCsv(data)} onCustomize={data && !editing ? startCustomize : null} customizing={editing} onSync={canAdmin ? startSync : null} syncing={syncing} />} />
       <main className={loading ? 'is-loading' : ''}>
         {options && <FilterBar options={options} filters={filters} onChange={updateFilters} onClear={clearFilters} isDefault={isDefault} />}
         {(syncProgress || (syncing && !syncError)) && <SyncProgress progress={syncProgress} />}

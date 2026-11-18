@@ -1233,3 +1233,4 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 @media (max-width: 860px) { .wk-grid { grid-template-columns: 1fr; } }
 .wk-rules { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 12px; color: var(--muted); }
 .wk-rules input { width: 52px; margin: 0 4px; padding: 3px 6px; font: inherit; font-size: 12px; text-align: right; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
+.rm-sync-done { padding: 10px 14px; font-size: 13px; color: var(--success); border-left: 4px solid var(--success); }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { DownloadIcon, SettingsIcon, ChevronDownIcon, SignOutIcon, LayoutIcon, MenuIcon } from './Icons.jsx';
+import { DownloadIcon, RefreshIcon, SettingsIcon, ChevronDownIcon, SignOutIcon, LayoutIcon, MenuIcon } from './Icons.jsx';
 
 // Signed-in user's initials and name, with a Sign out menu
 function UserMenu({ user, onSignOut }) {
@@ -53,10 +53,16 @@ export default function Header({ title, icon, onMenu, actions, onOpenAdmin, user
   );
 }
 
-// Agile Metrics buttons: Customize, Export (Jira sync is in Settings → Integrations → Jira)
-export function SprintActions({ context, onExport, onCustomize, customizing }) {
+// Agile Metrics buttons: Sync from Jira (administrators), Customize, Export
+export function SprintActions({ context, onExport, onCustomize, customizing, onSync, syncing }) {
   return (
     <>
+      {onSync && (
+        <button className={`icon-btn${syncing ? ' is-active' : ''}`} onClick={onSync} disabled={syncing}
+          title={syncing ? 'Syncing from Jira…' : 'Sync: pull the latest sprints and issues from Jira'} aria-label="Sync from Jira">
+          <span className={syncing ? 'spin' : undefined}><RefreshIcon /></span>
+        </button>
+      )}
       <button className={`icon-btn${customizing ? ' is-active' : ''}`} onClick={onCustomize ?? undefined} disabled={!onCustomize}
         title={customizing ? 'Customizing the dashboard' : 'Customize: rearrange, resize or hide widgets'} aria-label="Customize dashboard" aria-pressed={!!customizing}>
         <LayoutIcon />

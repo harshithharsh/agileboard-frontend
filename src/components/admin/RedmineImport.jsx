@@ -23,7 +23,7 @@ function suggest(name, users) {
   return hits.length === 1 ? hits[0] : null;
 }
 
-function useImport(onFinished) {
+export function useImport(onFinished) {
   const [state, setState] = useState({ running: false, progress: null, error: null, message: null });
   const following = useRef(false);
   const follow = useCallback(async (first) => {
@@ -54,7 +54,7 @@ function useImport(onFinished) {
   return { ...state, start, follow };
 }
 
-function ImportProgress({ progress }) {
+export function ImportProgress({ progress }) {
   const pct = progress?.total ? Math.round((progress.entries / progress.total) * 100) : null;
   return (
     <div className="card sync-progress" role="status" aria-live="polite">
@@ -218,7 +218,6 @@ export default function RedmineImport({ configured, users, onChanged }) {
         <div className="settings-card-head settings-card-head-row">
           <div>
             <h2>Project links</h2>
-            <p>Time logged in the linked Redmine project counts as actual effort for the Jira project. Figures since {formatDate(data.since)}.</p>
           </div>
           <button className="btn-primary-solid" onClick={async () => { await imp.start(); }} disabled={!configured || imp.running || !linked.length}
             title={!linked.length ? 'Link a project first' : 'Import the time entries of all linked projects now'}>
