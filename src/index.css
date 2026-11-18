@@ -1235,3 +1235,5 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 .wk-rules { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 12px; color: var(--muted); }
 .wk-rules input { width: 52px; margin: 0 4px; padding: 3px 6px; font: inherit; font-size: 12px; text-align: right; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
 .rm-sync-done { padding: 10px 14px; font-size: 13px; color: var(--success); border-left: 4px solid var(--success); }
+.rm-nonbillable td.num { color: var(--muted); }
+.rm-pill.nb { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }

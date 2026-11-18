@@ -51,7 +51,14 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
     () => selectRows(data, range, scoped, { search }).filter((r) => r.resource.redmineUserId || r.planned > 0),
     [data, range, scoped, search]
   );
-  const fteShown = (row) => scopedFte(data, row, scope, picked?.asOf ?? period.asOf);
+  // Non-billable people (a non-billable allocation on the project in this period) are listed with their
+  // own hours and weekly split, labelled, but left out of every total (KPIs, chart, footer)
+  const fullData = useMemo(() => ({ ...data, allocations: data.allAllocations, entriesByUser: data.allEntriesByUser }), [data]);
+  const isNonBillable = (r) => data.allAllocations.some((a) => a.resourceId === r.resource.id && a.billable === false
+    && (!scope || a.projectId === scope) && a.startDate <= range.end && (!a.endDate || a.endDate >= range.start));
+  const dataFor = (r) => (isNonBillable(r) ? fullData : data);
+  const billableFte = (row) => scopedFte(data, row, scope, picked?.asOf ?? period.asOf);
+  const fteShown = (row) => scopedFte(dataFor(row), row, scope, picked?.asOf ?? period.asOf);
   // Utilization is cumulative: actual ÷ planned from the start of the shown period up to today
   const view = picked ?? range;
   const until = hoursUntil(data);
@@ -61,13 +68,18 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
     () => new Map(soFar ? people.map((r) => [r.resource.id, resourceRow(r.resource, data, soFar, scoped)]) : []),
     [people, soFar?.start, soFar?.end, data, scoped] // eslint-disable-line react-hooks/exhaustive-deps
   );
-  const utilOf = (r) => toDate.get(r.resource.id)?.utilization ?? null;
+  // What each row shows: the billable figures, or a non-billable person's own figures
+  const shown = useMemo(
+    () => new Map(soFar ? people.map((r) => [r.resource.id, isNonBillable(r) ? resourceRow(r.resource, fullData, soFar, scoped) : toDate.get(r.resource.id)]) : []),
+    [people, toDate, fullData] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const utilOf = (r) => shown.get(r.resource.id)?.utilization ?? null;
   const rows = sortBy(picked ? people.map((r) => resourceRow(r.resource, data, picked, scoped)) : people, sort, {
     name: (r) => r.resource.name.trim().toLowerCase(),
     team: (r) => teamName(data, r.resource.teamId),
     fte: fteShown,
-    planned: (r) => toDate.get(r.resource.id)?.planned ?? 0,
-    actual: (r) => (r.resource.redmineUserId ? toDate.get(r.resource.id)?.actual ?? 0 : null),
+    planned: (r) => shown.get(r.resource.id)?.planned ?? 0,
+    actual: (r) => (r.resource.redmineUserId ? shown.get(r.resource.id)?.actual ?? 0 : null),
     utilization: utilOf,
   });
   const sum = totals(rows);
@@ -103,17 +115,17 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
     ];
     const head = ['Resource', 'Squad', 'FTE', 'Planned to date (h)', 'Actual to date (h)', 'Utilization to date', 'Planned in period (h)'].map(bold);
     const people = rows.map((r) => {
-      const d = toDate.get(r.resource.id);
-      return [r.resource.name, teamName(data, r.resource.teamId) ?? '', fte(fteShown(r)), hours(d?.planned ?? 0),
+      const d = shown.get(r.resource.id);
+      return [`${r.resource.name}${isNonBillable(r) ? ' (non-billable, not in totals)' : ''}`, teamName(data, r.resource.teamId) ?? '', fte(fteShown(r)), hours(d?.planned ?? 0),
         r.resource.redmineUserId ? hours(d?.actual ?? 0) : null, percent(utilOf(r)), hours(r.planned)];
     });
-    const total = [bold(`${rows.length} people`), null, fte(round(rows.reduce((n, r) => n + fteShown(r), 0), 3)), hours(plannedSoFar),
+    const total = [bold(`${rows.length} people`), null, fte(round(rows.reduce((n, r) => n + billableFte(r), 0), 3)), hours(plannedSoFar),
       hours(cumulative.actual), percent(cumulative.utilization), hours(sum.planned)].map((c) => (c && typeof c === 'object' ? { ...c, fontWeight: 'bold' } : c));
     const sheet = { day: 'By day', week: 'By week', month: 'By month' }[granularity];
     const breakdown = [
       [bold('Resource'), ...periods.flatMap((b) => [bold(`${b.label} planned (h)`), bold(`${b.label} actual (h)`)])],
       ...rows.map((r) => {
-        const per = periods.map((b) => resourceRow(r.resource, data, b, scoped));
+        const per = periods.map((b) => resourceRow(r.resource, dataFor(r), b, scoped));
         return [r.resource.name, ...per.flatMap((x, i) => [hours(x.planned), periods[i].start > until ? null : hours(x.actual)])];
       }),
     ];
@@ -216,15 +228,18 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
                   const isOpen = open.has(r.resource.id);
                   return (
                     <Fragment key={r.resource.id}>
-                      <tr className={isOpen ? 'selected' : ''}>
+                      <tr className={`${isOpen ? 'selected' : ''}${isNonBillable(r) ? ' rm-nonbillable' : ''}`}>
                         <td className="rm-check">
                           <button className="rm-expand" onClick={() => toggle(r.resource.id)} aria-expanded={isOpen} aria-label={`${isOpen ? 'Hide' : 'Show'} ${{ day: 'daily', week: 'weekly', month: 'monthly' }[granularity]} effort for ${r.resource.name}`}>{isOpen ? '▾' : '▸'}</button>
                         </td>
-                        <td><b>{r.resource.name}</b>{!r.resource.redmineUserId && <span className="rm-pill warn rm-inline">Not mapped</span>}</td>
+                        <td>
+                          <b>{r.resource.name}</b>{!r.resource.redmineUserId && <span className="rm-pill warn rm-inline">Not mapped</span>}
+                          {isNonBillable(r) && <span className="rm-pill nb rm-inline" title="Non-billable: their hours are shown here but not counted in the totals">Non-billable</span>}
+                        </td>
                         <td>{teamName(data, r.resource.teamId) ?? <span className="muted">—</span>}</td>
                         <td className="num">{fmtFte(fteShown(r))}</td>
-                        <td className="num">{fmtHours(toDate.get(r.resource.id)?.planned ?? 0)}</td>
-                        <td className="num">{r.resource.redmineUserId ? fmtHours(toDate.get(r.resource.id)?.actual ?? 0) : '—'}</td>
+                        <td className="num">{fmtHours(shown.get(r.resource.id)?.planned ?? 0)}</td>
+                        <td className="num">{r.resource.redmineUserId ? fmtHours(shown.get(r.resource.id)?.actual ?? 0) : '—'}</td>
                         <td className={`num${utilTone(utilOf(r)) === 'low' ? ' bad-text' : utilTone(utilOf(r)) ? ' good-text' : ''}`}
                           title={utilOf(r) == null ? 'Nothing planned up to today, so no percentage' : 'Actual ÷ planned up to today'}>{fmtPct(utilOf(r))}</td>
                         <td className="muted small">{r.resource.redmineUserId && lastSync ? formatDateTime(lastSync.startedAt) : '—'}</td>
@@ -233,7 +248,7 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
                         <tr className="selected">
                           <td />
                           <td colSpan={7}>
-                            <Breakdown row={r} data={data} periods={periods} filters={scoped} until={until} />
+                            <Breakdown row={r} data={dataFor(r)} periods={periods} filters={scoped} until={until} />
                           </td>
                         </tr>
                       )}
@@ -244,7 +259,7 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
               <tfoot>
                 <tr>
                   <td /><td colSpan={2}>{rows.length} people</td>
-                  <td className="num">{fmtFte(round(rows.reduce((n, r) => n + fteShown(r), 0), 3))}</td>
+                  <td className="num">{fmtFte(round(rows.reduce((n, r) => n + billableFte(r), 0), 3))}</td>
                   <td className="num">{fmtHours(plannedSoFar)}</td>
                   <td className="num">{fmtHours(cumulative.actual)}</td>
                   <td className={`num ${utilTone(cumulative.utilization) === 'low' ? 'bad-text' : utilTone(cumulative.utilization) ? 'good-text' : ''}`}>{fmtPct(cumulative.utilization)}</td>

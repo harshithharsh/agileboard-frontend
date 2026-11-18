@@ -20,7 +20,7 @@ export function selectRows(data, period, filters, extra = {}) {
     // On a project: its team members (even before FTE is set), and anyone planned, logging or allocated there
     .filter((row) => !filters.projectId || row.planned > 0 || row.actual > 0
       || data.teams.some((t) => t.id === row.resource.teamId && t.projectId === filters.projectId)
-      || data.allocations.some((a) => a.resourceId === row.resource.id && a.projectId === filters.projectId));
+      || (data.allAllocations ?? data.allocations).some((a) => a.resourceId === row.resource.id && a.projectId === filters.projectId));
   const q = (extra.search ?? '').trim().toLowerCase();
   const user = (id) => data.redmineUsers.find((u) => u.id === id);
   return q

@@ -22,6 +22,7 @@ async function fetchData() {
   data.allAllocations = withDefaultPlan(data.resources, data.savedAllocations, data.teams);
   data.allocations = data.allAllocations.filter((a) => a.billable !== false);
   data.entriesByUser = indexEntries(withoutNonBillable(data.entries, data.resources, data.allAllocations));
+  data.allEntriesByUser = indexEntries(data.entries); // every hour, for showing non-billable people's own figures
   store = data;
   listeners.forEach((fn) => fn(data));
   return data;
