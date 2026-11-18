@@ -1237,3 +1237,4 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 .rm-sync-done { padding: 10px 14px; font-size: 13px; color: var(--success); border-left: 4px solid var(--success); }
 .rm-nonbillable td.num { color: var(--muted); }
 .rm-pill.nb { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+.rm-nb-note { text-align: center; }

@@ -2,7 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { ResponsiveContainer, ComposedChart, Bar, Cell, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { Filters, InfoTip, Kpi, Empty, SortTh, sortBy, fmtHours, fmtFte, fmtPct } from '../components/ui.jsx';
 import { selectRows, totals, teamName, scopeProject, scopedFte } from '../model/select.js';
-import { DEFINITIONS, resourceRow, round, LOW_UTILIZATION, utilTone } from '../model/calc.js';
+import { DEFINITIONS, resourceRow, round, LOW_UTILIZATION, utilTone, eachDay, isWorkingDay, onLeave } from '../model/calc.js';
 import { buckets, hoursUntil } from '../model/period.js';
 import { parseDay } from '../model/calc.js';
 import { downloadXlsx, bold, hours, percent, fte } from '../../lib/excel.js';
@@ -238,17 +238,23 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
                         </td>
                         <td>{teamName(data, r.resource.teamId) ?? <span className="muted">—</span>}</td>
                         <td className="num">{fmtFte(fteShown(r))}</td>
-                        <td className="num">{fmtHours(shown.get(r.resource.id)?.planned ?? 0)}</td>
-                        <td className="num">{r.resource.redmineUserId ? fmtHours(shown.get(r.resource.id)?.actual ?? 0) : '—'}</td>
-                        <td className={`num${utilTone(utilOf(r)) === 'low' ? ' bad-text' : utilTone(utilOf(r)) ? ' good-text' : ''}`}
-                          title={utilOf(r) == null ? 'Nothing planned up to today, so no percentage' : 'Actual ÷ planned up to today'}>{fmtPct(utilOf(r))}</td>
+                        {isNonBillable(r) ? (
+                          <td colSpan={3} className="muted small rm-nb-note">Not counted · open ▸ to see the days logged in Redmine</td>
+                        ) : (
+                          <>
+                            <td className="num">{fmtHours(shown.get(r.resource.id)?.planned ?? 0)}</td>
+                            <td className="num">{r.resource.redmineUserId ? fmtHours(shown.get(r.resource.id)?.actual ?? 0) : '—'}</td>
+                            <td className={`num${utilTone(utilOf(r)) === 'low' ? ' bad-text' : utilTone(utilOf(r)) ? ' good-text' : ''}`}
+                              title={utilOf(r) == null ? 'Nothing planned up to today, so no percentage' : 'Actual ÷ planned up to today'}>{fmtPct(utilOf(r))}</td>
+                          </>
+                        )}
                         <td className="muted small">{r.resource.redmineUserId && lastSync ? formatDateTime(lastSync.startedAt) : '—'}</td>
                       </tr>
                       {isOpen && (
                         <tr className="selected">
                           <td />
                           <td colSpan={7}>
-                            <Breakdown row={r} data={dataFor(r)} periods={periods} filters={scoped} until={until} />
+                            <Breakdown row={r} data={dataFor(r)} periods={periods} filters={scoped} until={until} logOnly={isNonBillable(r)} />
                           </td>
                         </tr>
                       )}
@@ -279,11 +285,41 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
 }
 
 // One person's days, weeks or months as small cards that wrap, instead of a wide table
-function Breakdown({ row, data, periods, filters, until }) {
+// Non-billable people (logOnly): just whether they log in Redmine, i.e. hours and days logged
+function Breakdown({ row, data, periods, filters, until, logOnly }) {
   const per = periods.map((b) => ({ b, ...resourceRow(row.resource, data, b, filters) }));
+  const logged = new Set((data.entriesByUser.get(row.resource.redmineUserId) ?? [])
+    .filter((e) => e.hours > 0 && data.rules.eligibleActivities.includes(e.activity) && (!filters.projectId || e.projectId === filters.projectId))
+    .map((e) => e.date));
+  const days = (b) => eachDay(b.start, b.end < until ? b.end : until)
+    .filter((d) => isWorkingDay(d, data.rules) && !onLeave(row.resource.id, d, data.leave));
   return (
     <div className="rm-breakdown">
       {per.map(({ b, planned, actual, utilization: pctUsed }) => {
+        if (logOnly) {
+          if (b.start > until) {
+            return (
+              <div key={b.start} className="rm-bcard">
+                <span className="muted small">{b.label}</span><b className="muted">—</b>
+                <span className="rm-util-bar rm-wide"><i style={{ width: 0 }} /></span>
+                <span className="small muted">Not imported yet</span>
+              </div>
+            );
+          }
+          const working = days(b);
+          const done = working.filter((d) => logged.has(d)).length;
+          const tone = !working.length ? 'var(--border-strong)' : done === working.length ? 'var(--success)' : done === 0 ? 'var(--danger)' : 'var(--warning)';
+          return (
+            <div key={b.start} className="rm-bcard">
+              <span className="muted small">{b.label}</span>
+              <b>{fmtHours(round(actual))} <span className="muted">logged</span></b>
+              <span className="rm-util-bar rm-wide"><i style={{ width: `${working.length ? (done / working.length) * 100 : 0}%`, background: tone }} /></span>
+              <span className={`small ${!working.length ? 'muted' : done === working.length ? 'good-text' : done === 0 ? 'bad-text' : ''}`}>
+                {working.length ? `${done} of ${working.length} days logged` : 'No working days'}
+              </span>
+            </div>
+          );
+        }
         if (b.start > until) { // Redmine hours not imported yet
           return (
             <div key={b.start} className="rm-bcard">
