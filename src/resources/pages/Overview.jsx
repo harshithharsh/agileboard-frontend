@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ResponsiveContainer, ComposedChart, Bar, Line, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { Filters, Kpi, fmtHours, fmtFte, fmtPct } from '../components/ui.jsx';
 import { selectRows, totals, unmappedUsers, scopeProject, scopedFte } from '../model/select.js';
-import { DEFINITIONS, resourceRow, utilization, isWorkingDay, round, EPSILON, utilizationBand, utilTone, LOW_UTILIZATION } from '../model/calc.js';
+import { DEFINITIONS, resourceRow, utilization, allocatedFte, isWorkingDay, round, EPSILON, utilizationBand, utilTone, LOW_UTILIZATION } from '../model/calc.js';
 import { buckets, workingDayCount, hoursUntil, QUARTER_ONLY, currentQuarterPreset } from '../model/period.js';
 import { hrefFor, openSettings } from '../../lib/route.js';
 import { formatDate } from '../../lib/datetime.js';
@@ -71,7 +71,15 @@ export default function Overview({ data, filters, setFilters, period, access }) 
   const periodName = period.label.replace(' · to date', '');
   const toLabel = soFar ? `${formatDate(soFar.start, { year: false })} – ${formatDate(soFar.end, { year: false })}` : 'not started';
 
-  // Capacity allocation: FTE planned against one full-time person (1.00) each
+  // Capacity allocation: FTE allocated to the project against what the squad's people have for it,
+  // i.e. their FTE minus what other projects take (Pooja: 1.00 − 0.50 on Fibi = 0.50 for AI).
+  // With all projects: allocated against their whole FTE.
+  const capacityOf = (r) => {
+    const own = r.resource.employmentFte ?? 1;
+    if (!scope) return own;
+    const other = allocatedFte(r.resource.id, data.allocations, view.asOf) - fteOf(r);
+    return Math.max(0, own - other);
+  };
   const byTeam = data.teams.map((t) => {
     const teamRows = rows.filter((r) => r.resource.teamId === t.id);
     const tt = totals(dateMapped.filter((r) => r.resource.teamId === t.id));
@@ -80,7 +88,7 @@ export default function Overview({ data, filters, setFilters, period, access }) 
       people: teamRows.length,
       utilization: tt.utilization,
       allocated: round(teamRows.reduce((n, r) => n + fteOf(r), 0), 2),
-      employment: teamRows.length,
+      employment: round(teamRows.reduce((n, r) => n + capacityOf(r), 0), 2),
     };
   }).filter((t) => t.people);
   const band = (pct) => utilizationBand(pct);
@@ -187,7 +195,7 @@ export default function Overview({ data, filters, setFilters, period, access }) 
               </div>
             ))}
           </div>
-          <p className="rm-note">Allocated FTE of 1.00 per person. Free capacity can take more project work.</p>
+          <p className="rm-note">{scope ? 'Allocated to this project of what the squad has left after other projects.' : 'Allocated of the squad’s total FTE.'} Free capacity can take more project work.</p>
         </div>
         <div className="card rm-chart">
           <div className="rm-chart-head"><h2>Over- and under-utilized</h2></div>
