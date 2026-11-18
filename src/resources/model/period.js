@@ -28,6 +28,17 @@ export const PERIOD_PRESETS = [
   ['custom', 'Custom'],
 ];
 
+// Q1–Q4 of the current financial year (Q1 starts in rules.fiscalYearStartMonth, 1 April), plus Custom.
+// Project Overview offers only these; the Effort Tracker lists them after its other presets.
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export const quarterPresets = (rules) => [1, 2, 3, 4].map((q) => {
+  const m = (rules.fiscalYearStartMonth - 1 + (q - 1) * 3) % 12;
+  return [`q${q}`, `Q${q} (${MONTH_SHORT[m]}–${MONTH_SHORT[(m + 2) % 12]})`];
+});
+export const QUARTER_ONLY = (rules) => [...quarterPresets(rules), ['custom', 'Custom']];
+// The preset of the quarter containing today, e.g. 'q3'
+export const currentQuarterPreset = (rules, today) => `q${quarterOf(today, rules.fiscalYearStartMonth).q}`;
+
 const fyLabel = (fyYear, fyStart) => (fyStart === 1 ? `${fyYear}` : `FY${String(fyYear).slice(2)}-${String(fyYear + 1).slice(2)}`);
 
 // { start, end, asOf, label, toDate } for a preset (or custom dates)
@@ -46,6 +57,13 @@ export function periodRange(preset, rules, today, custom = {}) {
     start = monthStart(t.getFullYear(), m);
     end = monthEnd(t.getFullYear(), m);
     label = parseDay(start).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  } else if (/^q[1-4]$/.test(preset)) {
+    // Quarter n of the financial year containing today
+    const fy = quarterOf(today, rules.fiscalYearStartMonth).fyYear;
+    const m = rules.fiscalYearStartMonth - 1 + (Number(preset[1]) - 1) * 3; // months after January of the FY's first year
+    const q = quarterOf(monthStart(fy, m), rules.fiscalYearStartMonth);
+    ({ start, end } = q);
+    label = `Q${q.q} ${fyLabel(q.fyYear, rules.fiscalYearStartMonth)}`;
   } else if (preset === 'this-quarter' || preset === 'last-quarter') {
     let q = quarterOf(today, rules.fiscalYearStartMonth);
     if (preset === 'last-quarter') q = quarterOf(shiftDay(q.start, -1), rules.fiscalYearStartMonth);
@@ -58,8 +76,8 @@ export function periodRange(preset, rules, today, custom = {}) {
     label = formatDateRange(start, end, { year: true });
   }
   const toDate = end > today;
-  const cut = toDate ? today : end;
-  return { start, end: cut, fullEnd: end, asOf: cut, label: toDate ? `${label} · to date` : label, toDate };
+  const cut = toDate ? (today < start ? start : today) : end; // a period that hasn't started yet: just its first day
+  return { start, end: cut, fullEnd: end, asOf: cut, label: toDate && today >= start ? `${label} · to date` : label, toDate };
 }
 
 // Daily, weekly or monthly buckets covering a range (first and last week or month may be partial).

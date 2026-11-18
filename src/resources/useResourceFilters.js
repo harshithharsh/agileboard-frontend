@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { periodRange } from './model/period.js';
+import { periodRange, currentQuarterPreset } from './model/period.js';
 
 // Period, team and project filters shared by the resource pages (and the Settings allocation tab)
 // Project starts on the first project linked to Redmine (undefined until the data is in)
@@ -8,7 +8,8 @@ export function useResourceFilters(data) {
   useEffect(() => {
     if (!data || filters.projectId !== undefined) return;
     const linked = data.projects.filter((p) => p.redmineProjectId);
-    setFilters((f) => ({ ...f, projectId: linked[0]?.id ?? null }));
+    // Start on the current quarter of the financial year (e.g. Q3) and the first project linked to Redmine
+    setFilters((f) => ({ ...f, preset: currentQuarterPreset(data.rules, data.today), projectId: linked[0]?.id ?? null }));
   }, [data, filters.projectId]);
   const period = useMemo(
     () => (data ? periodRange(filters.preset, data.rules, data.today, { start: filters.customStart, end: filters.customEnd }) : null),

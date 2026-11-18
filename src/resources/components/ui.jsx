@@ -1,4 +1,4 @@
-import { PERIOD_PRESETS } from '../model/period.js';
+import { PERIOD_PRESETS, quarterPresets, currentQuarterPreset } from '../model/period.js';
 import { ISSUE_LABEL } from '../model/calc.js';
 import { InfoIcon, FilterIcon, ClearIcon } from '../../components/Icons.jsx';
 
@@ -72,10 +72,12 @@ export function IssuePills({ issues }) {
 
 // Project, squad and period filters, in the same filter bar as Agile Metrics (shared by every page
 // through ResourceManagement). Pages can add fields (children) and buttons (actions, e.g. Export).
-export function Filters({ filters, setFilters, data, period, show = ['period', 'team', 'project'], children, actions }) {
+// `presets` limits the period choices (Project Overview: Q1–Q4 and Custom); by default every preset
+// is offered, with the financial-year quarters in their own group.
+export function Filters({ filters, setFilters, data, period, presets, show = ['period', 'team', 'project'], children, actions }) {
   const set = (patch) => setFilters((f) => ({ ...f, ...patch }));
-  // Defaults: this quarter, all squads, the first project linked to Redmine
-  const defaults = { preset: 'this-quarter', customStart: null, customEnd: null, teamId: null, projectId: data.projects.find((p) => p.redmineProjectId)?.id ?? null };
+  // Defaults: the current quarter, all squads, the first project linked to Redmine
+  const defaults = { preset: currentQuarterPreset(data.rules, data.today), customStart: null, customEnd: null, teamId: null, projectId: data.projects.find((p) => p.redmineProjectId)?.id ?? null };
   const isDefault = Object.keys(defaults).every((k) => (filters[k] ?? null) === defaults[k]);
   return (
     <section className="card filters" aria-label="Filters">
@@ -108,7 +110,14 @@ export function Filters({ filters, setFilters, data, period, show = ['period', '
           <label className="filter">
             <span>Period</span>
             <select value={filters.preset} onChange={(e) => set({ preset: e.target.value })}>
-              {PERIOD_PRESETS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              {presets ? presets.map(([v, l]) => <option key={v} value={v}>{l}</option>) : (
+                <>
+                  {PERIOD_PRESETS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  <optgroup label="Financial year quarters">
+                    {quarterPresets(data.rules).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </optgroup>
+                </>
+              )}
             </select>
           </label>
         )}

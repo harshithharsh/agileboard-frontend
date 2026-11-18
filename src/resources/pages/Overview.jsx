@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ResponsiveContainer, ComposedChart, Bar, Line, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { Filters, Kpi, fmtHours, fmtFte, fmtPct } from '../components/ui.jsx';
 import { selectRows, totals, unmappedUsers, scopeProject, scopedFte } from '../model/select.js';
 import { DEFINITIONS, resourceRow, utilization, isWorkingDay, round, EPSILON, utilizationBand, utilTone, LOW_UTILIZATION } from '../model/calc.js';
-import { buckets, workingDayCount, hoursUntil } from '../model/period.js';
+import { buckets, workingDayCount, hoursUntil, QUARTER_ONLY, currentQuarterPreset } from '../model/period.js';
 import { hrefFor, openSettings } from '../../lib/route.js';
 import { formatDate } from '../../lib/datetime.js';
 import { COLORS } from '../../lib/format.js';
@@ -16,6 +16,12 @@ const BAND_COLOR = { ok: 'var(--success)', under: 'var(--warning)', low: 'var(--
 
 // Management view: key figures, what needs attention, and where capacity goes
 export default function Overview({ data, filters, setFilters, period, access }) {
+  // The period is always a financial-year quarter (Q1 starts 1 April) or custom dates; a week or month
+  // picked in the Effort Tracker becomes the current quarter here
+  const presets = QUARTER_ONLY(data.rules);
+  useEffect(() => {
+    if (!presets.some(([v]) => v === filters.preset)) setFilters((f) => ({ ...f, preset: currentQuarterPreset(data.rules, data.today) }));
+  }, [filters.preset]); // eslint-disable-line react-hooks/exhaustive-deps
   // Same rules as the Effort Tracker: numbers for one project (the selected project, or the selected
   // team's project), for the whole period (e.g. the full quarter), or for one week picked in the chart
   const scope = scopeProject(data, filters);
@@ -99,7 +105,7 @@ export default function Overview({ data, filters, setFilters, period, access }) 
 
   return (
     <>
-      <Filters filters={filters} setFilters={setFilters} data={data} period={period} />
+      <Filters filters={filters} setFilters={setFilters} data={data} period={period} presets={presets} />
 
       {picked && (
         <div className="rm-focus" role="status">
