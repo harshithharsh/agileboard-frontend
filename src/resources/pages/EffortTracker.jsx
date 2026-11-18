@@ -19,7 +19,7 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
   const [granularity, setGranularity] = useState('week');
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(new Set());
-  const [sort, setSort] = useState({ key: 'utilization', dir: 1 }); // lowest utilization first
+  const [sort, setSort] = useState({ key: 'name', dir: 1 }); // resources A to Z
 
   // Numbers are for one project, as in Resource allocation: the selected project, or the selected team's project
   const scope = scopeProject(data, filters);
@@ -54,7 +54,7 @@ export default function EffortTracker({ data, filters, setFilters, period, setAc
   );
   const utilOf = (r) => toDate.get(r.resource.id)?.utilization ?? null;
   const rows = sortBy(picked ? people.map((r) => resourceRow(r.resource, data, picked, scoped)) : people, sort, {
-    name: (r) => r.resource.name,
+    name: (r) => r.resource.name.trim().toLowerCase(),
     team: (r) => teamName(data, r.resource.teamId),
     fte: fteShown,
     planned: (r) => toDate.get(r.resource.id)?.planned ?? 0,
