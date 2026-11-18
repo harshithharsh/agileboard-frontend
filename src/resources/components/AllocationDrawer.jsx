@@ -7,8 +7,9 @@ import { formatDate, formatDateTime } from '../../lib/datetime.js';
 import { projectName, teamName } from '../model/select.js';
 import { ClearIcon, PlusIcon, TrashIcon } from '../../components/Icons.jsx';
 
-// Side panel with one person's project allocations: each row is a project, an FTE and the dates it
-// applies (no end date = ongoing). Rows can be edited, added or removed; allocations that already
+// Side panel with one person's project allocations: each row is a project, an FTE, billable or not
+// and the dates it applies (no end date = ongoing). Non-billable time is not counted in effort tracking.
+// Rows can be edited, added or removed; allocations that already
 // ended are kept as history. The person's FTE is what is allocated today.
 const ALWAYS = '1900-01-01'; // stored start for "from the start"
 
@@ -24,7 +25,7 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
     ? { id: null, projectId: squadProject, fte: resource.employmentFte, startDate: ALWAYS, endDate: null, isDefault: true }
     : null;
 
-  const toRow = (a) => ({ key: a.id ?? 'default', original: a, projectId: a.projectId, fte: String(a.fte), from: a.startDate === ALWAYS ? '' : a.startDate, to: a.endDate ?? '' });
+  const toRow = (a) => ({ key: a.id ?? 'default', original: a, projectId: a.projectId, fte: String(a.fte), billable: a.billable !== false, from: a.startDate === ALWAYS ? '' : a.startDate, to: a.endDate ?? '' });
   const [rows, setRows] = useState(() => (defaultRow ? [defaultRow] : editable).map(toRow));
   const [state, setState] = useState({ saving: false, error: null });
 
@@ -37,12 +38,12 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
   const setRow = (key, patch) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   const addRow = () => setRows((rs) => [...rs, {
     key: `new-${Date.now()}`, original: null,
-    projectId: data.projects.find((p) => !rs.some((r) => r.projectId === p.id))?.id ?? data.projects[0]?.id, fte: '0.5', from: today, to: '',
+    projectId: data.projects.find((p) => !rs.some((r) => r.projectId === p.id))?.id ?? data.projects[0]?.id, fte: '0.5', billable: true, from: today, to: '',
   }]);
   const removeRow = (key) => setRows((rs) => rs.filter((r) => r.key !== key));
 
   const isChanged = (r) => !r.original
-    || r.projectId !== r.original.projectId || Number(r.fte) !== r.original.fte
+    || r.projectId !== r.original.projectId || Number(r.fte) !== r.original.fte || r.billable !== (r.original.billable !== false)
     || (r.from || ALWAYS) !== r.original.startDate || (r.to || null) !== (r.original.endDate ?? null);
   const removedCount = (defaultRow ? [] : editable).filter((a) => !rows.some((r) => r.original === a)).length;
   const dirty = removedCount > 0 || rows.some(isChanged);
@@ -54,15 +55,16 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
     ...rows.map((r) => ({
       ...(r.original && !r.original.isDefault ? r.original : {}),
       id: r.original?.isDefault ? undefined : r.original?.id,
-      resourceId: resource.id, projectId: r.projectId, fte: Number(r.fte), startDate: r.from || ALWAYS, endDate: r.to || null,
+      resourceId: resource.id, projectId: r.projectId, fte: Number(r.fte), billable: r.billable, startDate: r.from || ALWAYS, endDate: r.to || null,
       ...(isChanged(r) || r.original?.isDefault ? stamp : {}),
     })),
   ];
 
   // FTE allocated on a day
   const fteOn = (allocs, day) => round(allocs.filter((a) => a.resourceId === resource.id && inEffect(a, day)).reduce((n, a) => n + a.fte, 0), 3);
-  const draft = rows.map((r) => ({ resourceId: resource.id, projectId: r.projectId, fte: Number(r.fte) || 0, startDate: r.from || ALWAYS, endDate: r.to || null }));
+  const draft = rows.map((r) => ({ resourceId: resource.id, projectId: r.projectId, fte: Number(r.fte) || 0, billable: r.billable, startDate: r.from || ALWAYS, endDate: r.to || null }));
   const allocatedToday = fteOn(draft, today);
+  const billableToday = fteOn(draft.filter((a) => a.billable), today);
   const available = round(1 - allocatedToday, 3);
   // The person's FTE is what is allocated today (kept as it is when nothing is allocated today)
   const employment = rows.length ? (allocatedToday > 0 ? allocatedToday : resource.employmentFte) : resource.employmentFte;
@@ -72,8 +74,10 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
   const draftAllocations = withDefaultPlan(data.resources.map((r) => (r.id === resource.id ? draftResource : r)),
     [...data.savedAllocations.filter((a) => a.resourceId !== resource.id), ...nextAllocations()], data.teams);
   const window = { start: period.start, end: period.fullEnd };
-  const before = plannedAndCapacity(resource, data.allocations, window, data.rules, data.leave);
-  const after = plannedAndCapacity(draftResource, draftAllocations, window, data.rules, data.leave);
+  // Planned hours count billable allocations only, as in the Effort Tracker
+  const billable = (list) => list.filter((a) => a.billable !== false);
+  const before = plannedAndCapacity(resource, billable(data.allocations), window, data.rules, data.leave);
+  const after = plannedAndCapacity(draftResource, billable(draftAllocations), window, data.rules, data.leave);
   const perWeek = (fte) => round(hoursPerDay(resource, data.rules) * data.rules.workingWeekdays.length * fte, 2);
 
   // Checks
@@ -117,7 +121,7 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
           <div className="al-summary">
             <div><span>Allocated today</span><b className={overToday ? 'bad-text' : ''}>{fmtFte(allocatedToday)} FTE</b></div>
             <div><span>Available</span><b className={available < -EPSILON ? 'bad-text' : ''}>{available >= 0 ? `${fmtFte(available)} FTE` : `${fmtFte(-available)} over`}</b></div>
-            <div><span>Planned per week</span><b>{fmtHours(perWeek(allocatedToday))}</b></div>
+            <div><span>Billable per week</span><b>{fmtHours(perWeek(billableToday))}</b></div>
           </div>
 
           <section className="rm-dsec">
@@ -128,7 +132,7 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
             {rows.length > 0 ? (
               <div className="al-table" role="table" aria-label="Project allocations">
                 <div className="al-row al-head" role="row">
-                  <span role="columnheader">Project</span><span role="columnheader">FTE</span><span role="columnheader">From</span><span role="columnheader">To</span><span aria-hidden="true" />
+                  <span role="columnheader">Project</span><span role="columnheader">FTE</span><span role="columnheader">Type</span><span role="columnheader">From</span><span role="columnheader">To</span><span aria-hidden="true" />
                 </div>
                 {rows.map((r) => (
                   <div key={r.key} className={`al-row${isChanged(r) && !r.original?.isDefault ? ' changed' : ''}`} role="row">
@@ -137,6 +141,11 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
                     </select>
                     <input type="number" min="0.05" max="1.5" step="0.05" value={r.fte} disabled={readOnly}
                       onChange={(e) => setRow(r.key, { fte: e.target.value })} aria-label={`FTE on ${projectName(data, r.projectId)}`} />
+                    <select value={r.billable ? 'billable' : 'non-billable'} disabled={readOnly} onChange={(e) => setRow(r.key, { billable: e.target.value === 'billable' })}
+                      aria-label="Billable or non-billable" title="Non-billable time is not counted in effort tracking">
+                      <option value="billable">Billable</option>
+                      <option value="non-billable">Non-billable</option>
+                    </select>
                     <input type="date" value={r.from} disabled={readOnly} onChange={(e) => setRow(r.key, { from: e.target.value })}
                       aria-label="From" title={r.from ? undefined : 'Empty: from the start'} />
                     <input type="date" value={r.to} min={r.from || undefined} disabled={readOnly} onChange={(e) => setRow(r.key, { to: e.target.value })}
@@ -148,7 +157,7 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
             ) : (
               <p className="muted small">No allocation yet.{!readOnly && ' Add one to plan this person’s time on a project.'}</p>
             )}
-            <p className="field-hint">Leave <b>To</b> empty for an ongoing allocation, and <b>From</b> empty for “from the start”. To change an FTE from a date, set an end date on the current row and add a new row from the next day.</p>
+            <p className="field-hint"><b>Non-billable</b> time takes the person’s FTE but is not counted in the Project Overview or Effort Tracker (no planned or actual hours). Leave <b>To</b> empty for an ongoing allocation, and <b>From</b> empty for “from the start”. To change an FTE from a date, set an end date on the current row and add a new row from the next day.</p>
             {defaultRow && <p className="field-hint">Nothing is saved yet: the whole FTE is planned on {projectName(data, squadProject)}, {squad ? `${squad}’s` : 'the squad’s'} project.</p>}
           </section>
 
@@ -168,7 +177,7 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
             <ul className="rm-history">
               {history.map((a) => (
                 <li key={a.id} className={a.endDate && a.endDate < today ? 'is-ended' : ''}>
-                  <span><b>{projectName(data, a.projectId)} · {fmtFte(a.fte)} FTE</b><span className="muted"> · {range(a)}</span></span>
+                  <span><b>{projectName(data, a.projectId)} · {fmtFte(a.fte)} FTE{a.billable === false ? ' · Non-billable' : ''}</b><span className="muted"> · {range(a)}</span></span>
                   <span className="muted small">{a.modifiedBy ? `${a.modifiedBy} · ` : ''}{formatDateTime(a.modifiedAt)}</span>
                 </li>
               ))}

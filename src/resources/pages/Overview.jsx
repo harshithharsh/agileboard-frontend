@@ -77,7 +77,7 @@ export default function Overview({ data, filters, setFilters, period, access }) 
   const capacityOf = (r) => {
     const own = r.resource.employmentFte ?? 1;
     if (!scope) return own;
-    const other = allocatedFte(r.resource.id, data.allocations, view.asOf) - fteOf(r);
+    const other = allocatedFte(r.resource.id, data.allAllocations, view.asOf) - fteOf(r); // incl. non-billable time
     return Math.max(0, own - other);
   };
   const byTeam = data.teams.map((t) => {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
-import { indexEntries, withDefaultPlan } from '../model/calc.js';
+import { indexEntries, withDefaultPlan, withoutNonBillable } from '../model/calc.js';
 
 // Data access for Resource Management. Every screen goes through this interface.
 // GET /api/resources returns people (Jira team members and matched Redmine people), their FTE and
@@ -14,10 +14,14 @@ const listeners = new Set();
 
 async function fetchData() {
   const data = await api.resources();
-  data.entriesByUser = indexEntries(data.entries);
-  // Screens use `allocations` (with the default plan from FTE); the drawer edits `savedAllocations`
+  // The drawer edits `savedAllocations`; `allAllocations` adds the default plan from FTE and is what
+  // Resource allocation shows. Effort tracking (Project Overview, Effort Tracker, the weekly email)
+  // uses `allocations`: the billable ones only. Hours a person logs on a project while their
+  // allocation there is non-billable are left out too.
   data.savedAllocations = data.allocations;
-  data.allocations = withDefaultPlan(data.resources, data.savedAllocations, data.teams);
+  data.allAllocations = withDefaultPlan(data.resources, data.savedAllocations, data.teams);
+  data.allocations = data.allAllocations.filter((a) => a.billable !== false);
+  data.entriesByUser = indexEntries(withoutNonBillable(data.entries, data.resources, data.allAllocations));
   store = data;
   listeners.forEach((fn) => fn(data));
   return data;

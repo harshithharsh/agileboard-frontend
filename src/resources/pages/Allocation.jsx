@@ -13,7 +13,9 @@ const STATUS_FILTERS = [
 
 // Resource allocation and FTE: who works on what, how much, and what needs fixing
 // `embedded`: shown as a Settings tab
-export default function Allocation({ data, filters, setFilters, period, access, embedded = false }) {
+export default function Allocation({ data: loaded, filters, setFilters, period, access, embedded = false }) {
+  // Allocation shows every allocation, billable or not (effort tracking counts only billable ones)
+  const data = useMemo(() => ({ ...loaded, allocations: loaded.allAllocations }), [loaded]);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [sort, setSort] = useState({ key: 'name', dir: 1 });
@@ -41,7 +43,7 @@ export default function Allocation({ data, filters, setFilters, period, access, 
   const exportCsv = () => downloadCsv([
     ['Resource', 'Email', 'Redmine user', 'Squad', 'Project allocation', 'Allocated FTE', 'Employment FTE', 'Weekly capacity (h)', 'Planned (h)', 'Actual (h)', 'Utilization %', 'Available FTE', 'Status'],
     ...rows.map(({ resource: r, ...x }) => [r.name, r.email, redmineLogin(data, r.redmineUserId) ?? '', teamName(data, r.teamId) ?? '',
-      currentAllocs(data, r.id, today).map((a) => `${projectName(data, a.projectId)} ${fmtFte(a.fte)}`).join('; '),
+      currentAllocs(data, r.id, today).map((a) => `${projectName(data, a.projectId)} ${fmtFte(a.fte)}${a.billable === false ? ' (non-billable)' : ''}`).join('; '),
       fteShown({ resource: r, ...x }), r.employmentFte ?? '', r.employmentFte == null ? '' : round(weeklyHours(r, data.rules) * fteShown({ resource: r, ...x })), x.planned, x.actual, x.utilization ?? '', availableFte(x.allocatedFte), x.issues.join(' ') || 'ok']),
   ], `agilemetrix-resource-allocation-${period.start}-${period.end}.csv`);
 
@@ -117,7 +119,7 @@ export default function Allocation({ data, filters, setFilters, period, access, 
                     <td>{teamName(data, r.teamId) ?? <span className="muted">—</span>}</td>
                     <td>
                       {allocs.length
-                        ? <span className="rm-allocs">{allocs.map((a) => <span key={a.id} title={a.isDefault ? 'The whole FTE on the squad’s project (not split across projects)' : undefined}>{projectName(data, a.projectId)} {fmtFte(a.fte)}</span>)}</span>
+                        ? <span className="rm-allocs">{allocs.map((a) => <span key={a.id} title={a.isDefault ? 'The whole FTE on the squad’s project (not split across projects)' : undefined}>{projectName(data, a.projectId)} {fmtFte(a.fte)}{a.billable === false && <em className="rm-nb" title="Non-billable: not counted in effort tracking"> NB</em>}</span>)}</span>
                         : <span className="muted small">No allocation</span>}
                     </td>
                     <td className="num">

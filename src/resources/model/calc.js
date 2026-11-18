@@ -111,6 +111,17 @@ export function utilizationBand(pct) {
 }
 
 // Entries grouped by Redmine user, once per data load
+// Time entries without those logged on a project on a day the person's allocation there is
+// non-billable (and no billable allocation on it covers that day)
+export function withoutNonBillable(entries, resources, allocations) {
+  const nonBillable = allocations.filter((a) => a.billable === false);
+  if (!nonBillable.length) return entries;
+  const personOf = new Map(resources.filter((r) => r.redmineUserId).map((r) => [r.redmineUserId, r.id]));
+  const on = (e, billable) => allocations.some((a) => (a.billable !== false) === billable && a.resourceId === personOf.get(e.redmineUserId)
+    && a.projectId === e.projectId && inEffect(a, e.date));
+  return entries.filter((e) => !on(e, false) || on(e, true));
+}
+
 export function indexEntries(entries) {
   const map = new Map();
   for (const e of entries) {
