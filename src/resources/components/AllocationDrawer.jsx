@@ -9,7 +9,7 @@ import { ClearIcon, PlusIcon, TrashIcon } from '../../components/Icons.jsx';
 
 // Side panel with one person's project allocations: each row is a project, an FTE, billable or not
 // and the dates it applies (no end date = ongoing). Non-billable time is not counted in effort tracking.
-// Rows can be edited, added or removed; allocations that already
+// Leave is marked below the allocations: nothing is planned on those days. Rows can be edited, added or removed; allocations that already
 // ended are kept as history. The person's FTE is what is allocated today.
 const ALWAYS = '1900-01-01'; // stored start for "from the start"
 
@@ -29,6 +29,25 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
   const [rows, setRows] = useState(() => (defaultRow ? [defaultRow] : editable).map(toRow));
   const [state, setState] = useState({ saving: false, error: null });
 
+  // Leave: past leave is kept as it is; leave ending today or later can be edited
+  const myLeave = data.leave.filter((l) => l.resourceId === resource.id);
+  const pastLeave = myLeave.filter((l) => l.endDate < today);
+  const toLeaveRow = (l) => ({ key: l.id, original: l, from: l.startDate, to: l.endDate, note: l.note ?? '' });
+  const [leaveRows, setLeaveRows] = useState(() => myLeave.filter((l) => !pastLeave.includes(l)).map(toLeaveRow));
+  const setLeave = (key, patch) => setLeaveRows((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
+  const addLeave = () => setLeaveRows((ls) => [...ls, { key: `new-${Date.now()}`, original: null, from: today, to: today, note: '' }]);
+  const removeLeave = (key) => setLeaveRows((ls) => ls.filter((l) => l.key !== key));
+  const leaveChanged = (l) => !l.original || l.from !== l.original.startDate || l.to !== l.original.endDate || l.note.trim() !== (l.original.note ?? '');
+  const leaveDirty = leaveRows.length !== myLeave.length - pastLeave.length || leaveRows.some(leaveChanged);
+  const nextLeave = () => [
+    ...pastLeave,
+    ...leaveRows.map((l) => ({
+      ...(l.original ?? {}), resourceId: resource.id, startDate: l.from, endDate: l.to || l.from, note: l.note.trim(),
+      ...(leaveChanged(l) ? { modifiedBy: access.by, modifiedAt: new Date().toISOString() } : {}),
+    })),
+  ];
+  const draftLeave = [...data.leave.filter((l) => l.resourceId !== resource.id), ...nextLeave()];
+
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
     document.addEventListener('keydown', onKey);
@@ -46,7 +65,8 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
     || r.projectId !== r.original.projectId || Number(r.fte) !== r.original.fte || r.billable !== (r.original.billable !== false)
     || (r.from || ALWAYS) !== r.original.startDate || (r.to || null) !== (r.original.endDate ?? null);
   const removedCount = (defaultRow ? [] : editable).filter((a) => !rows.some((r) => r.original === a)).length;
-  const dirty = removedCount > 0 || rows.some(isChanged);
+  const allocDirty = removedCount > 0 || rows.some(isChanged);
+  const dirty = allocDirty || leaveDirty;
 
   // Allocations as they would be saved: ended ones unchanged, then the rows
   const stamp = { modifiedBy: access.by, modifiedAt: new Date().toISOString() };
@@ -77,7 +97,7 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
   // Planned hours count billable allocations only, as in the Effort Tracker
   const billable = (list) => list.filter((a) => a.billable !== false);
   const before = plannedAndCapacity(resource, billable(data.allocations), window, data.rules, data.leave);
-  const after = plannedAndCapacity(draftResource, billable(draftAllocations), window, data.rules, data.leave);
+  const after = plannedAndCapacity(draftResource, billable(draftAllocations), window, data.rules, draftLeave);
   const perWeek = (fte) => round(hoursPerDay(resource, data.rules) * data.rules.workingWeekdays.length * fte, 2);
 
   // Checks
@@ -91,6 +111,10 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
     const overlap = a.projectId === b.projectId && (a.from || ALWAYS) <= (b.to || '9999-12-31') && (b.from || ALWAYS) <= (a.to || '9999-12-31');
     if (overlap) errors.push(`${projectName(data, a.projectId)} appears twice for the same dates: set an end date on one of them.`);
   }));
+  leaveRows.forEach((l) => {
+    if (!l.from || !l.to) errors.push('Leave needs a From and a To date.');
+    else if (l.to < l.from) errors.push('Leave: the To date is before the From date.');
+  });
   const overToday = allocatedToday > 1 + EPSILON;
 
   const save = async () => {
@@ -98,7 +122,7 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
     setState({ saving: true, error: null });
     try {
       if (Math.abs((employment ?? 0) - (resource.employmentFte ?? 0)) > EPSILON) await resourceService.saveResource({ ...resource, employmentFte: employment });
-      await resourceService.saveAllocations(resource.id, nextAllocations());
+      await resourceService.saveAllocations(resource.id, allocDirty ? nextAllocations() : null, leaveDirty ? nextLeave() : null);
       onClose();
     } catch (e) {
       setState({ saving: false, error: e.message });
@@ -158,6 +182,33 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
               <p className="muted small">No allocation yet.{!readOnly && ' Add one to plan this person’s time on a project.'}</p>
             )}
             {defaultRow && <p className="field-hint">Nothing is saved yet: the whole FTE is planned on {projectName(data, squadProject)}, {squad ? `${squad}’s` : 'the squad’s'} project.</p>}
+          </section>
+
+          <section className="rm-dsec">
+            <div className="rm-dsec-head">
+              <h3>Leave</h3>
+              {!readOnly && <button className="btn-link" onClick={addLeave}><PlusIcon /> Mark leave</button>}
+            </div>
+            {leaveRows.length > 0 ? (
+              <div className="al-table" role="table" aria-label="Leave">
+                <div className="al-row al-leave al-head" role="row">
+                  <span role="columnheader">From</span><span role="columnheader">To</span><span role="columnheader">Note</span><span aria-hidden="true" />
+                </div>
+                {leaveRows.map((l) => (
+                  <div key={l.key} className={`al-row al-leave${leaveChanged(l) ? ' changed' : ''}`} role="row">
+                    <input type="date" value={l.from} disabled={readOnly} onChange={(e) => setLeave(l.key, { from: e.target.value, to: l.to && l.to < e.target.value ? e.target.value : l.to })} aria-label="Leave from" />
+                    <input type="date" value={l.to} min={l.from || undefined} disabled={readOnly} onChange={(e) => setLeave(l.key, { to: e.target.value })} aria-label="Leave to" />
+                    <input type="text" value={l.note} maxLength={200} disabled={readOnly} placeholder="e.g. Annual leave" onChange={(e) => setLeave(l.key, { note: e.target.value })} aria-label="Leave note" />
+                    {!readOnly ? <button className="action-btn action-danger" onClick={() => removeLeave(l.key)} aria-label="Remove leave" title="Remove"><TrashIcon /></button> : <span />}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="muted small">No leave marked.</p>
+            )}
+            {pastLeave.length > 0 && (
+              <p className="muted small">Past leave: {pastLeave.map((l) => `${formatDate(l.startDate, { year: false })}${l.endDate !== l.startDate ? ` – ${formatDate(l.endDate, { year: false })}` : ''}`).join(', ')}</p>
+            )}
           </section>
 
           {!readOnly && dirty && (

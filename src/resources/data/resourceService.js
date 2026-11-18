@@ -46,9 +46,10 @@ export const resourceService = {
     return reload();
   },
 
-  // Replace one person's allocations (the drawer computes ended and new rows)
-  async saveAllocations(resourceId, allocations) {
-    await api.saveAllocations(resourceId, allocations);
+  // Replace one person's allocations (the drawer computes ended and new rows) and, when given, their leave
+  async saveAllocations(resourceId, allocations, leave = null) {
+    if (allocations) await api.saveAllocations(resourceId, allocations);
+    if (leave) await api.saveLeave(resourceId, leave);
     return reload();
   },
 

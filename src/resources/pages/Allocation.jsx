@@ -6,6 +6,7 @@ import { downloadCsv } from '../../lib/download.js';
 import AllocationDrawer from '../components/AllocationDrawer.jsx';
 import { BulkDialog } from '../components/ResourceDialogs.jsx';
 import { SlidersIcon } from '../../components/Icons.jsx';
+import { formatDate } from '../../lib/datetime.js';
 
 const STATUS_FILTERS = [
   ['all', 'All'], ['attention', 'Needs attention'], ['overallocated', 'Over-allocated'], ['missing-fte', 'FTE not set'], ['unmapped', 'Not mapped'], ['no-team', 'No squad'],
@@ -121,6 +122,7 @@ export default function Allocation({ data: loaded, filters, setFilters, period, 
                       {allocs.length
                         ? <span className="rm-allocs">{allocs.map((a) => <span key={a.id} title={a.isDefault ? 'The whole FTE on the squad’s project (not split across projects)' : undefined}>{projectName(data, a.projectId)} {fmtFte(a.fte)}{a.billable === false && <em className="rm-nb" title="Non-billable: not counted in effort tracking"> NB</em>}</span>)}</span>
                         : <span className="muted small">No allocation</span>}
+                      {leaveNow(data, r.id, today) && <span className="rm-pill warn rm-inline" title={leaveNow(data, r.id, today).note || undefined}>On leave until {formatDate(leaveNow(data, r.id, today).endDate, { year: false })}</span>}
                     </td>
                     <td className="num">
                       {r.employmentFte == null
@@ -155,6 +157,9 @@ export default function Allocation({ data: loaded, filters, setFilters, period, 
     </Wrap>
   );
 }
+
+// Leave covering today, if any
+const leaveNow = (data, resourceId, today) => data.leave.find((l) => l.resourceId === resourceId && l.startDate <= today && l.endDate >= today);
 
 // Allocations in effect today or starting later
 export const currentAllocs = (data, resourceId, today) =>

@@ -35,7 +35,7 @@ export function eachDay(start, end) {
 export const isHoliday = (day, rules) => rules.holidays.some((h) => h.date === day);
 export const isWorkingDay = (day, rules) => rules.workingWeekdays.includes(parseDay(day).getDay()) && !isHoliday(day, rules);
 export const inEffect = (item, day) => item.startDate <= day && (!item.endDate || item.endDate >= day);
-const onLeave = (resourceId, day, leave) => leave.some((l) => l.resourceId === resourceId && l.startDate <= day && l.endDate >= day);
+export const onLeave = (resourceId, day, leave) => leave.some((l) => l.resourceId === resourceId && l.startDate <= day && l.endDate >= day);
 export const hoursPerDay = (resource, rules) => (resource.weeklyHours ? resource.weeklyHours / rules.workingWeekdays.length : rules.hoursPerDay);
 export const weeklyHours = (resource, rules) => hoursPerDay(resource, rules) * rules.workingWeekdays.length;
 

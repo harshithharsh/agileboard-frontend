@@ -1,10 +1,11 @@
-import { eachDay, isWorkingDay, hoursPerDay, inEffect, parseDay, dayKey, shiftDay, round } from './calc.js';
+import { eachDay, isWorkingDay, hoursPerDay, inEffect, onLeave, parseDay, dayKey, shiftDay, round } from './calc.js';
 
 // Weekly Redmine update: for one week, who logged their hours consistently and who has entries pending.
 //   Special mention: logged on every working day of the week and at least `mention` % of their planned hours
 //   Action required:  logged under `action` % of their planned hours, or nothing on `missing`+ working days
 // (defaults below; the dialog lets you change them)
 // Planned hours = the person's FTE on each working day (all projects) × working hours per day.
+// Leave days marked in Resource allocation are left out (nothing planned, not counted as missing).
 // Logged hours = all their Redmine time entries that day (every linked project, eligible activities).
 export const DEFAULT_RULES = { mention: 80, action: 50, missing: 2 };
 
@@ -50,8 +51,9 @@ export function weeklyCompliance(data, resources, week, rules = DEFAULT_RULES) {
   for (const r of resources) {
     if (!r.redmineUserId) continue;
     const perDay = hoursPerDay(r, data.rules);
+    const working = week.working.filter((d) => !onLeave(r.id, d, data.leave));
     let planned = 0;
-    for (const d of week.working) {
+    for (const d of working) {
       planned += data.allocations.filter((a) => a.resourceId === r.id && inEffect(a, d)).reduce((n, a) => n + a.fte, 0) * perDay;
     }
     if (planned <= 0) continue; // not planned that week (e.g. on leave or not allocated)
@@ -60,12 +62,12 @@ export function weeklyCompliance(data, resources, week, rules = DEFAULT_RULES) {
     const byDay = new Map();
     for (const e of entries) byDay.set(e.date, (byDay.get(e.date) ?? 0) + e.hours);
     const logged = round(entries.reduce((n, e) => n + e.hours, 0));
-    const daysLogged = week.working.filter((d) => byDay.get(d) > 0).length;
-    const missing = week.working.length - daysLogged;
+    const daysLogged = working.filter((d) => byDay.get(d) > 0).length;
+    const missing = working.length - daysLogged;
     const pct = Math.round((logged / planned) * 100);
     const status = missing === 0 && pct >= rules.mention ? 'mention'
       : pct < rules.action || missing >= rules.missing ? 'action' : 'ok';
-    out.push({ resource: r, planned: round(planned), logged, pct, daysLogged, workingDays: week.working.length, missing, status });
+    out.push({ resource: r, planned: round(planned), logged, pct, daysLogged, workingDays: working.length, missing, status });
   }
   return out.sort((a, b) => a.resource.name.localeCompare(b.resource.name));
 }

@@ -70,6 +70,7 @@ export const api = {
   sendRedmineWeekly: (email) => send('POST', '/reports/redmine-weekly/email', email),
   saveResource: (id, body) => send('PUT', `/resources/${id}`, body),
   saveAllocations: (id, allocations) => send('PUT', `/resources/${id}/allocations`, { allocations }),
+  saveLeave: (id, leave) => send('PUT', `/resources/${id}/leave`, { leave }),
   admin: {
     load: () => request('/admin'),
     saveSettings: (body) => send('PUT', '/admin/settings', body),
