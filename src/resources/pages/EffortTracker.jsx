@@ -101,14 +101,14 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
   const toggle = (id) => setOpen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   // Excel download: the people table (to date and for the period) and one sheet per week or month
   const exportXlsx = async () => {
-    const shown = picked ?? range;
+    const span = picked ?? range;
     const projectLabel = scope ? data.projects.find((p) => p.id === scope)?.name : 'All projects';
     const squadLabel = filters.teamId ? (filters.teamId === 'none' ? 'No squad' : teamName(data, filters.teamId)) : 'All squads';
     const title = [
       [bold('AgileMetrix · Effort tracker')],
       ['Project', projectLabel],
       ['Squad', squadLabel],
-      ['Period', `${picked ? pickedLabel : period.label.replace(' · to date', '')} (${formatDate(shown.start)} – ${formatDate(shown.end)})`],
+      ['Period', `${picked ? pickedLabel : period.label.replace(' · to date', '')} (${formatDate(span.start)} – ${formatDate(span.end)})`],
       ['To date', soFar ? `${formatDate(soFar.start)} – ${formatDate(soFar.end)} (last full day of imported Redmine hours)` : 'Not started yet'],
       ['Generated', formatDateTime(new Date().toISOString())],
       [],
@@ -132,7 +132,7 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
     await downloadXlsx([
       { name: 'Effort', rows: [...title, head, ...people, total], columns: [{ width: 28 }, { width: 16 }, { width: 8 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 20 }], sticky: title.length + 1 },
       { name: sheet, rows: breakdown, columns: [{ width: 28 }, ...periods.flatMap(() => [{ width: 16 }, { width: 16 }])], sticky: 1 },
-    ], `agilemetrix-effort-${shown.start}-${shown.end}.xlsx`);
+    ], `agilemetrix-effort-${span.start}-${span.end}.xlsx`);
   };
   // The download icon sits in the top bar, like Agile Metrics
   const exportRef = useRef(exportXlsx);
