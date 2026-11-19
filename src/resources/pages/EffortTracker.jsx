@@ -234,6 +234,7 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
                         </td>
                         <td>
                           <b>{r.resource.name}</b>{!r.resource.redmineUserId && <span className="rm-pill warn rm-inline">Not mapped</span>}
+                          {r.resource.leftOn && <span className="rm-pill nb rm-inline" title={`Left the organization; last working day ${formatDate(r.resource.leftOn)}`}>Left · {formatDate(r.resource.leftOn, { year: false })}</span>}
                           {isNonBillable(r) && <span className="rm-pill nb rm-inline" title="Non-billable: their hours are shown here but not counted in the totals">Non-billable</span>}
                         </td>
                         <td>{teamName(data, r.resource.teamId) ?? <span className="muted">—</span>}</td>

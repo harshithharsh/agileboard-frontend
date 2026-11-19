@@ -48,7 +48,8 @@ export default function Overview({ data, filters, setFilters, period, access }) 
   const allocated = round(rows.reduce((n, r) => n + fteOf(r), 0), 2);
   // Available = what is left of each full-time person (1.00) after all their allocations, on any project
   // (as in Resource allocation): time given to another project is not available here
-  const available = round(rows.reduce((n, r) => n + Math.max(0, 1 - allocatedFte(r.resource.id, data.allAllocations, view.asOf)), 0), 2);
+  const available = round(rows.filter((r) => !r.resource.leftOn || r.resource.leftOn >= view.asOf)
+    .reduce((n, r) => n + Math.max(0, 1 - allocatedFte(r.resource.id, data.allAllocations, view.asOf)), 0), 2);
 
   const trend = useMemo(() => {
     let plannedSoFar = 0;

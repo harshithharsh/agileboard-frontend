@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { resourceService } from '../data/resourceService.js';
-import { inEffect, plannedAndCapacity, hoursPerDay, round, EPSILON, withDefaultPlan } from '../model/calc.js';
+import { inEffect, plannedAndCapacity, hoursPerDay, round, EPSILON, withDefaultPlan, untilLeft } from '../model/calc.js';
 import { fmtHours, fmtFte, Person } from './ui.jsx';
 import { formatDate, formatDateTime } from '../../lib/datetime.js';
 import { projectName, teamName } from '../model/select.js';
@@ -28,6 +28,9 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
   const toRow = (a) => ({ key: a.id ?? 'default', original: a, projectId: a.projectId, fte: String(a.fte), billable: a.billable !== false, from: a.startDate === ALWAYS ? '' : a.startDate, to: a.endDate ?? '' });
   const [rows, setRows] = useState(() => (defaultRow ? [defaultRow] : editable).map(toRow));
   const [state, setState] = useState({ saving: false, error: null });
+  // Left the organization: their last working day (empty = still here)
+  const [leftOn, setLeftOn] = useState(resource.leftOn ?? '');
+  const leftDirty = (leftOn || null) !== (resource.leftOn ?? null);
 
   // Leave: past leave is kept as it is; leave ending today or later can be edited
   const myLeave = data.leave.filter((l) => l.resourceId === resource.id);
@@ -66,7 +69,7 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
     || (r.from || ALWAYS) !== r.original.startDate || (r.to || null) !== (r.original.endDate ?? null);
   const removedCount = (defaultRow ? [] : editable).filter((a) => !rows.some((r) => r.original === a)).length;
   const allocDirty = removedCount > 0 || rows.some(isChanged);
-  const dirty = allocDirty || leaveDirty;
+  const dirty = allocDirty || leaveDirty || leftDirty;
 
   // Allocations as they would be saved: ended ones unchanged, then the rows
   const stamp = { modifiedBy: access.by, modifiedAt: new Date().toISOString() };
@@ -90,9 +93,10 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
   const employment = rows.length ? (allocatedToday > 0 ? allocatedToday : resource.employmentFte) : resource.employmentFte;
 
   // Effect: planned per week today, and planned hours in the selected period
-  const draftResource = { ...resource, employmentFte: employment };
-  const draftAllocations = withDefaultPlan(data.resources.map((r) => (r.id === resource.id ? draftResource : r)),
-    [...data.savedAllocations.filter((a) => a.resourceId !== resource.id), ...nextAllocations()], data.teams);
+  const draftResource = { ...resource, employmentFte: employment, leftOn: leftOn || null };
+  const draftResources = data.resources.map((r) => (r.id === resource.id ? draftResource : r));
+  const draftAllocations = untilLeft(withDefaultPlan(draftResources,
+    [...data.savedAllocations.filter((a) => a.resourceId !== resource.id), ...nextAllocations()], data.teams), draftResources);
   const window = { start: period.start, end: period.fullEnd };
   // Planned hours count billable allocations only, as in the Effort Tracker
   const billable = (list) => list.filter((a) => a.billable !== false);
@@ -121,7 +125,9 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
     if (errors.length) return setState({ saving: false, error: errors[0] });
     setState({ saving: true, error: null });
     try {
-      if (Math.abs((employment ?? 0) - (resource.employmentFte ?? 0)) > EPSILON) await resourceService.saveResource({ ...resource, employmentFte: employment });
+      if (leftDirty || Math.abs((employment ?? 0) - (resource.employmentFte ?? 0)) > EPSILON) {
+        await resourceService.saveResource({ ...resource, employmentFte: employment, leftOn: leftOn || null });
+      }
       await resourceService.saveAllocations(resource.id, allocDirty ? nextAllocations() : null, leaveDirty ? nextLeave() : null);
       onClose();
     } catch (e) {
@@ -209,6 +215,22 @@ export default function AllocationDrawer({ resource, data, period, access, onClo
             {pastLeave.length > 0 && (
               <p className="muted small">Past leave: {pastLeave.map((l) => `${formatDate(l.startDate, { year: false })}${l.endDate !== l.startDate ? ` – ${formatDate(l.endDate, { year: false })}` : ''}`).join(', ')}</p>
             )}
+          </section>
+
+          <section className="rm-dsec">
+            <h3>Left the organization</h3>
+            <div className="al-left">
+              <label className="al-check">
+                <input type="checkbox" checked={!!leftOn} disabled={readOnly} onChange={(e) => setLeftOn(e.target.checked ? today : '')} />
+                Has left the organization
+              </label>
+              {leftOn && (
+                <label className="al-left-date">
+                  <span>Last working day</span>
+                  <input type="date" value={leftOn} disabled={readOnly} onChange={(e) => setLeftOn(e.target.value || today)} />
+                </label>
+              )}
+            </div>
           </section>
 
           {!readOnly && dirty && (

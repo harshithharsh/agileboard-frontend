@@ -15,6 +15,7 @@ export const scopedFte = (data, row, projectId, asOf) => (projectId
 // Team: a team id, 'none' (no team) or null (everyone). Project: only people planned on it or logging on it.
 export function selectRows(data, period, filters, extra = {}) {
   const rows = data.resources
+    .filter((r) => !r.leftOn || r.leftOn >= period.start) // left before the period: not shown
     .filter((r) => !filters.teamId || (filters.teamId === 'none' ? !r.teamId : r.teamId === filters.teamId))
     .map((r) => resourceRow(r, data, period, filters))
     // On a project: its team members (even before FTE is set), and anyone planned, logging or allocated there

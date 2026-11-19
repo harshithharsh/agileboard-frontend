@@ -1241,3 +1241,7 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 .rm-hbar-link { color: inherit; text-decoration: none; margin: -4px -6px; padding: 4px 6px; border-radius: 8px; cursor: pointer; }
 .rm-hbar-link:hover { background: var(--surface-2); }
 .rm-hbar-link:hover > span:first-child { color: var(--primary); }
+.al-left { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 13px; }
+.al-check { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.al-left-date { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+.al-left-date input { font: inherit; font-size: 13px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; }

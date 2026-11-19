@@ -34,7 +34,7 @@ export default function Allocation({ data: loaded, filters, setFilters, period, 
     name: (r) => r.resource.name,
     team: (r) => teamName(data, r.resource.teamId),
     fte: (r) => (r.resource.employmentFte == null ? null : fteShown(r)),
-    available: (r) => availableFte(r.allocatedFte),
+    available: (r) => availableFte(r, period.asOf),
     capacity: (r) => (r.resource.employmentFte == null ? null : weeklyHours(r.resource, data.rules) * fteShown(r)),
   });
   const today = data.today;
@@ -45,7 +45,7 @@ export default function Allocation({ data: loaded, filters, setFilters, period, 
     ['Resource', 'Email', 'Redmine user', 'Squad', 'Project allocation', 'Allocated FTE', 'Employment FTE', 'Weekly capacity (h)', 'Planned (h)', 'Actual (h)', 'Utilization %', 'Available FTE', 'Status'],
     ...rows.map(({ resource: r, ...x }) => [r.name, r.email, redmineLogin(data, r.redmineUserId) ?? '', teamName(data, r.teamId) ?? '',
       currentAllocs(data, r.id, today).map((a) => `${projectName(data, a.projectId)} ${fmtFte(a.fte)}${a.billable === false ? ' (non-billable)' : ''}`).join('; '),
-      fteShown({ resource: r, ...x }), r.employmentFte ?? '', r.employmentFte == null ? '' : round(weeklyHours(r, data.rules) * fteShown({ resource: r, ...x })), x.planned, x.actual, x.utilization ?? '', availableFte(x.allocatedFte), x.issues.join(' ') || 'ok']),
+      fteShown({ resource: r, ...x }), r.employmentFte ?? '', r.employmentFte == null ? '' : round(weeklyHours(r, data.rules) * fteShown({ resource: r, ...x })), x.planned, x.actual, x.utilization ?? '', availableFte({ resource: r, ...x }, period.asOf), x.issues.join(' ') || 'ok']),
   ], `agilemetrix-resource-allocation-${period.start}-${period.end}.csv`);
 
   // In Settings the page is one card headed like the other Settings cards
@@ -112,11 +112,11 @@ export default function Allocation({ data: loaded, filters, setFilters, period, 
                 const r = row.resource;
                 // A team is selected: only the chip of the project the numbers are for; all teams: every project
                 const allocs = currentAllocs(data, r.id, today).filter((a) => !filters.teamId || filters.teamId === 'none' || a.projectId === scope);
-                const free = availableFte(row.allocatedFte);
+                const free = availableFte(row, period.asOf);
                 return (
                   <tr key={r.id} className={selected.has(r.id) ? 'selected' : ''}>
                     {access.canEdit && <td className="rm-check"><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} aria-label={`Select ${r.name}`} /></td>}
-                    <td><Person resource={r} /></td>
+                    <td><Person resource={r} />{r.leftOn && <span className="rm-pill nb rm-inline" title={`Last working day ${formatDate(r.leftOn)}`}>Left · {formatDate(r.leftOn, { year: false })}</span>}</td>
                     <td>{teamName(data, r.teamId) ?? <span className="muted">—</span>}</td>
                     <td>
                       {allocs.length
@@ -143,7 +143,7 @@ export default function Allocation({ data: loaded, filters, setFilters, period, 
                 {access.canEdit && <td />}
                 <td colSpan={3}>{rows.length} of {data.resources.length} people</td>
                 <td className="num">{fmtFte(round(rows.reduce((n, r) => n + fteShown(r), 0), 3))}</td>
-                <td className="num">{fmtFte(round(rows.reduce((n, r) => n + availableFte(r.allocatedFte), 0), 3))}</td>
+                <td className="num">{fmtFte(round(rows.reduce((n, r) => n + availableFte(r, period.asOf), 0), 3))}</td>
                 <td />
                 <td />
               </tr>
@@ -167,4 +167,5 @@ export const currentAllocs = (data, resourceId, today) =>
     .sort((a, b) => a.startDate.localeCompare(b.startDate));
 
 // Available FTE: what is left of one full-time person (1.00 FTE) after the FTE planned
-const availableFte = (allocatedFte) => round(1 - allocatedFte, 3);
+// (nothing for someone who left the organization before that day)
+const availableFte = (row, day) => (row.resource.leftOn && row.resource.leftOn < day ? 0 : round(1 - row.allocatedFte, 3));

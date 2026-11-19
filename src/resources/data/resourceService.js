@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
-import { indexEntries, withDefaultPlan, withoutNonBillable } from '../model/calc.js';
+import { indexEntries, withDefaultPlan, withoutNonBillable, untilLeft } from '../model/calc.js';
 
 // Data access for Resource Management. Every screen goes through this interface.
 // GET /api/resources returns people (Jira team members and matched Redmine people), their FTE and
@@ -19,7 +19,8 @@ async function fetchData() {
   // uses `allocations`: the billable ones only. Hours a person logs on a project while their
   // allocation there is non-billable are left out too.
   data.savedAllocations = data.allocations;
-  data.allAllocations = withDefaultPlan(data.resources, data.savedAllocations, data.teams);
+  // People who left: their allocations stop on their last working day
+  data.allAllocations = untilLeft(withDefaultPlan(data.resources, data.savedAllocations, data.teams), data.resources);
   data.allocations = data.allAllocations.filter((a) => a.billable !== false);
   data.entriesByUser = indexEntries(withoutNonBillable(data.entries, data.resources, data.allAllocations));
   data.allEntriesByUser = indexEntries(data.entries); // every hour, for showing non-billable people's own figures
@@ -43,6 +44,7 @@ export const resourceService = {
   async saveResource(resource) {
     await api.saveResource(resource.id, {
       employmentFte: resource.employmentFte, weeklyHours: resource.weeklyHours, teamId: resource.teamId, redmineUserId: resource.redmineUserId,
+      leftOn: resource.leftOn ?? null,
     });
     return reload();
   },

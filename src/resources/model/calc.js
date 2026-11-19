@@ -83,6 +83,18 @@ export function withDefaultPlan(resources, allocations, teams) {
   return [...allocations, ...defaults];
 }
 
+// Allocations of people who left the organization end on their last working day (later ones are dropped)
+export function untilLeft(allocations, resources) {
+  const left = new Map(resources.filter((r) => r.leftOn).map((r) => [r.id, r.leftOn]));
+  if (!left.size) return allocations;
+  return allocations.flatMap((a) => {
+    const last = left.get(a.resourceId);
+    if (!last) return [a];
+    if (a.startDate > last) return [];
+    return [!a.endDate || a.endDate > last ? { ...a, endDate: last } : a];
+  });
+}
+
 export const allocatedFte = (resourceId, allocations, day) =>
   round(allocations.filter((a) => a.resourceId === resourceId && inEffect(a, day)).reduce((n, a) => n + a.fte, 0), 3);
 
@@ -95,6 +107,7 @@ export const ISSUE_LABEL = {
 
 export function configIssues(resource, allocations, day) {
   const issues = [];
+  if (resource.leftOn && resource.leftOn < day) return issues; // left the organization: nothing to fix
   if (resource.employmentFte == null) issues.push('missing-fte');
   if (!resource.redmineUserId) issues.push('unmapped');
   if (!resource.teamId) issues.push('no-team');
