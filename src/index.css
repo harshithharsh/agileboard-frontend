@@ -1259,3 +1259,11 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 .rm-entries-table .nowrap { white-space: nowrap; }
 .rm-entries-table tfoot td { font-weight: 700; }
 .rm-entries-issue { color: var(--text); }
+/* Expanded split: neutral panel under the (blue) person row, tied to it by a blue bar on the left */
+.rm-table > tbody > tr.rm-split-row > td, .rm-table > tbody > tr.rm-split-row:hover > td { background: var(--surface-2); border-bottom: 2px solid var(--border); }
+.rm-table > tbody > tr.rm-split-row > td:first-child { box-shadow: inset 3px 0 0 var(--primary); }
+.rm-table > tbody > tr.rm-split-row > td:last-child { padding-top: 12px; padding-bottom: 12px; }
+.rm-entries-table tbody tr:hover td { background: var(--row-hover); }
+.rm-entries-table thead th { background: var(--surface-2); }
+.rm-table .rm-entries-table td { border-bottom: 0; padding: 7px 12px; vertical-align: top; }
+.rm-table .rm-entries-table th { position: static; padding: 8px 12px; border-bottom: 0; }

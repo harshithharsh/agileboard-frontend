@@ -259,7 +259,7 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
                         <td className="muted small">{r.resource.redmineUserId && lastSync ? formatDateTime(lastSync.startedAt) : '—'}</td>
                       </tr>
                       {isOpen && (
-                        <tr className="selected">
+                        <tr className="rm-split-row">
                           <td />
                           <td colSpan={7}>
                             <Breakdown row={r} data={dataFor(r)} periods={splitPeriods} filters={scoped} until={until} logOnly={isNonBillable(r)} focus={picked ? null : focus} />
