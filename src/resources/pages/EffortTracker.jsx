@@ -47,6 +47,11 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
   const [focus, setFocus] = useState(null); // bucket start date
   const [weekly, setWeekly] = useState(false); // weekly Redmine update email
   const picked = periods.find((b) => b.start === focus) ?? null;
+  // A person's split: a week picked in the chart opens day by day, a month week by week; otherwise every bucket
+  const splitPeriods = useMemo(() => {
+    if (!picked || granularity === 'day') return periods;
+    return buckets(picked, granularity === 'week' ? 'day' : 'week', data.rules);
+  }, [picked, granularity, periods, data.rules]);
   const people = useMemo(
     () => selectRows(data, range, scoped, { search }).filter((r) => r.resource.redmineUserId || r.planned > 0),
     [data, range, scoped, search]
@@ -257,7 +262,7 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
                         <tr className="selected">
                           <td />
                           <td colSpan={7}>
-                            <Breakdown row={r} data={dataFor(r)} periods={periods} filters={scoped} until={until} logOnly={isNonBillable(r)} focus={focus} />
+                            <Breakdown row={r} data={dataFor(r)} periods={splitPeriods} filters={scoped} until={until} logOnly={isNonBillable(r)} focus={picked ? null : focus} />
                           </td>
                         </tr>
                       )}
