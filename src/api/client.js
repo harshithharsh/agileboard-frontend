@@ -65,6 +65,7 @@ export const api = {
   },
   // Resource Management (people, FTE, allocations, Redmine hours)
   resources: () => request('/resources'),
+  timeEntryDetails: (ids) => request(`/resources/time-entries?ids=${ids.join(',')}`),
   teamMap: () => request('/team-map'),
   redmineWeeklyRecipient: () => request('/reports/redmine-weekly/recipient'),
   sendRedmineWeekly: (email) => send('POST', '/reports/redmine-weekly/email', email),

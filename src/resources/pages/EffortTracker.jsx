@@ -6,7 +6,7 @@ import { DEFINITIONS, resourceRow, round, LOW_UTILIZATION, utilTone, eachDay, is
 import { buckets, hoursUntil } from '../model/period.js';
 import { parseDay } from '../model/calc.js';
 import { downloadXlsx, bold, hours, percent, fte } from '../../lib/excel.js';
-import { DownloadIcon, MailIcon, RefreshIcon } from '../../components/Icons.jsx';
+import { DownloadIcon, MailIcon, RefreshIcon, ClearIcon } from '../../components/Icons.jsx';
 import { useImport, ImportProgress } from '../../components/admin/RedmineImport.jsx';
 import { resourceService } from '../data/resourceService.js';
 import { api } from '../../api/client.js';
@@ -294,21 +294,35 @@ export default function EffortTracker({ data, filters, setFilters, period, acces
 
 // One person's days, weeks or months as small cards that wrap, instead of a wide table
 // Non-billable people (logOnly): just whether they log in Redmine, i.e. hours and days logged
-// The week (or day, month) picked in the chart is highlighted
+// The week (or day, month) picked in the chart is highlighted. Clicking a card lists its Redmine
+// time entries below the cards.
 function Breakdown({ row, data, periods, filters, until, logOnly, focus }) {
   const per = periods.map((b) => ({ b, ...resourceRow(row.resource, data, b, filters) }));
-  const logged = new Set((data.entriesByUser.get(row.resource.redmineUserId) ?? [])
-    .filter((e) => e.hours > 0 && data.rules.eligibleActivities.includes(e.activity) && (!filters.projectId || e.projectId === filters.projectId))
-    .map((e) => e.date));
+  // The entries the cards count: eligible activities, on the project in scope
+  const counted = (data.entriesByUser.get(row.resource.redmineUserId) ?? [])
+    .filter((e) => data.rules.eligibleActivities.includes(e.activity) && (!filters.projectId || e.projectId === filters.projectId));
+  const logged = new Set(counted.filter((e) => e.hours > 0).map((e) => e.date));
+  const [openKey, setOpenKey] = useState(null);
+  const opened = periods.find((b) => b.start === openKey && b.start <= until) ?? null;
+  const cardProps = (b) => {
+    const base = `rm-bcard${b.start === focus ? ' is-focus' : ''}`;
+    if (b.start > until) return { className: base };
+    const toggle = () => setOpenKey((k) => (k === b.start ? null : b.start));
+    return {
+      className: `${base} rm-bcard-click${b.start === openKey ? ' is-open' : ''}`, role: 'button', tabIndex: 0, 'aria-expanded': b.start === openKey,
+      title: 'Show the time entries', onClick: toggle, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } },
+    };
+  };
   const days = (b) => eachDay(b.start, b.end < until ? b.end : until)
     .filter((d) => isWorkingDay(d, data.rules) && !onLeave(row.resource.id, d, data.leave));
   return (
+    <>
     <div className="rm-breakdown">
       {per.map(({ b, planned, actual, utilization: pctUsed }) => {
         if (logOnly) {
           if (b.start > until) {
             return (
-              <div key={b.start} className={`rm-bcard${b.start === focus ? ' is-focus' : ''}`}>
+              <div key={b.start} {...cardProps(b)}>
                 <span className="muted small">{b.label}</span><b className="muted">—</b>
                 <span className="rm-util-bar rm-wide"><i style={{ width: 0 }} /></span>
                 <span className="small muted">Not imported yet</span>
@@ -319,7 +333,7 @@ function Breakdown({ row, data, periods, filters, until, logOnly, focus }) {
           const done = working.filter((d) => logged.has(d)).length;
           const tone = !working.length ? 'var(--border-strong)' : done === working.length ? 'var(--success)' : done === 0 ? 'var(--danger)' : 'var(--warning)';
           return (
-            <div key={b.start} className={`rm-bcard${b.start === focus ? ' is-focus' : ''}`}>
+            <div key={b.start} {...cardProps(b)}>
               <span className="muted small">{b.label}</span>
               <b>{fmtHours(round(actual))} <span className="muted">logged</span></b>
               <span className="rm-util-bar rm-wide"><i style={{ width: `${working.length ? (done / working.length) * 100 : 0}%`, background: tone }} /></span>
@@ -331,7 +345,7 @@ function Breakdown({ row, data, periods, filters, until, logOnly, focus }) {
         }
         if (b.start > until) { // Redmine hours not imported yet
           return (
-            <div key={b.start} className={`rm-bcard${b.start === focus ? ' is-focus' : ''}`}>
+            <div key={b.start} {...cardProps(b)}>
               <span className="muted small">{b.label}</span>
               <b><span className="muted">— / {fmtHours(planned)}</span></b>
               <span className="rm-util-bar rm-wide"><i style={{ width: 0 }} /></span>
@@ -342,7 +356,7 @@ function Breakdown({ row, data, periods, filters, until, logOnly, focus }) {
         const pct = planned > 0 ? Math.min(100, (actual / planned) * 100) : actual > 0 ? 100 : 0;
         const tone = planned === 0 ? (actual > 0 ? 'var(--warning)' : 'var(--border-strong)') : actual < planned * (LOW_UTILIZATION / 100) ? 'var(--danger)' : 'var(--success)';
         return (
-          <div key={b.start} className={`rm-bcard${b.start === focus ? ' is-focus' : ''}`}>
+          <div key={b.start} {...cardProps(b)}>
             <span className="muted small">{b.label}</span>
             <b>{fmtHours(round(actual))} <span className="muted">/ {fmtHours(planned)}</span></b>
             <span className="rm-util-bar rm-wide"><i style={{ width: `${pct}%`, background: tone }} /></span>
@@ -350,6 +364,72 @@ function Breakdown({ row, data, periods, filters, until, logOnly, focus }) {
           </div>
         );
       })}
+    </div>
+    {opened && (
+      <DayEntries key={opened.start} bucket={opened} until={until}
+        entries={counted.filter((e) => e.date >= opened.start && e.date <= (opened.end < until ? opened.end : until))}
+        onClose={() => setOpenKey(null)} />
+    )}
+    </>
+  );
+}
+
+// The Redmine time entries behind one card (a day, or a week or month with a Date column)
+function DayEntries({ bucket, entries, until, onClose }) {
+  const [state, setState] = useState({ loading: true, error: null, details: null });
+  const ids = entries.map((e) => e.id);
+  useEffect(() => {
+    if (!ids.length) { setState({ loading: false, error: null, details: { entries: [] } }); return; }
+    api.timeEntryDetails(ids)
+      .then((details) => setState({ loading: false, error: null, details }))
+      .catch((e) => setState({ loading: false, error: e.message, details: null }));
+  }, [ids.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  const multiDay = bucket.start !== bucket.end;
+  const total = round(entries.reduce((n, e) => n + e.hours, 0));
+  const span = multiDay ? `${formatDate(bucket.start, { year: false })} – ${formatDate(bucket.end < until ? bucket.end : until, { year: false })}` : bucket.label;
+  const d = state.details;
+  return (
+    <div className="rm-entries">
+      <div className="rm-entries-head">
+        <b>{span} · {entries.length} {entries.length === 1 ? 'entry' : 'entries'} · {fmtHours(total)} logged</b>
+        <button className="icon-btn icon-btn-sm" onClick={onClose} aria-label="Close the time entries"><ClearIcon /></button>
+      </div>
+      {state.loading && <p className="muted small rm-entries-msg">Loading time entries…</p>}
+      {state.error && <p className="form-error rm-entries-msg">Could not load the time entries: {state.error}</p>}
+      {d && !d.entries.length && <p className="muted small rm-entries-msg">Nothing logged in Redmine {multiDay ? 'in this period' : 'on this day'}.</p>}
+      {d && d.entries.length > 0 && (
+        <div className="rm-entries-scroll">
+          <table className="rm-entries-table">
+            <thead>
+              <tr>
+                {multiDay && <th>Date</th>}<th>Redmine issue</th><th>Jira</th><th>Activity</th><th>Comment</th><th className="num">Hours</th>
+              </tr>
+            </thead>
+            <tbody>
+              {d.entries.map((e) => (
+                <tr key={e.id}>
+                  {multiDay && <td className="nowrap">{formatDate(e.date, { year: false })}</td>}
+                  <td>
+                    {e.issueId ? (
+                      <>
+                        {d.redmineUrl ? <a href={`${d.redmineUrl}/issues/${e.issueId}`} target="_blank" rel="noreferrer">#{e.issueId}</a> : `#${e.issueId}`}
+                        {e.issue && <span className="rm-entries-issue"> {e.issue}</span>}
+                      </>
+                    ) : <span className="muted">No issue</span>}
+                  </td>
+                  <td className="nowrap">{e.jiraKey ? (d.jiraUrl ? <a href={`${d.jiraUrl}/browse/${e.jiraKey}`} target="_blank" rel="noreferrer">{e.jiraKey}</a> : e.jiraKey) : <span className="muted">—</span>}</td>
+                  <td className="nowrap">{e.activity ?? '—'}</td>
+                  <td>{e.comment ?? <span className="muted">—</span>}</td>
+                  <td className="num">{fmtHours(e.hours)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr><td colSpan={multiDay ? 5 : 4}>Total</td><td className="num">{fmtHours(total)}</td></tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

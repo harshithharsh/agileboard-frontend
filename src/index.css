@@ -1245,3 +1245,17 @@ ul.footer-meta li + li::before { content: ''; width: 1px; height: 10px; margin: 
 .al-check { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 .al-left-date { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
 .al-left-date input { font: inherit; font-size: 13px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; }
+.rm-bcard-click { cursor: pointer; }
+.rm-bcard-click:hover { border-color: var(--border-strong); }
+.rm-bcard.is-open { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft); }
+.rm-entries { margin-top: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+.rm-entries-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.rm-entries-msg { margin: 0; padding: 12px; }
+.rm-entries-scroll { overflow-x: auto; }
+.rm-entries-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rm-entries-table th { text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; padding: 8px 12px; }
+.rm-entries-table td { padding: 7px 12px; border-top: 1px solid var(--border); vertical-align: top; }
+.rm-entries-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rm-entries-table .nowrap { white-space: nowrap; }
+.rm-entries-table tfoot td { font-weight: 700; }
+.rm-entries-issue { color: var(--text); }
